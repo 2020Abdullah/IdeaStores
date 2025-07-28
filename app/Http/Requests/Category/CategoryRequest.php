@@ -26,7 +26,6 @@ class CategoryRequest extends FormRequest
             'name' => [
                 'required',
                 'string',
-                Rule::unique('categories', 'name')->ignore($this->id),
             ],
         ];
     }
@@ -35,7 +34,6 @@ class CategoryRequest extends FormRequest
     {
         return [
             'name.required' => 'يجب إدخال اسم التصنيف !',
-            'name.unique' => 'هذا التصنيف موجود بالفعل، يُرجى اختيار اسم مختلف.',
         ];
     }
 }

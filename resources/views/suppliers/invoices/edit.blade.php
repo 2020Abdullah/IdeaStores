@@ -37,7 +37,7 @@
         <div class="card-header">
             <h3 class="card-title">تعديل الفاتورة</h3>
         </div>
-        <form action="{{ route('supplier.invoice.update') }}" method="POST">
+        <form action="{{ route('supplier.invoice.update') }}" id="invoiceForm" method="POST">
             @csrf
             <input type="hidden" value="{{ $invoice->id }}" name="id">
             <input type="hidden" value="{{ $invoice->total_amount }}" name="total_amount_old">
@@ -505,6 +505,35 @@ $(function () {
         $(".current_balance_label").text('الرصيد المتوفر');
         $(".current_balance").attr('type', 'text');
     })
+
+    $('#invoiceForm').on('submit', function(e) {
+        e.preventDefault(); // منع الإرسال مؤقتًا
+
+        // تأكيد من المستخدم
+        if (confirm("هل أنت متأكد من حفظ البيانات؟")) {
+            // رسالة التوست
+            $.toast({
+                heading: 'جاري الحفظ',
+                text: 'من فضلك انتظر...',
+                showHideTransition: 'fade',
+                icon: 'info',
+                position: 'top-right',
+                hideAfter: 3000
+            });
+
+            // إرسال النموذج فعليًا
+            this.submit();
+        } else {
+            $.toast({
+                heading: 'تم الإلغاء',
+                text: 'لم يتم حفظ البيانات.',
+                showHideTransition: 'fade',
+                icon: 'warning',
+                position: 'top-right',
+                hideAfter: 3000
+            });
+        }
+    });
 
 });
 </script>
