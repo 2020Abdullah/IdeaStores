@@ -124,14 +124,14 @@
                                     <i data-feather='edit'></i>
                                 </a>
                 
-                                <a href="#" data-bs-toggle="modal" data-bs-target="#delInvoice"
+                                {{-- <a href="#" data-bs-toggle="modal" data-bs-target="#delInvoice"
                                     data-id="{{ $inv->id }}"
                                     data-total_amount="{{ $inv->total_amount }}"
                                     data-supplier_id="{{ $inv->supplier_id }}"
                                    class="btn btn-icon btn-danger waves-effect waves-float waves-light delBtn"
                                    title="حذف">
                                     <i data-feather='trash-2'></i>
-                                </a>
+                                </a> --}}
 
                                 @if ($inv->invoice_staute !== 1)
                                     <a href="#" data-bs-toggle="modal" data-bs-target="#PaymentInvoice"
@@ -236,14 +236,14 @@
     <script>
         $(document).ready(function(){
             // delete action
-            $(".delBtn").on('click', function(){
-                let id = $(this).data('id');
-                let total_amount = $(this).data('total_amount');
-                let supplier_id = $(this).data('supplier_id');
-                $("#delInvoice .id").val(id);
-                $("#delInvoice .supplier_id").val(supplier_id);
-                $("#delInvoice .total_amount").val(total_amount);
-            })
+            // $(".delBtn").on('click', function(){
+            //     let id = $(this).data('id');
+            //     let total_amount = $(this).data('total_amount');
+            //     let supplier_id = $(this).data('supplier_id');
+            //     $("#delInvoice .id").val(id);
+            //     $("#delInvoice .supplier_id").val(supplier_id);
+            //     $("#delInvoice .total_amount").val(total_amount);
+            // })
 
             // credit action
             $(".creditBtn").on('click', function(){

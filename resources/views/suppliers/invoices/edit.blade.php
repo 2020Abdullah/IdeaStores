@@ -76,7 +76,7 @@
                 </div>
                 <div class="mb-2">
                     <label class="form-label">نوع الفاتورة</label>
-                    <select name="invoice_type" class="form-select @error('invoice_type') is-invalid @enderror">
+                    <select name="invoice_type" class="form-select invoice_type @error('invoice_type') is-invalid @enderror">
                         <option value="">اختر نوع الفاتورة ...</option>
                         <option value="cash" {{ old('invoice_type', $invoice->invoice_type ?? '') == 'cash' ? 'selected' : '' }}>كاش</option>
                         <option value="credit" {{ old('invoice_type', $invoice->invoice_type ?? '') == 'credit' ? 'selected' : '' }}>آجل</option>
@@ -89,6 +89,25 @@
                             </div>
                         </div>
                     @enderror
+                </div>
+                <div class="mb-1 warehouse_container" style="display: none;">
+                    <label class="form-label">من حساب</label>
+                    <select name="warehouse_id" class="form-control warehouse_id">
+                        <option value="">اختر الخزنة ...</option>
+                        @foreach ($warehouse_list as $w)
+                            <option value="{{ $w->id }}">{{ $w->name }}</option>              
+                        @endforeach
+                    </select>
+                </div>
+                <div class="mb-1 wallet_container" style="display: none;">
+                    <label class="form-label">المحفظة</label>
+                    <select name="wallet_id" class="form-control wallet_id">
+                        <option value="">...</option>
+                    </select>
+                </div>
+                <div class="mb-1 balance_container" style="display: none;">
+                    <label class="form-label current_balance_label"></label>
+                    <input type="hidden" class="form-control current_balance" name="current_balance" readonly>
                 </div>
                 <div class="mb-2">
                     <a href="#" class="addItems btn-icon-content btn btn-success waves-effect waves-float waves-light">
@@ -433,6 +452,59 @@ $(function () {
         calculateTotalInvoice();
         feather.replace();
     });
+
+        // change type = cash 
+        $(document).on('change', '.invoice_type', function(){
+        let invoice_type = $(this).find('option:selected').val();
+        console.log(invoice_type);
+        if(invoice_type === 'cash'){
+            $(".warehouse_container").show(500);
+            $(".wallet_container").show(500);
+            $(".balance_container").show(500);
+        }
+        else {
+            $(".warehouse_container").hide(500);
+            $(".wallet_container").hide(500);
+            $(".balance_container").hide(500);
+        }
+    })
+
+    // change warehouse_id action
+    $(document).on('change', '.warehouse_id', function(){
+        $.ajaxSetup({
+            headers: {
+                'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+            }
+        });
+        $.ajax({
+            url: "{{ route('getWallets') }}",
+            method: 'POST',
+            data: {
+                warehouse_id: $(this).val() 
+            },
+            success: function (response) {
+                $('.wallet_id').empty();
+                $('.wallet_id').append(`<option value="">اختر محفظة ...</option>`)
+                $.each(response.data, function(index, item){
+                    $('.wallet_id').append(`<option value="${item.id}" data-balance="${item.current_balance}" data-method="${item.method}">${item.name}</option>`)
+                })
+            },
+            error: function(xhr){
+                console.log(xhr);
+            },
+        });
+    })
+
+    // get balance wallet
+    $(document).on('change', '.wallet_id', function(){
+        let balance = parseInt($(this).find('option:selected').attr('data-balance')) || 0;
+        let method = $(this).find('option:selected').attr('data-method');
+        $(".current_balance").val(balance)
+        $(".method").val(method)
+        $(".balance_container").show(500);
+        $(".current_balance_label").text('الرصيد المتوفر');
+        $(".current_balance").attr('type', 'text');
+    })
 
 });
 </script>

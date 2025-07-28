@@ -41,7 +41,7 @@
                    title="تعديل">
                     <i data-feather='edit'></i>
                 </a>
-
+{{-- 
                 <a href="#" data-bs-toggle="modal" data-bs-target="#delInvoice"
                    data-id="{{ $inv->id }}"
                    data-total_amount="{{ $inv->total_amount }}"
@@ -49,7 +49,7 @@
                    class="btn btn-icon btn-danger waves-effect waves-float waves-light delBtn"
                    title="حذف">
                     <i data-feather='trash-2'></i>
-                </a>
+                </a> --}}
 
                 @if ($inv->invoice_staute !== 1)
                     <a href="#" data-bs-toggle="modal" data-bs-target="#PaymentInvoice"

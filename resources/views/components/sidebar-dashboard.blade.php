@@ -24,29 +24,16 @@
                 </a>
             </li>
 
-            
             <li class="nav-item has-sub">
                 <a class="d-flex align-items-center" href="#">
-                    <i data-feather='settings'></i>
-                    <span class="menu-title text-truncate">الضبط العام</span>
+                    <i data-feather='file-text'></i>
+                    <span class="menu-title text-truncate">إدارة الفواتير</span>
                 </a>
                 <ul class="menu-content">
                     <li>
-                        <a class="d-flex align-items-center" href="{{ route('units.index') }}">
+                        <a class="d-flex align-items-center" href="{{ route('supplier.invoice.index') }}">
                             <i data-feather='circle'></i>
-                            <span class="menu-item text-truncate">وحدات القياس</span>
-                        </a>
-                    </li>
-                    <li>
-                        <a class="d-flex align-items-center" href="{{ route('category.index') }}">
-                            <i data-feather='circle'></i>
-                            <span class="menu-item text-truncate">التصنيفات</span>
-                        </a>
-                    </li>
-                    <li>
-                        <a class="d-flex align-items-center" href="{{ route('setting.show') }}">
-                            <i data-feather='circle'></i>
-                            <span class="menu-item text-truncate">إعدادات الشركة</span>
+                            <span class="menu-item text-truncate">فواتير الموردين</span>
                         </a>
                     </li>
                 </ul>
@@ -119,12 +106,6 @@
                             <span class="menu-item text-truncate">الموردين</span>
                         </a>
                     </li>
-                    <li>
-                        <a class="d-flex align-items-center" href="{{ route('supplier.invoice.index') }}">
-                            <i data-feather='circle'></i>
-                            <span class="menu-item text-truncate">فواتير الموردين</span>
-                        </a>
-                    </li>
                 </ul>
             </li>
 
@@ -140,6 +121,34 @@
                     <i data-feather='database'></i>
                     <span class="menu-title text-truncate">المخزن</span>
                 </a>
+            </li>
+
+                        
+            <li class="nav-item has-sub">
+                <a class="d-flex align-items-center" href="#">
+                    <i data-feather='settings'></i>
+                    <span class="menu-title text-truncate">الضبط العام</span>
+                </a>
+                <ul class="menu-content">
+                    <li>
+                        <a class="d-flex align-items-center" href="{{ route('units.index') }}">
+                            <i data-feather='circle'></i>
+                            <span class="menu-item text-truncate">وحدات القياس</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a class="d-flex align-items-center" href="{{ route('category.index') }}">
+                            <i data-feather='circle'></i>
+                            <span class="menu-item text-truncate">التصنيفات</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a class="d-flex align-items-center" href="{{ route('setting.show') }}">
+                            <i data-feather='circle'></i>
+                            <span class="menu-item text-truncate">إعدادات الشركة</span>
+                        </a>
+                    </li>
+                </ul>
             </li>
 
             <li class="nav-item">

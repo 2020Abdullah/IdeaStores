@@ -169,14 +169,14 @@
     <script>
         $(document).ready(function(){
             // delete action
-            $(".delBtn").on('click', function(){
-                let id = $(this).data('id');
-                let total_amount = $(this).data('total_amount');
-                let supplier_id = $(this).data('supplier_id');
-                $("#delInvoice .id").val(id);
-                $("#delInvoice .supplier_id").val(supplier_id);
-                $("#delInvoice .total_amount").val(total_amount);
-            })
+            // $(".delBtn").on('click', function(){
+            //     let id = $(this).data('id');
+            //     let total_amount = $(this).data('total_amount');
+            //     let supplier_id = $(this).data('supplier_id');
+            //     $("#delInvoice .id").val(id);
+            //     $("#delInvoice .supplier_id").val(supplier_id);
+            //     $("#delInvoice .total_amount").val(total_amount);
+            // })
 
             // credit action
             $(".creditBtn").on('click', function(){
