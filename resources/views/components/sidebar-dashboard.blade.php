@@ -68,6 +68,24 @@
                 </a>
                 <ul class="menu-content">
                     <li>
+                        <a class="d-flex align-items-center" href="{{ route('units.index') }}">
+                            <i data-feather='circle'></i>
+                            <span class="menu-item text-truncate">وحدات القياس</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a class="d-flex align-items-center" href="{{ route('size.index') }}">
+                            <i data-feather='circle'></i>
+                            <span class="menu-item text-truncate">المقاسات</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a class="d-flex align-items-center" href="{{ route('category.index') }}">
+                            <i data-feather='circle'></i>
+                            <span class="menu-item text-truncate">التصنيفات</span>
+                        </a>
+                    </li>
+                    <li>
                         <a class="d-flex align-items-center" href="{{ route('product.add') }}">
                             <i data-feather='circle'></i>
                             <span class="menu-item text-truncate">إضافة منتج جديد</span>
@@ -130,18 +148,6 @@
                     <span class="menu-title text-truncate">الضبط العام</span>
                 </a>
                 <ul class="menu-content">
-                    <li>
-                        <a class="d-flex align-items-center" href="{{ route('units.index') }}">
-                            <i data-feather='circle'></i>
-                            <span class="menu-item text-truncate">وحدات القياس</span>
-                        </a>
-                    </li>
-                    <li>
-                        <a class="d-flex align-items-center" href="{{ route('category.index') }}">
-                            <i data-feather='circle'></i>
-                            <span class="menu-item text-truncate">التصنيفات</span>
-                        </a>
-                    </li>
                     <li>
                         <a class="d-flex align-items-center" href="{{ route('setting.show') }}">
                             <i data-feather='circle'></i>

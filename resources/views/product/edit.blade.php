@@ -32,7 +32,7 @@
         <div class="card-body">
                 <div class="mb-1">
                     <label class="form-label">التصنيف الرئيسي</label>
-                    <select name="main_categories" class="form-select @error('main_categories') is-invalid @enderror" id="main_category">
+                    <select name="main_categories" class="form-select @error('main_categories') is-invalid @enderror" id="main_category" required>
                         @foreach ($main_categories as $c)
                             <option value="{{ $c->id }}" 
                                 {{ $product->category && $product->category->parent_id == $c->id ? 'selected' : ($product->category && $product->category->id == $c->id && !$product->category->parent_id ? 'selected' : '') }}>
@@ -53,7 +53,7 @@
                 </div>
                 <div class="mb-1">
                     <label class="form-label">وحدة القياس</label>
-                    <select name="unit_id" class="form-select @error('unit_id') is-invalid @enderror" id="unit_id">
+                    <select name="unit_id" class="form-select @error('unit_id') is-invalid @enderror" id="unit_id" required>
                         <option value="{{ $product->unit->id }}" selected>{{ $product->unit->name }}</option>                        
                         @foreach ($units as $u)
                             <option value="{{ $u->id }}">{{ $u->name }} - {{ $u->symbol }}</option>                        
@@ -67,17 +67,8 @@
                 </div>
                 <div class="mb-1">
                     <label class="form-label">اسم المنتج</label>
-                    <input type="text" class="form-control @error('name') is-invalid @enderror" value="{{ $product->name }}" name="name">
+                    <input type="text" class="form-control @error('name') is-invalid @enderror" value="{{ $product->name }}" name="name" required>
                     @error('name')
-                        <div class="alert alert-danger">
-                            <p>{{ @$message }}</p>
-                        </div>
-                    @enderror
-                </div>
-                <div class="mb-1">
-                    <label class="form-label">العرض</label>
-                    <input type="text" class="form-control @error('width') is-invalid @enderror" value="{{ $product->width }}" name="width">
-                    @error('width')
                         <div class="alert alert-danger">
                             <p>{{ @$message }}</p>
                         </div>

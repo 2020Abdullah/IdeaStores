@@ -33,10 +33,6 @@ class ProductRequest extends FormRequest
                 'required',
                 'string',
             ],
-            'width' => [
-                'required',
-                'numeric'
-            ]
         ];
     }
 
@@ -46,8 +42,6 @@ class ProductRequest extends FormRequest
             'final_category_id.required' => 'يجب اختيار التصنيف !',
             'unit_id.required' => 'يجب اختيار وحدة القياس !',
             'name.required' => 'يجب كتابة اسم المنتج !',
-            'width.required' => 'يرجى إدخال العرض.',
-            'width.numeric' => 'يجب أن يكون العرض رقمًا عشريًا فقط، ولا يمكن إدخال نص.',
         ];
     }
 }

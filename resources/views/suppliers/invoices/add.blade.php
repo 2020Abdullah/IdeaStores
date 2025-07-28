@@ -469,6 +469,32 @@ $(function () {
         } 
     });
 
+    let isFormChanged = false;
+
+    // راقب الحقول إذا المستخدم غيّر أي حاجة
+    $('form input, form select, form textarea').on('change input', function () {
+        isFormChanged = true;
+    });
+
+    // راقب الروابط داخل الـ sidebar أو التابات
+    $('.nav-item a').on('click', function (e) {
+        if (isFormChanged) {
+            e.preventDefault(); // منع التنقل
+
+            if (confirm("لديك تغييرات غير محفوظة، هل أنت متأكد من مغادرة الصفحة؟")) {
+                isFormChanged = false;
+                window.location.href = $(this).attr('href');
+            }
+        }
+    });
+
+    // مغادرة الصفحة (مثل إعادة تحميل أو إغلاق التبويب)
+    window.onbeforeunload = function () {
+        if (isFormChanged) {
+            return "لديك تغييرات غير محفوظة، هل تريد فعلاً مغادرة الصفحة؟";
+        }
+    };
+
 });
 </script>
 

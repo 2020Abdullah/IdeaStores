@@ -34,7 +34,7 @@
         <div class="card-body">
                 <div class="mb-1">
                     <div id="category_selectors">
-                        <select class="form-control category-level" data-level="0">
+                        <select class="form-control category-level" data-level="0" required>
                             <option value="">اختر التصنيف الرئيسي...</option>
                             @foreach ($main_categories as $cat)
                                 <option value="{{ $cat->id }}">{{ $cat->name }}</option>
@@ -49,7 +49,7 @@
                 </div>
                 <div class="mb-1">
                     <label class="form-label">وحدة القياس</label>
-                    <select name="unit_id" class="form-select @error('unit_id') is-invalid @enderror" id="unit_id">
+                    <select name="unit_id" class="form-select @error('unit_id') is-invalid @enderror" id="unit_id" required>
                         <option value="" selected>اختر الوحدة ...</option>                        
                         @foreach ($units as $u)
                             <option value="{{ $u->id }}">{{ $u->name }} - {{ $u->symbol }}</option>                        
@@ -63,17 +63,8 @@
                 </div>
                 <div class="mb-1">
                     <label class="form-label">اسم المنتج</label>
-                    <input type="text" class="form-control @error('name') is-invalid @enderror" name="name">
+                    <input type="text" class="form-control @error('name') is-invalid @enderror" name="name" required>
                     @error('name')
-                        <div class="alert alert-danger">
-                            <p>{{ @$message }}</p>
-                        </div>
-                    @enderror
-                </div>
-                <div class="mb-1">
-                    <label class="form-label">العرض</label>
-                    <input type="text" class="form-control @error('width') is-invalid @enderror" name="width">
-                    @error('width')
                         <div class="alert alert-danger">
                             <p>{{ @$message }}</p>
                         </div>

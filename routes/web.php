@@ -16,6 +16,7 @@ use App\Http\Controllers\BackupController;
 use App\Http\Controllers\CategoryTypeController;
 use App\Http\Controllers\ContactController;
 use App\Http\Controllers\OrderController;
+use App\Http\Controllers\SizeController;
 use App\Http\Controllers\SkillsController;
 use App\Http\Controllers\StoreHouseController;
 use App\Http\Controllers\SupplierController;
@@ -118,6 +119,13 @@ Route::middleware('auth')->group(function(){
     // setting 
     Route::get('setting', [SettingController::class, 'setting'])->name('setting.show');
     Route::post('Profile/update', [SettingController::class, 'updateProfile'])->name('setting.update');
+
+
+    // sizes
+    Route::get('sizes/index', [SizeController::class, 'index'])->name('size.index');
+    Route::post('sizes/store', [SizeController::class, 'store'])->name('size.store');
+    Route::post('sizes/update', [SizeController::class, 'update'])->name('size.update');
+    Route::post('sizes/delete', [SizeController::class, 'delete'])->name('size.delete');
 
     // backup
     Route::get('/backup', fn() => view('backup'))->name('backup.view');
