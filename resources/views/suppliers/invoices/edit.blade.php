@@ -511,27 +511,9 @@ $(function () {
 
         // تأكيد من المستخدم
         if (confirm("هل أنت متأكد من حفظ البيانات؟")) {
-            // رسالة التوست
-            $.toast({
-                heading: 'جاري الحفظ',
-                text: 'من فضلك انتظر...',
-                showHideTransition: 'fade',
-                icon: 'info',
-                position: 'top-right',
-                hideAfter: 3000
-            });
-
-            // إرسال النموذج فعليًا
             this.submit();
         } else {
-            $.toast({
-                heading: 'تم الإلغاء',
-                text: 'لم يتم حفظ البيانات.',
-                showHideTransition: 'fade',
-                icon: 'warning',
-                position: 'top-right',
-                hideAfter: 3000
-            });
+            toost.error('تم الإحتفاظ بالبيانات')
         }
     });
 

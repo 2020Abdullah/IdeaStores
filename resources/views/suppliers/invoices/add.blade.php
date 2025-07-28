@@ -44,7 +44,7 @@
                 <div class="mb-2">
                     <label class="form-label" for="name">المورد</label>
                     @if (isset($supplier))
-                        <input type="hidden" class="form-control" name="supplier_id" value="{{ $supplier->id }}">
+                        <input type="hidden" class="form-control" name="supplier_id" value="{{ $supplier->id }}" required>
                         <input type="text" class="form-control" value="{{ $supplier->name }}" readonly>
                     @else
                         <select name="supplier_id" class="form-select">
@@ -65,7 +65,7 @@
                 </div>
                 <div class="mb-2">
                     <label class="form-label" for="phone">تاريخ الفاتورة</label>
-                    <input type="date" class="form-control @error('invoice_date') is-invalid @enderror" name="invoice_date" />
+                    <input type="date" class="form-control @error('invoice_date') is-invalid @enderror" name="invoice_date" required/>
                     @error('invoice_date')
                         <div class="alert alert-danger mt-1" role="alert">
                             <h4 class="alert-heading">خطأ</h4>
@@ -77,7 +77,7 @@
                 </div>
                 <div class="mb-2">
                     <label class="form-label">نوع الفاتورة</label>
-                    <select name="invoice_type" class="form-select invoice_type @error('invoice_type') is-invalid @enderror">
+                    <select name="invoice_type" class="form-select invoice_type @error('invoice_type') is-invalid @enderror" required>
                         <option value="">اختر ...</option>
                         <option value="cash">كاش</option>
                         <option value="credit">آجل</option>
@@ -465,28 +465,8 @@ $(function () {
 
         // تأكيد من المستخدم
         if (confirm("هل أنت متأكد من حفظ البيانات؟")) {
-            // رسالة التوست
-            $.toast({
-                heading: 'جاري الحفظ',
-                text: 'من فضلك انتظر...',
-                showHideTransition: 'fade',
-                icon: 'info',
-                position: 'top-right',
-                hideAfter: 3000
-            });
-
-            // إرسال النموذج فعليًا
             this.submit();
-        } else {
-            $.toast({
-                heading: 'تم الإلغاء',
-                text: 'لم يتم حفظ البيانات.',
-                showHideTransition: 'fade',
-                icon: 'warning',
-                position: 'top-right',
-                hideAfter: 3000
-            });
-        }
+        } 
     });
 
 });
