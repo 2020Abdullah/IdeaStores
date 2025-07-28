@@ -127,6 +127,7 @@
                                     <th>وحدة القياس</th>
                                     <th>سعر الشراء للوحدة</th>
                                     <th>الإجمالي</th>
+                                    <th>السعر النهائي</th>
                                     <th>حذف</th>
                                 </thead>
                                 <tbody></tbody>
@@ -257,6 +258,23 @@ $(function () {
         $('.total_amount').val(total_amount);
     }
 
+    function calculateFinalCostPrice(row){
+        // التكاليف
+        let additionalCost = parseInt($('.additional_cost').val().replace(/,/g, '')) || 0;
+        
+        // قيمة الصنف
+        let quantity = parseInt(row.find('.quantity').val()) || 0;
+
+        // مجموع الأصناف 
+        let total_price = 0;
+        $('tr.product-item').each(function () {
+            let price = parseInt($(this).find('.total_price').val().replace(/,/g, '')) || 0;
+            total_price += price;
+        });
+
+        // 
+    }
+
 
     // إضافة صنف جديد
     $(document).on('click', '.addItems', function () {
@@ -284,6 +302,7 @@ $(function () {
                 </td> 
                 <td><input type="number" name="items[${index}][purchase_price]"  class="form-control purchase_price" step="any"></td>
                 <td><input type="number" name="items[${index}][total_price]" class="form-control total_price" step="any" readonly></td>
+                <td><input type="number" name="items[${index}][final_cost_price]" class="form-control final_cost_price" step="any" readonly></td>
                 <td>
                     <button type="button" class="btn btn-danger btn-sm remove-row">
                         <i data-feather='trash-2'></i>
@@ -349,7 +368,7 @@ $(function () {
                     success: function(response) {
                         select.empty().append(`<option value="">اختر منتج</option>`);
                         response.data.forEach(item => {
-                            select.append(`<option value="${item.id}">${item.name}</option>`);
+                            select.append(`<option value="${item.id}">${item.name} - ${item.width}</option>`);
                         });
                     }
                 });

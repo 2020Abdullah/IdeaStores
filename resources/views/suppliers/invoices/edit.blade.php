@@ -338,7 +338,7 @@ $(function () {
             success: function(response) {
                 select.empty().append(`<option value="">اختر منتج</option>`);
                 response.data.forEach(item => {
-                    select.append(`<option value="${item.id}">${item.name}</option>`);
+                    select.append(`<option value="${item.id}">${item.name} - ${item.width}</option>`);
                 });
             }
         });
