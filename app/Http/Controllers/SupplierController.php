@@ -1,0 +1,690 @@
+<?php
+
+namespace App\Http\Controllers;
+
+use App\Exports\SuppliersDataExport;
+use App\Exports\SuppliersTemplateExport;
+use App\Http\Requests\Invoices\supplierInvoiceRequest;
+use App\Http\Requests\PaymentInvoiceRequest;
+use App\Imports\SuppliersImport;
+use App\Models\Account;
+use App\Models\Account_transactions;
+use App\Models\App;
+use App\Models\Category;
+use App\Models\Product;
+use App\Models\Stock;
+use App\Models\Stock_movement;
+use App\Models\StoreHouse;
+use App\Models\Supplier;
+use App\Models\Supplier_invoice;
+use App\Models\Unit;
+use App\Models\Wallet;
+use App\Models\Wallet_movement;
+use App\Models\Warehouse;
+use Exception;
+use Illuminate\Http\Request;
+use Maatwebsite\Excel\Facades\Excel;
+use Mpdf\Mpdf;
+
+class SupplierController extends Controller
+{
+    public function index(){
+        $suppliers_list = Supplier::all();
+        return view('suppliers.index', compact('suppliers_list'));
+    }
+
+    public function add(){
+        return view('suppliers.add');
+    }
+
+    public function store(Request $request){
+        $request->validate([
+            'name' => 'required'
+        ],[
+            'name.required' => 'يجب إدخال اسم المورد !'
+        ]);
+        try {
+            $Supplier = new Supplier();
+            $Supplier->name = $request->name;
+            $Supplier->phone = $request->phone;
+            $Supplier->busniess_name = $request->busniess_name;
+            $Supplier->busniess_type = $request->busniess_type;
+            $Supplier->whatsUp = $request->whatsUp;
+            $Supplier->place = $request->place;
+            $Supplier->notes = $request->notes;
+            $Supplier->save();
+
+            $Supplier->account()->create([
+                'name'     => 'حساب المورد: ' . $Supplier->name,
+                'type' => 'supplier',
+                'total_capital_balance' => 0,
+                'total_profit_balance' => 0,
+            ]);
+
+        }
+        catch(Exception $e){
+            return $e->getMessage();
+        }
+        return redirect()->route('supplier.index')->with('success', 'تم إضافة مورد بنجاح');
+    }
+
+    public function edit($id){
+        $supplier = Supplier::findOrFail($id);
+        return view('suppliers.edit', compact('supplier'));
+    }
+
+    public function update(Request $request){
+        $request->validate([
+            'name' => 'required'
+        ],[
+            'name.required' => 'يجب إدخال اسم المورد !'
+        ]);
+        try {
+            $Supplier = Supplier::findOrFail($request->id);
+            $Supplier->name = $request->name;
+            $Supplier->phone = $request->phone;
+            $Supplier->busniess_name = $request->busniess_name;
+            $Supplier->busniess_type = $request->busniess_type;
+            $Supplier->whatsUp = $request->whatsUp;
+            $Supplier->place = $request->place;
+            $Supplier->notes = $request->notes;
+            $Supplier->save();
+
+            // edit account name
+            $Supplier->account()->update([
+                'name' => 'حساب المورد: ' . $request->name
+            ]);
+        }
+        catch(Exception $e){
+            return $e->getMessage();
+        }
+        return redirect()->route('supplier.index')->with('success', 'تم تعديل بيانات المورد بنجاح');
+    }
+
+    public function downloadTemplate(){
+        return Excel::download(new SuppliersTemplateExport, 'نموذج_الموردين.xlsx');
+    }
+
+    public function importSuppliers(Request $request)
+    {
+        $request->validate([
+            'file' => 'required|file|mimes:xlsx,xls',
+        ]);
+
+        Excel::import(new SuppliersImport, $request->file('file'));
+
+        return back()->with('success', 'تم استيراد الموردين بنجاح');
+    }
+
+    public function exportData(Request $request){
+        $ids = json_decode($request->recardsIds[0]); 
+
+        if (empty($ids)) {
+            return redirect()->back()->with('error', 'لم يتم تحديد موردين');
+        }
+
+        return Excel::download(new SuppliersDataExport($ids),'بيانات الموردين.xlsx');
+    }
+
+    public function profileShow($id){
+        $data['warehouse_list'] = Warehouse::where('is_main', 0)->get();
+        $data['supplier'] = Supplier::findOrFail($id);
+        $data['supplier_invoices'] = Supplier_invoice::where('supplier_id' , $id)->paginate(100);
+        return view('suppliers.profile', $data);
+    }
+
+    public function InvoiceIndex(){
+        $invoices_list = Supplier_invoice::orderBy('invoice_date', 'desc')->paginate(100);
+        $warehouse_list = Warehouse::where('is_main', 0)->get();
+        return view('suppliers.invoices.index', compact('invoices_list', 'warehouse_list'));
+    }
+    
+    public function InvoiceAdd($id = null){
+        $data['warehouse_list'] = Warehouse::where('is_main', 0)->get();
+        if($id){
+            $data['supplier'] = Supplier::findOrFail($id);
+        }
+        else {
+            $data['suppliers_list'] = Supplier::all();
+        }
+        $data['main_categories'] = Category::whereNull('parent_id')->get();
+        return view('suppliers.invoices.add', $data);
+    }
+
+    protected function generateNum(){
+        $lastcode = Supplier_invoice::max('invoice_code');
+        $year = date('Y');
+
+        // generate number unique
+        if($lastcode == 0){
+            $invoice_code = $year . 0;
+        }
+        else {
+            $invoice_code = $year . $lastcode + 1;
+        }
+        return $invoice_code;
+    }
+
+    public function InvoiceStore(supplierInvoiceRequest $request){
+        // التحقق من الفاتورة لو هيا آجل ام كاش
+        if($request->invoice_type === 'cash'){
+            return $this->paymentCash($request);
+        }
+        else {
+            return $this->paymentcredit($request);
+        }
+    }
+
+    protected function paymentcredit($request){
+        // أولاً: المورد
+        $supplier = Supplier::where('id', $request->supplier_id)->first();
+        $supplier->account()->increment('total_capital_balance', $request->total_amount);
+
+        // ثانياً: الخزنة الرئيسية + خزنة التوريدات
+        $main_warehouse = Warehouse::where('is_main', 1)->first();
+        $toridat_warehouse = Warehouse::where('type', 'toridat')->first();
+
+        $main_warehouse->account()->decrement('total_capital_balance', $request->total_amount);
+        $toridat_warehouse->account()->decrement('total_capital_balance', $request->total_amount);
+
+        // 2. إنشاء الفاتورة 
+        $invoice = Supplier_invoice::create([
+            'supplier_id' => $request->supplier_id,
+            'invoice_code' => $this->generateNum(),
+            'invoice_date' => $request->invoice_date,
+            'invoice_type' => $request->invoice_type,
+            'total_amount' => $request->total_amount,
+            'cost_price' => $request->additional_cost,
+            'notes' => $request->notes,
+        ]);
+
+        // 3. إضافة تفاصيل التكاليف
+        $costs = $request->input('costs');
+        if ($costs && is_array($costs)) {
+            foreach ($costs as $cost) {
+                $invoice->costs()->create([
+                    'description' => $cost['description'],
+                    'amount' => $cost['amount'],
+                ]);
+            }
+        }
+
+        // ضبط المخزن
+
+        $main_store = StoreHouse::latest()->first(); 
+
+        // إدخال أصناف الفاتورة + إدخال ستوك جديد لكل صنف
+        $invoivce_items = $request->input('items');
+        if ($invoivce_items && is_array($invoivce_items)) {
+            foreach ($invoivce_items as $item) {
+                $invoice->items()->create([
+                    'supplier_invoice_id' => $invoice->id,
+                    'category_id' => $item['category_id'],
+                    'product_id' => $item['product_id'],
+                    'unit_id' => $item['unit_id'],
+                    'quantity' => $item['quantity'],
+                    'purchase_price' => $item['purchase_price'],
+                ]);
+
+                // إضافة المنتج إلي المخزن لو لم يكن موجود وتحديث الكمية لو كان موجود
+                $stock = Stock::where([
+                    'category_id' => $item['category_id'],
+                    'product_id' => $item['product_id'],
+                ])->first();
+
+                
+                if ($stock) {
+                    // إذا المنتج موجود بالفعل في المخزن، قم بتحديث الكمية فقط
+                    $stock->initial_quantity += $item['quantity'];
+                    $stock->remaining_quantity += $item['quantity'];
+                    $stock->save();
+                } else {
+                    // إذا المنتج جديد، قم بإنشائه
+                    $stock = Stock::create([
+                        'category_id' => $item['category_id'],
+                        'product_id' => $item['product_id'],
+                        'code' => $invoice->invoice_code,
+                        'store_house_id' => $main_store->id,
+                        'unit_id' => $item['unit_id'],
+                        'initial_quantity' => $item['quantity'],
+                        'remaining_quantity' => $item['quantity'],
+                    ]);
+                } 
+
+                // تسجيل حركة مخزن
+                $stock_movement = new Stock_movement();
+                $stock_movement->supplier_id = $request->supplier_id;
+                $stock_movement->stock_id = $stock->id;
+                $stock_movement->type = 'in';
+                $stock_movement->quantity = $item['quantity'];
+                $stock_movement->note = 'شراء';
+                $stock_movement->save();
+            }
+        }
+        return back()->with('success', 'تم إنشاء فاتورة مورد بنجاح');
+    }
+
+    protected function paymentCash($request){
+        $wallet = Wallet::findOrFail($request->wallet_id);
+        $supplier = Supplier::findOrFail($request->supplier_id);
+        $main_warehouse = Warehouse::where('is_main', 1)->first();
+        $warehouse = Warehouse::where('id', $request->warehouse_id)->first();
+
+        // 1. ضبط الحسابات
+
+        // التأكد من أن الرصيد الحالي أكبر من صفر
+        if ($wallet->current_balance <= 0) {
+            return back()->with('info', 'رصيد المحفظة يجب أن يكون أكبر من صفر .');
+        }
+
+        // التأكد من أن مبلغ الفاتورة يساوى قيمة الفاتورة
+        if ($request->total_amount > $wallet->current_balance) {
+            return back()->with('info', 'رصيد المحفظة غير كافي لإجراء هذه العملية برجاء التحقق من الرصيد .');
+        }
+
+        // الخزنة الرئيسية
+        $main_warehouse->account()->decrement('total_capital_balance', $request->total_amount);
+        $main_warehouse->account()->increment('total_capital_balance', $request->total_amount);
+        $main_warehouse->account()->decrement('current_balance', $request->total_amount);
+        
+        // الخزنة الفرعية
+        $warehouse->account()->decrement('total_capital_balance', $request->total_amount);
+        $warehouse->account()->increment('total_capital_balance', $request->total_amount);
+        $warehouse->account()->decrement('current_balance', $request->total_amount);
+        
+        // المحفظة
+        $wallet->decrement('current_balance', $request->total_amount);
+
+        // المورد
+        $supplier->account()->increment('current_balance', $request->total_amount);
+        $supplier->account()->increment('total_capital_balance', $request->total_amount);
+        $supplier->account()->decrement('total_capital_balance', $request->total_amount);
+
+        // 2. إنشاء الفاتورة 
+        $invoice = Supplier_invoice::create([
+            'supplier_id' => $request->supplier_id,
+            'invoice_code' => $this->generateNum(),
+            'invoice_date' => $request->invoice_date,
+            'invoice_type' => $request->invoice_type,
+            'total_amount' => $request->total_amount,
+            'paid_amount' => $request->total_amount,
+            'invoice_staute' => 1,
+            'cost_price' => $request->additional_cost,
+            'notes' => $request->notes,
+        ]);
+
+        // 3. إضافة تفاصيل التكاليف
+        $costs = $request->input('costs');
+        if ($costs && is_array($costs)) {
+            foreach ($costs as $cost) {
+                $invoice->costs()->create([
+                    'description' => $cost['description'],
+                    'amount' => $cost['amount'],
+                ]);
+            }
+        }
+
+        // 4. تسجيل حركة حساب 
+        Account_transactions::create([
+            'account_id' => $warehouse->account->id,
+            'direction'  => 'out',
+            'method'     => $request->method,
+            'amount'     => $request->total_amount,
+            'transaction_type' => 'purchase',
+            'related_type' => Supplier::class,  
+            'related_id' => $supplier->id,
+            'source_type' => Supplier_invoice::class,   
+            'source_id' => $request->id,
+            'description' => $request->description
+        ]);
+
+        // 5. تسجيل حركة محفظة
+        $wallet_movement = new Wallet_movement();
+        $wallet_movement->wallet_id = $request->wallet_id;
+        $wallet_movement->amount = $request->total_amount;
+        $wallet_movement->direction = 'out';
+        $wallet_movement->note = 'فاتورة شراء';
+        $wallet_movement->source_code = $invoice->invoice_code;
+        $wallet_movement->save();
+
+
+        // ضبط المخزن
+
+        $main_store = StoreHouse::latest()->first(); 
+
+        // إدخال أصناف الفاتورة + إدخال ستوك جديد لكل صنف
+        $invoivce_items = $request->input('items');
+        if ($invoivce_items && is_array($invoivce_items)) {
+            foreach ($invoivce_items as $item) {
+                $invoice->items()->create([
+                    'supplier_invoice_id' => $invoice->id,
+                    'category_id' => $item['category_id'],
+                    'product_id' => $item['product_id'],
+                    'unit_id' => $item['unit_id'],
+                    'quantity' => $item['quantity'],
+                    'purchase_price' => $item['purchase_price'],
+                ]);
+
+                // إضافة المنتج إلي المخزن لو لم يكن موجود وتحديث الكمية لو كان موجود
+                $stock = Stock::where([
+                    'category_id' => $item['category_id'],
+                    'product_id' => $item['product_id'],
+                ])->first();
+
+                
+                if ($stock) {
+                    // إذا المنتج موجود بالفعل في المخزن، قم بتحديث الكمية فقط
+                    $stock->initial_quantity += $item['quantity'];
+                    $stock->remaining_quantity += $item['quantity'];
+                    $stock->save();
+                } else {
+                    // إذا المنتج جديد، قم بإنشائه
+                    $stock = Stock::create([
+                        'category_id' => $item['category_id'],
+                        'product_id' => $item['product_id'],
+                        'code' => $invoice->invoice_code,
+                        'store_house_id' => $main_store->id,
+                        'unit_id' => $item['unit_id'],
+                        'initial_quantity' => $item['quantity'],
+                        'remaining_quantity' => $item['quantity'],
+                    ]);
+                } 
+
+                // تسجيل حركة مخزن
+                $stock_movement = new Stock_movement();
+                $stock_movement->supplier_id = $request->supplier_id;
+                $stock_movement->stock_id = $stock->id;
+                $stock_movement->type = 'in';
+                $stock_movement->quantity = $item['quantity'];
+                $stock_movement->note = 'شراء';
+                $stock_movement->save();
+            }
+        }
+        return back()->with('success', 'تم إنشاء فاتورة مورد بنجاح');
+    }
+
+    public function InvoiceEdit($id){
+        $data['invoice'] = Supplier_invoice::findOrFail($id);
+        $data['suppliers_list'] = Supplier::all();
+        $data['finalCategories'] = Category::doesntHave('children')->get();
+        $data['products'] = Product::with('category')->get();
+        $data['units'] = Unit::all();
+        return view('suppliers.invoices.edit', $data);
+    }
+
+    public function InvoiceUpdate(supplierInvoiceRequest $request)
+    {
+        $invoice = Supplier_invoice::findOrFail($request->id);
+    
+        // استرجاع الأصناف القديمة وتأثيرها على المخزن
+        $oldItems = $invoice->items;
+        foreach ($oldItems as $oldItem) {
+            $stock = Stock::where([
+                'category_id' => $oldItem->category_id,
+                'product_id' => $oldItem->product_id,
+            ])->first();
+    
+            if ($stock) {
+                // خصم الكمية القديمة من المخزن
+                $stock->initial_quantity -= $oldItem->quantity;
+                $stock->remaining_quantity -= $oldItem->quantity;
+                $stock->save();
+            }
+    
+            // حذف حركات المخزن المرتبطة بالصنف
+            Stock_movement::where('stock_id', optional($stock)->id)
+                          ->where('supplier_id', $invoice->supplier_id)
+                          ->where('note', 'شراء')
+                          ->delete();
+        }
+    
+        // تحديث بيانات الفاتورة
+        $invoice->update([
+            'supplier_id' => $request->supplier_id,
+            'invoice_date' => $request->invoice_date,
+            'invoice_type' => $request->invoice_type,
+            'total_amount' => $request->total_amount,
+            'cost_price' => $request->additional_cost,
+            'notes' => $request->notes,
+        ]);
+    
+        // حذف الأصناف القديمة لإعادة إدخالها من جديد
+        $invoice->items()->delete();
+    
+        // إدخال الأصناف الجديدة وتحديث المخزن
+        $items = $request->input('items');
+        $main_store = StoreHouse::latest()->first();
+    
+        if ($items && is_array($items)) {
+            foreach ($items as $item) {
+                $newItem = $invoice->items()->create([
+                    'supplier_invoice_id' => $invoice->id,
+                    'category_id' => $item['category_id'],
+                    'product_id' => $item['product_id'],
+                    'unit_id' => $item['unit_id'],
+                    'quantity' => $item['quantity'],
+                    'purchase_price' => $item['purchase_price'],
+                ]);
+    
+                $stock = Stock::where([
+                    'category_id' => $item['category_id'],
+                    'product_id' => $item['product_id'],
+                    'store_house_id' => $main_store->id,
+                ])->first();
+    
+                if ($stock) {
+                    $stock->initial_quantity += $item['quantity'];
+                    $stock->remaining_quantity += $item['quantity'];
+                    $stock->save();
+                } else {
+                    $stock = Stock::create([
+                        'category_id' => $item['category_id'],
+                        'product_id' => $item['product_id'],
+                        'code' => $invoice->invoice_code,
+                        'store_house_id' => $main_store->id,
+                        'unit_id' => $item['unit_id'],
+                        'initial_quantity' => $item['quantity'],
+                        'remaining_quantity' => $item['quantity'],
+                    ]);
+                }
+    
+                // تسجيل حركة مخزن جديدة
+                Stock_movement::create([
+                    'supplier_id' => $request->supplier_id,
+                    'stock_id' => $stock->id,
+                    'type' => 'in',
+                    'quantity' => $item['quantity'],
+                    'note' => 'شراء',
+                ]);
+            }
+        }
+    
+        // تعديل التكاليف
+        $costs = $request->input('costs');
+        if (is_array($costs)) {
+            $existingIds = collect($costs)->pluck('id')->filter()->toArray();
+            $invoice->costs()->whereNotIn('id', $existingIds)->delete();
+    
+            foreach ($costs as $cost) {
+                if (!empty($cost['id'])) {
+                    $invoice->costs()->where('id', $cost['id'])->update([
+                        'description' => $cost['description'],
+                        'amount' => $cost['amount'],
+                    ]);
+                } else {
+                    $invoice->costs()->create([
+                        'description' => $cost['description'],
+                        'amount' => $cost['amount'],
+                    ]);
+                }
+            }
+        }
+    
+        // تحديث حساب المورد والخزنة (بإلغاء القديم وتسجيل الجديد)
+        $supplier = Supplier::findOrFail($request->supplier_id);
+        $supplier->account()->decrement('total_capital_balance', $request->total_amount_old);
+        $supplier->account()->increment('total_capital_balance', $request->total_amount);
+    
+        $warehouse = Warehouse::where('is_main', 1)->first();
+        $warehouse->account()->increment('total_capital_balance', $request->total_amount_old);
+        $warehouse->account()->decrement('total_capital_balance', $request->total_amount);
+    
+        $warehouse_toridat = Warehouse::where('type', 'toridat')->first();
+        $warehouse_toridat->account()->increment('total_capital_balance', $request->total_amount_old);
+        $warehouse_toridat->account()->decrement('total_capital_balance', $request->total_amount);
+    
+        return back()->with('success', 'تم تعديل فاتورة المورد بنجاح');
+    }    
+
+    public function InvoiceDelete(Request $request){
+        $invoice = Supplier_invoice::findOrFail($request->id);
+        
+        // stock delete 
+        $stock = Stock::where('code', $invoice->invoice_code)->first();
+        $stock->delete();
+
+        // تحديث الحساب المالي 
+
+        // أولاً: المورد
+        $supplier = Supplier::where('id', $request->supplier_id)->first();
+        $supplier->account()->decrement('total_capital_balance', $request->total_amount);
+
+        // ثانياً: الخزنة الرئيسية + خزنة التوريدات
+        $main_warehouse = Warehouse::where('is_main', 1)->first();
+        $toridat_warehouse = Warehouse::where('type', 'toridat')->first();
+
+        $main_warehouse->account()->decrement('total_capital_balance', $request->total_amount);
+        $toridat_warehouse->account()->decrement('total_capital_balance', $request->total_amount);
+
+
+        // invoice delete 
+        $invoice->delete();
+        return back()->with('success', 'تم حذف فاتورة المورد بنجاح');
+    }
+
+    public function InvoiceShow($code){
+        $invoice = Supplier_invoice::where('invoice_code', $code)->first();
+        $app = App::latest()->first();
+        return view('suppliers.invoices.show', compact('invoice', 'app'));
+    }
+
+    public function InvoiceDownload($id){
+        $invoice = Supplier_invoice::findOrFail($id);
+        $app = App::latest()->first();
+
+        $html = view('suppliers.invoices.invoice-pdf', compact('invoice', 'app'))->render();
+
+        // إعداد mPDF بدعم RTL واللغة العربية
+        $mpdf = new Mpdf([
+            'mode' => 'utf-8',
+            'format' => 'A4',
+            'default_font' => 'dejavusans',
+            'default_font_size' => 12
+        ]);
+
+        $mpdf->WriteHTML($html);
+
+        return response($mpdf->Output('invoice_'.$invoice->invoice_code.'.pdf', 'I'), 200)
+            ->header('Content-Type', 'application/pdf');
+    }
+
+    public function paymentInvoice(PaymentInvoiceRequest $request){
+        $wallet = Wallet::findOrFail($request->wallet_id);
+        $supplier = Supplier::findOrFail($request->supplier_id);
+        $main_warehouse = Warehouse::where('is_main', 1)->first();
+        $warehouse = Warehouse::where('id', $request->warehouse_id)->first();
+
+        // التأكد من أن الرصيد الحالي أكبر من صفر
+        if ($wallet->current_balance <= 0) {
+            return back()->with('info', 'رصيد المحفظة يجب أن يكون أكبر من صفر .');
+        }
+
+        // التأكد من أن المبلغ لا يتجاوز الرصيد المتاح
+        if ($request->amount > $wallet->current_balance) {
+            return back()->with('info', 'رصيد المحفظة غير كافي لإجراء هذه العملية برجاء التحقق من الرصيد المتوفر في المحفظة .');
+        }
+
+        // 1. تحديث الفاتورة
+        $invoice = Supplier_invoice::findOrFail($request->id);
+        $Remaining = ($request->total_amount - $request->amount);
+        if($Remaining > 0)
+        {
+            $invoice->paid_amount = $request->amount;
+            $invoice->invoice_staute = 2;
+            $invoice->save();
+        }
+        elseif($Remaining < 0)
+        {
+            return back()->with('info', 'مطلوب دفع ' . $request->total_amount . 'فقط لا غير');
+        }
+        else {
+            $invoice->paid_amount = $request->amount;
+            $invoice->invoice_staute = 1;
+            $invoice->save();
+        }
+        
+        // 2. تسجيل حركة معاملات 
+        Account_transactions::create([
+            'account_id' => $warehouse->account->id,
+            'direction'  => 'out',
+            'method'     => $request->method,
+            'amount'     => $request->amount,
+            'transaction_type' => 'purchase',
+            'related_type' => Supplier::class,  
+            'related_id' => $supplier->id,
+            'source_type' => Supplier_invoice::class,   
+            'source_id' => $request->id,
+            'description' => $request->description
+        ]);
+
+        // 3. تحديث الحسابات المالية 
+
+        // أولاً:حساب المورد
+        $supplier->account()->decrement('total_capital_balance', $request->amount);
+
+        // ثانياً: الخزنة الرئيسية + خزنة المستهدفة + حساب المحفظة 
+        $main_warehouse->account()->increment('total_capital_balance', $request->amount);
+        $warehouse->account()->increment('total_capital_balance', $request->amount);
+        $main_warehouse->account()->decrement('current_balance', $request->amount);
+        $warehouse->account()->decrement('current_balance', $request->amount);
+
+        $wallet->decrement('current_balance', $request->amount);
+
+        // 4. تسجيل حركة محفظة 
+        $wallet_movement = new Wallet_movement();
+        $wallet_movement->wallet_id = $request->wallet_id;
+        $wallet_movement->amount = $request->amount;
+        $wallet_movement->direction = 'out';
+        $wallet_movement->note = 'فاتورة شراء';
+        $wallet_movement->source_code = $invoice->invoice_code;
+        $wallet_movement->save();
+        return back()->with('success', 'تم الدفع وتغيير حالة الفاتورة بنجاح');
+    }
+
+    public function filterInvoices(Request $request){
+        $query = Supplier_invoice::query();
+
+        if ($request->filled('searchText')) {
+            $searchText = $request->searchText;
+    
+            $query->where(function ($q) use ($searchText) {
+                $q->where('invoice_code', 'like', '%' . $searchText . '%')
+                  ->orWhereHas('supplier', function($q2) use ($searchText) {
+                      $q2->where('name', 'like', '%' . $searchText . '%');
+                  });
+            });
+        }
+        
+        if ($request->filled('start_date')) {
+            $query->whereDate('invoice_date', '>=', $request->start_date);
+        }
+        if ($request->filled('end_date')) {
+            $query->whereDate('invoice_date', '<=', $request->end_date);
+        }
+
+        $invoices_list = $query->orderBy('invoice_date', 'desc')->paginate(100);
+
+        return view('suppliers.invoices.invoice_table', ['invoices_list' => $invoices_list])->render();
+    }
+
+}
