@@ -123,11 +123,13 @@
                                 <thead>
                                     <th>الصنف</th>
                                     <th>المنتج</th>
-                                    <th>العدد</th>
                                     <th>وحدة القياس</th>
+                                    <th>المقاس / العرض</th>
                                     <th>سعر الشراء للوحدة</th>
+                                    <th>السعر للمتر</th>
+                                    <th>العدد / الطول</th>
+                                    <th>الكمية</th>
                                     <th>الإجمالي</th>
-                                    <th>السعر النهائي</th>
                                     <th>حذف</th>
                                 </thead>
                                 <tbody></tbody>
@@ -210,10 +212,12 @@ $(function () {
         calculateTotalInvoice();
     });
 
-    $(document).on('input', '.additional_cost , .quantity, .purchase_price', function () {
+    $(document).on('input', '.additional_cost,.unit_id, .quantity, .length ,.purchase_price, .SizeSelect', function () {
         let row = $(this).closest('tr');
+        calculateTotalPerMM(row);
         calculateTotalPrice(row);
     });
+
 
     function calculateTotalCost(){
         let costtotal = 0;
@@ -225,28 +229,58 @@ $(function () {
         calculateTotalInvoice();
     }
 
-    function calculateTotalPrice(row) {
-        let quantity = parseInt(row.find('.quantity').val()) || 0;
-        let purchase_price = parseInt(row.find('.purchase_price').val()) || 0;
+    function calculateTotalPerMM(row) {
+        let pricePerMM = 0;
+        let category = row.find('.categorySelect');
+        let unit = row.find('.unitSelect');
+        
+        let CatText = category.is('select') 
+            ? category.find('option:selected').text() 
+            : category.text();
 
-        if (quantity > 0 && purchase_price > 0) {
-            let total_price = quantity * purchase_price;
+        let symbol = unit.find('option:selected').text();
 
-            row.find('.total_price').val(total_price);
-        } else {
-            row.find('.total_price').val(0);
+        let quantity = parseFloat(row.find('.quantity').val()) || 0;
+        let length = parseFloat(row.find('.length').val()) || 0;
+        let purchase_price = parseFloat(row.find('.purchase_price').val()) || 0;
+        let size = parseFloat(row.find('.SizeSelect option:selected').text()) || 0;
+
+        if(symbol === 'سم'){
+            pricePerMM = size * purchase_price;
+            row.find('.length').attr('readonly', false);
+        }
+        else {
+            pricePerMM = 0;
+            row.find('.length').attr('readonly', true);
         }
 
-        // أعِد حساب الفاتورة بعد كل تعديل
+        row.find('.pricePerMeter').val(pricePerMM);  
+    }
+
+    function calculateTotalPrice(row){
+        let total_price = 0;
+        let unit = row.find('.unitSelect');
+        let symbol = unit.find('option:selected').text();
+        let length = parseFloat(row.find('.length').val()) || 0;
+        let quantity = parseFloat(row.find('.quantity').val()) || 0;
+        let pricePerMM = parseFloat(row.find('.pricePerMeter').val()) || 0;
+        let purchase_price = parseFloat(row.find('.purchase_price').val()) || 0;
+
+        if(pricePerMM !== 0){
+            total_price = (length * pricePerMM) * quantity;
+        }
+        else {
+            total_price = quantity * purchase_price;
+        }
+        row.find('.total_price').val(total_price);
         calculateTotalInvoice();
     }
 
     function calculateTotalInvoice() {
         let total_amount = 0;
-
         // جمع إجماليات كل صنف
         $('tr.product-item').each(function () {
-            let price = parseInt($(this).find('.total_price').val().replace(/,/g, '')) || 0;
+            let price = parseFloat($(this).find('.total_price').val().replace(/,/g, '')) || 0;
             total_amount += price;
         });
 
@@ -258,26 +292,12 @@ $(function () {
         $('.total_amount').val(total_amount);
     }
 
-    function calculateFinalCostPrice(row){
-        // التكاليف
-        let additionalCost = parseInt($('.additional_cost').val().replace(/,/g, '')) || 0;
-        
-        // قيمة الصنف
-        let quantity = parseInt(row.find('.quantity').val()) || 0;
-
-        // مجموع الأصناف 
-        let total_price = 0;
-        $('tr.product-item').each(function () {
-            let price = parseInt($(this).find('.total_price').val().replace(/,/g, '')) || 0;
-            total_price += price;
-        });
-
-        // 
-    }
-
+    let isFormChanged = false;
 
     // إضافة صنف جديد
     $(document).on('click', '.addItems', function () {
+        isFormChanged = true;
+
         // حساب رقم الصف الجديد
         let index = $('.product-item').length;
 
@@ -294,15 +314,21 @@ $(function () {
                         <option value="">اختر منتج</option>
                     </select>
                 </td>
-                <td><input type="number" name="items[${index}][quantity]"class="form-control quantity" step="any"></td>
                 <td>
                     <select class="select2 unitSelect" name="items[${index}][unit_id]">
                         <option value="">جاري التحميل...</option>
                     </select>
                 </td> 
+                <td>
+                    <select class="select2 SizeSelect" name="items[${index}][size_id]">
+                        <option value="">اختر المقاس</option>
+                    </select>
+                </td>
                 <td><input type="number" name="items[${index}][purchase_price]"  class="form-control purchase_price" step="any"></td>
+                <td><input type="number" name="items[${index}][pricePerMeter]" value="0"  class="form-control pricePerMeter" step="any" readonly></td>
+                <td><input type="number" name="items[${index}][length]"class="form-control length" value="0" step="any"></td>
+                <td><input type="number" name="items[${index}][quantity]"class="form-control quantity" value="1" step="any"></td>
                 <td><input type="number" name="items[${index}][total_price]" class="form-control total_price" step="any" readonly></td>
-                <td><input type="number" name="items[${index}][final_cost_price]" class="form-control final_cost_price" step="any" readonly></td>
                 <td>
                     <button type="button" class="btn btn-danger btn-sm remove-row">
                         <i data-feather='trash-2'></i>
@@ -338,21 +364,34 @@ $(function () {
             if (response.status) {
                 lastUnitSelect.empty().append(`<option value="">اختر الوحدة</option>`);
                 response.data.forEach(item => {
-                    lastUnitSelect.append(`<option value="${item.id}">${item.name}</option>`);
+                    lastUnitSelect.append(`<option value="${item.id}">${item.symbol}</option>`);
                 });
             } else {
                 lastUnitSelect.html('<option>حدث خطأ في جلب الوحدات</option>');
             }
         });
 
+        // جلب المقاسات
+        $.get('{{ route("getSizes") }}', function(response) {
+            lastSizeSelect = $(".SizeSelect").last();
+            if (response.status) {
+                lastSizeSelect.empty().append(`<option value="">اختر المقاس</option>`);
+                response.data.forEach(item => {
+                    lastSizeSelect.append(`<option value="${item.id}" data-width="${item.width}">${item.width}</option>`);
+                });
+            } else {
+                lastSizeSelect.html('<option>حدث خطأ في جلب المقاسات</option>');
+            }
+        });
+
         // تفعيل الـ select2
         $('.table-responsive tbody .select2').select2({
             dir: "rtl",
-            width: '300px'
+            width: '200px'
         });
 
-            // عند اختيار تصنيف، جلب المنتجات
-            $(document).on('change', '.categorySelect' ,function() {
+        // عند اختيار تصنيف، جلب المنتجات
+        $(document).on('change', '.categorySelect' ,function() {
             const categoryId = $(this).val();
             const row = $(this).closest('tr');
             const select = row.find('.productSelect');
@@ -368,7 +407,7 @@ $(function () {
                     success: function(response) {
                         select.empty().append(`<option value="">اختر منتج</option>`);
                         response.data.forEach(item => {
-                            select.append(`<option value="${item.id}">${item.name} - ${item.width}</option>`);
+                            select.append(`<option value="${item.id}">${item.name}</option>`);
                         });
                     }
                 });
@@ -462,14 +501,13 @@ $(function () {
 
     $('#invoiceForm').on('submit', function(e) {
         e.preventDefault(); // منع الإرسال مؤقتًا
-
         // تأكيد من المستخدم
         if (confirm("هل أنت متأكد من حفظ البيانات؟")) {
+            localStorage.removeItem('unsaved_items');
             this.submit();
         } 
     });
 
-    let isFormChanged = false;
 
     // راقب الحقول إذا المستخدم غيّر أي حاجة
     $('form input, form select, form textarea').on('change input', function () {
@@ -494,6 +532,60 @@ $(function () {
             return "لديك تغييرات غير محفوظة، هل تريد فعلاً مغادرة الصفحة؟";
         }
     };
+
+    // save items in localstorage 
+    function saveItemsToLocalStorage() {
+        let items = [];
+
+        $('.product-item').each(function () {
+            let row = $(this);
+            items.push({
+                category_id: row.find('.categorySelect').val(),
+                product_id: row.find('.productSelect').val(),
+                unit_id: row.find('.unitSelect').val(),
+                size: row.find('.SizeSelect').val(),
+                purchase_price: row.find('.purchase_price').val(),
+                pricePerMeter: row.find('.pricePerMeter').val(),
+                length: row.find('.length').val(),
+                quantity: row.find('.quantity').val(),
+                total_price: row.find('.total_price').val()
+            });
+        });
+
+        localStorage.setItem('unsaved_items', JSON.stringify(items));
+    }
+
+    $(document).on('input change', '.product-item input, .product-item select', function () {
+        saveItemsToLocalStorage();
+    });
+
+    function restoreItemsFromLocalStorage() {
+        let stored = localStorage.getItem('unsaved_items');
+        if (stored) {
+            let items = JSON.parse(stored);
+            items.forEach(item => {
+                // هنا تنسخ كود إضافة صنف، ولكن تملأ القيم حسب item
+                // مثلاً:
+                $('.addItems').trigger('click'); // تضيف صف جديد
+                let lastRow = $('.product-item').last();
+
+                lastRow.find('.categorySelect').val(item.category_id).trigger('change');
+                lastRow.find('.unitSelect').val(item.unit_id);
+                lastRow.find('.SizeSelect').val(item.size);
+                lastRow.find('.purchase_price').val(item.purchase_price);
+                lastRow.find('.pricePerMeter').val(item.pricePerMeter);
+                lastRow.find('.length').val(item.length);
+                lastRow.find('.quantity').val(item.quantity);
+                lastRow.find('.total_price').val(item.total_price);
+
+                // ملاحظة: المنتجات تعتمد على التصنيف، فانتظر تحميل المنتجات ثم اختر
+                setTimeout(() => {
+                    lastRow.find('.productSelect').val(item.product_id);
+                }, 500);
+            });
+        }
+    }
+
 
 });
 </script>

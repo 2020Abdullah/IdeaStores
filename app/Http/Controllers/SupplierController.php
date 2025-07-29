@@ -176,16 +176,17 @@ class SupplierController extends Controller
     }
 
     protected function paymentcredit($request){
+        $total_amount = round($request->total_amount, 2);
         // أولاً: المورد
         $supplier = Supplier::where('id', $request->supplier_id)->first();
-        $supplier->account()->increment('total_capital_balance', $request->total_amount);
+        $supplier->account()->increment('total_capital_balance', $total_amount);
 
         // ثانياً: الخزنة الرئيسية + خزنة التوريدات
         $main_warehouse = Warehouse::where('is_main', 1)->first();
         $toridat_warehouse = Warehouse::where('type', 'toridat')->first();
 
-        $main_warehouse->account()->decrement('total_capital_balance', $request->total_amount);
-        $toridat_warehouse->account()->decrement('total_capital_balance', $request->total_amount);
+        $main_warehouse->account()->decrement('total_capital_balance', $total_amount);
+        $toridat_warehouse->account()->decrement('total_capital_balance', $total_amount);
 
         // 2. إنشاء الفاتورة 
         $invoice = Supplier_invoice::create([
@@ -193,7 +194,7 @@ class SupplierController extends Controller
             'invoice_code' => $this->generateNum(),
             'invoice_date' => $request->invoice_date,
             'invoice_type' => $request->invoice_type,
-            'total_amount' => $request->total_amount,
+            'total_amount' => $total_amount,
             'cost_price' => $request->additional_cost,
             'notes' => $request->notes,
         ]);
@@ -216,14 +217,18 @@ class SupplierController extends Controller
         // إدخال أصناف الفاتورة + إدخال ستوك جديد لكل صنف
         $invoivce_items = $request->input('items');
         if ($invoivce_items && is_array($invoivce_items)) {
-            foreach ($invoivce_items as $item) {
+            foreach ($invoivce_items as $item) {   
                 $invoice->items()->create([
                     'supplier_invoice_id' => $invoice->id,
                     'category_id' => $item['category_id'],
                     'product_id' => $item['product_id'],
                     'unit_id' => $item['unit_id'],
+                    'size_id' => $item['size_id'],
                     'quantity' => $item['quantity'],
+                    'pricePerMeter' => round($item['pricePerMeter'], 2),
+                    'length' => $item['length'],
                     'purchase_price' => $item['purchase_price'],
+                    'total_price' => round($item['total_price'], 2),
                 ]);
 
                 // إضافة المنتج إلي المخزن لو لم يكن موجود وتحديث الكمية لو كان موجود
@@ -269,7 +274,7 @@ class SupplierController extends Controller
         $supplier = Supplier::findOrFail($request->supplier_id);
         $main_warehouse = Warehouse::where('is_main', 1)->first();
         $warehouse = Warehouse::where('id', $request->warehouse_id)->first();
-
+        $total_amount = round($request->total_amount, 2);
         // 1. ضبط الحسابات
 
         // التأكد من أن الرصيد الحالي أكبر من صفر
@@ -283,22 +288,22 @@ class SupplierController extends Controller
         }
 
         // الخزنة الرئيسية
-        $main_warehouse->account()->decrement('total_capital_balance', $request->total_amount);
-        $main_warehouse->account()->increment('total_capital_balance', $request->total_amount);
-        $main_warehouse->account()->decrement('current_balance', $request->total_amount);
+        $main_warehouse->account()->decrement('total_capital_balance', $total_amount);
+        $main_warehouse->account()->increment('total_capital_balance', $total_amount);
+        $main_warehouse->account()->decrement('current_balance', $total_amount);
         
         // الخزنة الفرعية
-        $warehouse->account()->decrement('total_capital_balance', $request->total_amount);
-        $warehouse->account()->increment('total_capital_balance', $request->total_amount);
-        $warehouse->account()->decrement('current_balance', $request->total_amount);
+        $warehouse->account()->decrement('total_capital_balance', $total_amount);
+        $warehouse->account()->increment('total_capital_balance', $total_amount);
+        $warehouse->account()->decrement('current_balance', $total_amount);
         
         // المحفظة
-        $wallet->decrement('current_balance', $request->total_amount);
+        $wallet->decrement('current_balance', $total_amount);
 
         // المورد
-        $supplier->account()->increment('current_balance', $request->total_amount);
-        $supplier->account()->increment('total_capital_balance', $request->total_amount);
-        $supplier->account()->decrement('total_capital_balance', $request->total_amount);
+        $supplier->account()->increment('current_balance', $total_amount);
+        $supplier->account()->increment('total_capital_balance', $total_amount);
+        $supplier->account()->decrement('total_capital_balance', $total_amount);
 
         // 2. إنشاء الفاتورة 
         $invoice = Supplier_invoice::create([
@@ -306,7 +311,7 @@ class SupplierController extends Controller
             'invoice_code' => $this->generateNum(),
             'invoice_date' => $request->invoice_date,
             'invoice_type' => $request->invoice_type,
-            'total_amount' => $request->total_amount,
+            'total_amount' => $total_amount,
             'paid_amount' => $request->total_amount,
             'invoice_staute' => 1,
             'cost_price' => $request->additional_cost,
@@ -362,8 +367,12 @@ class SupplierController extends Controller
                     'category_id' => $item['category_id'],
                     'product_id' => $item['product_id'],
                     'unit_id' => $item['unit_id'],
+                    'size_id' => $item['size_id'],
                     'quantity' => $item['quantity'],
+                    'pricePerMeter' => round($item['pricePerMeter'], 2),
+                    'length' => $item['length'],
                     'purchase_price' => $item['purchase_price'],
+                    'total_price' => round($item['total_price'], 2),
                 ]);
 
                 // إضافة المنتج إلي المخزن لو لم يكن موجود وتحديث الكمية لو كان موجود
@@ -386,6 +395,8 @@ class SupplierController extends Controller
                         'code' => $invoice->invoice_code,
                         'store_house_id' => $main_store->id,
                         'unit_id' => $item['unit_id'],
+                        'length' => $item['length'],
+                        'pricePerMeter' => $item['pricePerMeter'],
                         'initial_quantity' => $item['quantity'],
                         'remaining_quantity' => $item['quantity'],
                     ]);

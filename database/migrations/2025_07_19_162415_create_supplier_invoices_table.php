@@ -18,9 +18,9 @@ return new class extends Migration
             $table->date('invoice_date');
             $table->enum('invoice_type', ['cash', 'credit']);
             $table->tinyInteger('invoice_staute')->default(0)->comment('حالة الفاتورة');
-            $table->decimal('paid_amount', 8, 2)->default(0)->comment('إجمالي المدفوع');
-            $table->decimal('cost_price', 8, 2)->comment('التكاليف');
-            $table->decimal('total_amount', 8 , 2)->comment('إجمالي الفاتورة');
+            $table->decimal('paid_amount', 15, 2)->default(0)->comment('إجمالي المدفوع');
+            $table->decimal('cost_price', 15,2)->comment('التكاليف');
+            $table->decimal('total_amount', 15,2)->comment('إجمالي الفاتورة');
             $table->text('notes')->nullable();
             $table->softDeletes();
             $table->timestamps();

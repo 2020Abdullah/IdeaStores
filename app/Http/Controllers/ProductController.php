@@ -33,9 +33,8 @@ class ProductController extends Controller
         try {
             $product = new Product();
             $product->category_id = $request->final_category_id;
-            $product->unit_id = $request->unit_id ;
+            $product->unit_id = $request->unit_id;
             $product->name = $request->name;
-            $product->width = $request->width;
             $product->save();
             return redirect()->route('product.index')->with('success', 'تم حفظ البيانات بنجاح');
         }
@@ -50,7 +49,6 @@ class ProductController extends Controller
             $product->category_id = $request->final_category_id;
             $product->unit_id = $request->unit_id ;
             $product->name = $request->name;
-            $product->width = $request->width;
             $product->save();
             return redirect()->route('product.index')->with('success', 'تم تحديث البيانات بنجاح');
         }

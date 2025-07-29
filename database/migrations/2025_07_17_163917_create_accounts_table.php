@@ -16,8 +16,8 @@ return new class extends Migration
             $table->string('name');
             $table->nullableMorphs('accountable');
             $table->enum('type', ['warehouse', 'supplier', 'customer', 'partner', 'expense']);
-            $table->decimal('total_capital_balance', 8, 2)->default(0);
-            $table->decimal('total_profit_balance', 8, 2)->default(0);
+            $table->decimal('total_capital_balance', 15, 2)->default(0);
+            $table->decimal('total_profit_balance', 15, 2)->default(0);
             $table->tinyInteger('is_main')->default(0);
             $table->softDeletes();
             $table->timestamps();

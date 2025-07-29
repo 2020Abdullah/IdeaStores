@@ -30,4 +30,14 @@ class SizeController extends Controller
         $size->delete();
         return back()->with('success', 'تم حذف المقاس بنجاح');
     }
+
+    public function getSizes()
+    {
+        $sizes = Size::all();
+    
+        return response()->json([
+            'status' => true,
+            'data' => $sizes
+        ]);
+    }
 }

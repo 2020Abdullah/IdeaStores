@@ -126,6 +126,7 @@ Route::middleware('auth')->group(function(){
     Route::post('sizes/store', [SizeController::class, 'store'])->name('size.store');
     Route::post('sizes/update', [SizeController::class, 'update'])->name('size.update');
     Route::post('sizes/delete', [SizeController::class, 'delete'])->name('size.delete');
+    Route::get('getSizes', [SizeController::class, 'getSizes'])->name('getSizes');
 
     // backup
     Route::get('/backup', fn() => view('backup'))->name('backup.view');

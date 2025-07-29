@@ -17,8 +17,13 @@ return new class extends Migration
             $table->foreignId('category_id')->constrained('categories')->onDelete('restrict');
             $table->foreignId('product_id')->constrained('products')->onDelete('restrict');
             $table->foreignId('unit_id')->nullable()->constrained('units')->nullOnDelete();
-            $table->decimal('quantity', 8, 2)->comment('الكمية');
-            $table->decimal('purchase_price', 8, 2)->comment('سعر الشراء');
+            $table->foreignId('size_id')->nullable()->constrained('sizes')->nullOnDelete();
+            $table->integer('quantity')->default(1)->comment('الكمية');
+            $table->decimal('pricePerMeter', 15, 2)->default(0)->comment('سعر المتر');
+            $table->decimal('length', 15, 2)->default(0)->comment('الطول');
+            $table->decimal('purchase_price', 15, 2)->default(0)->comment('سعر الشراء');
+            $table->decimal('total_price', 15, 2)->default(0)->comment('سعر الإجمالي');
+            $table->decimal('final_cost_price', 15, 2)->default(0)->comment('السعر النهائي لكل صنف');
             $table->timestamps();
         });
     }
