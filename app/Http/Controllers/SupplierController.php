@@ -321,7 +321,7 @@ class SupplierController extends Controller
 
         // 3. إضافة تفاصيل التكاليف
         $costs = $request->input('costs');
-        if ($costs && is_array($costs)) {
+        if (isset($costs) && is_array($costs)) {
             foreach ($costs as $cost) {
                 $invoice->costs()->create([
                     'description' => $cost['description'],
@@ -585,7 +585,7 @@ class SupplierController extends Controller
     
         // تعديل التكاليف
         $costs = $request->input('costs');
-        if (is_array($costs)) {
+        if (is_array($costs) && isset($costs)) {
             $existingIds = collect($costs)->pluck('id')->filter()->toArray();
             $invoice->costs()->whereNotIn('id', $existingIds)->delete();
     

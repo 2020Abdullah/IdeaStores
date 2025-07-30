@@ -173,6 +173,11 @@
                             </table>
                         </div>
                     </div>
+                    <div class="all_total">
+                        <span>إجمالي الفاتورة :</span>
+                        <strong>{{ $invoice->total_amount - $invoice->cost_price }}</strong> 
+                        <span>EGP</span>
+                    </div>
                 </div>
                 <div id="costs-wrapper">
                     <button type="button" class="btn btn-primary waves-effect waves-float waves-light mb-1" id="add-cost">+ أضف تكلفة</button>    
@@ -329,10 +334,12 @@ $(function () {
 
     function calculateTotalInvoice() {
         let total_amount = 0;
+        let all_total = 0;
         // جمع إجماليات كل صنف
         $('tr.product-item').each(function () {
             let price = parseFloat($(this).find('.total_price').val().replace(/,/g, '')) || 0;
             total_amount += price;
+            all_total += price;
         });
 
         // جمع التكلفة الإضافية
@@ -341,6 +348,7 @@ $(function () {
 
         // عرض النتيجة
         $('.total_amount').val(total_amount);
+        $('.all_total strong').text(all_total);
     }
 
     // جلب المنتجات بناء علي التصنيف

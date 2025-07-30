@@ -100,7 +100,7 @@
     <script>
          $('.select2').select2({
             dir: "rtl",
-            width: 'resolve'
+            width: '200px'
         });
     </script>
 </html>

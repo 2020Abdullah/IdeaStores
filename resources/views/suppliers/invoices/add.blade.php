@@ -136,13 +136,18 @@
                             </table>
                         </div>
                     </div>
+                    <div class="all_total">
+                        <span>إجمالي الفاتورة :</span>
+                        <strong>0</strong> 
+                        <span>EGP</span>
+                    </div>
                 </div>
                 <div id="costs-wrapper">
                     <button type="button" class="btn btn-primary waves-effect waves-float waves-light mb-1" id="add-cost">+ أضف تكلفة</button>                
                 </div>
                 <div class="mb-2">
                     <label class="form-label">مجموع التكاليف</label>
-                    <input type="text" id="total-cost" class="form-control additional_cost @error('additional_cost') is-invalid @enderror" name="additional_cost" readonly>
+                    <input type="text" id="total-cost" class="form-control additional_cost @error('additional_cost') is-invalid @enderror" value="0" name="additional_cost" readonly>
                     @error('additional_cost')
                         <div class="alert alert-danger mt-1" role="alert">
                             <h4 class="alert-heading">خطأ</h4>
@@ -278,10 +283,12 @@ $(function () {
 
     function calculateTotalInvoice() {
         let total_amount = 0;
+        let all_total = 0;
         // جمع إجماليات كل صنف
         $('tr.product-item').each(function () {
             let price = parseFloat($(this).find('.total_price').val().replace(/,/g, '')) || 0;
             total_amount += price;
+            all_total += price;
         });
 
         // جمع التكلفة الإضافية
@@ -290,6 +297,7 @@ $(function () {
 
         // عرض النتيجة
         $('.total_amount').val(total_amount);
+        $('.all_total strong').text(all_total);
     }
 
     let isFormChanged = false;

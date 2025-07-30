@@ -390,3 +390,8 @@ body .ps__rail-y {
 .card-balance h3 {
   padding: 10px;
 }
+.all_total {
+  text-align: center;
+  margin-top: 1rem;
+  margin-bottom: 1rem;
+}
