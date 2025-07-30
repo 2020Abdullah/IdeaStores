@@ -12,6 +12,7 @@ use App\Models\Account_transactions;
 use App\Models\App;
 use App\Models\Category;
 use App\Models\Product;
+use App\Models\Size;
 use App\Models\Stock;
 use App\Models\Stock_movement;
 use App\Models\StoreHouse;
@@ -154,16 +155,21 @@ class SupplierController extends Controller
     protected function generateNum(){
         $lastcode = Supplier_invoice::max('invoice_code');
         $year = date('Y');
-
-        // generate number unique
-        if($lastcode == 0){
-            $invoice_code = 'SU-' . $year . 0;
+    
+        // استخراج الرقم فقط من الكود السابق إن كان يحتوي على SU-2024 مثلاً
+        if ($lastcode) {
+            // إزالة الأحرف وترك الرقم فقط
+            $lastNumber = (int) filter_var($lastcode, FILTER_SANITIZE_NUMBER_INT);
+            $newNumber = $lastNumber + 1;
+        } else {
+            $newNumber = 1;
         }
-        else {
-            $invoice_code = 'SU-' . $lastcode + 1;
-        }
+    
+        $invoice_code = 'SU-' . $year . $newNumber;
+    
         return $invoice_code;
     }
+    
 
     public function InvoiceStore(supplierInvoiceRequest $request){
         // التحقق من الفاتورة لو هيا آجل ام كاش
@@ -176,7 +182,7 @@ class SupplierController extends Controller
     }
 
     protected function paymentcredit($request){
-        $total_amount = round($request->total_amount, 2);
+        $total_amount = $this->normalizeNumber($request->total_amount);
         // أولاً: المورد
         $supplier = Supplier::where('id', $request->supplier_id)->first();
         $supplier->account()->increment('total_capital_balance', $total_amount);
@@ -274,16 +280,16 @@ class SupplierController extends Controller
         $supplier = Supplier::findOrFail($request->supplier_id);
         $main_warehouse = Warehouse::where('is_main', 1)->first();
         $warehouse = Warehouse::where('id', $request->warehouse_id)->first();
-        $total_amount = round($request->total_amount, 2);
-        // 1. ضبط الحسابات
+        $total_amount = $this->normalizeNumber($request->total_amount);
 
+        // 1. ضبط الحسابات
         // التأكد من أن الرصيد الحالي أكبر من صفر
         if ($wallet->current_balance <= 0) {
             return back()->with('info', 'رصيد المحفظة يجب أن يكون أكبر من صفر .');
         }
 
-        // التأكد من أن مبلغ الفاتورة يساوى قيمة الفاتورة
-        if ($request->total_amount > $wallet->current_balance) {
+        // التأكد من أن مبلغ الفاتورة لا يتخطي رصيد المحفظة 
+        if ($wallet->current_balance < $request->total_amount) {
             return back()->with('info', 'رصيد المحفظة غير كافي لإجراء هذه العملية برجاء التحقق من الرصيد .');
         }
 
@@ -312,10 +318,12 @@ class SupplierController extends Controller
             'invoice_date' => $request->invoice_date,
             'invoice_type' => $request->invoice_type,
             'total_amount' => $total_amount,
-            'paid_amount' => $request->total_amount,
+            'paid_amount' => $total_amount,
             'invoice_staute' => 1,
             'cost_price' => $request->additional_cost,
             'notes' => $request->notes,
+            'warehouse_id' => $request->warehouse_id,
+            'wallet_id' => $request->wallet_id,
         ]);
 
         // 3. إضافة تفاصيل التكاليف
@@ -340,7 +348,7 @@ class SupplierController extends Controller
             'related_type' => Supplier::class,  
             'related_id' => $supplier->id,
             'source_type' => Supplier_invoice::class,   
-            'source_id' => $request->id,
+            'source_id' => $invoice->id,
             'description' => $request->description
         ]);
 
@@ -395,8 +403,6 @@ class SupplierController extends Controller
                         'code' => $invoice->invoice_code,
                         'store_house_id' => $main_store->id,
                         'unit_id' => $item['unit_id'],
-                        'length' => $item['length'],
-                        'pricePerMeter' => $item['pricePerMeter'],
                         'initial_quantity' => $item['quantity'],
                         'remaining_quantity' => $item['quantity'],
                     ]);
@@ -415,6 +421,23 @@ class SupplierController extends Controller
         return back()->with('success', 'تم إنشاء فاتورة مورد بنجاح');
     }
 
+    protected function normalizeNumber($number) {
+        // إذا كانت الفاصلة العشرية , فحولها إلى .
+        if (strpos($number, ',') !== false && strpos($number, '.') !== false) {
+            // في حال الإدخال مثل: "1.000.000,25"
+            $number = str_replace('.', '', $number); // حذف نقاط الألوف
+            $number = str_replace(',', '.', $number); // تحويل الفاصلة العشرية
+        } elseif (strpos($number, ',') !== false) {
+            // في حال الإدخال مثل: "1000000,25"
+            $number = str_replace(',', '.', $number); // فقط تحويل العشرية
+        } else {
+            // في حال الإدخال مثل: "1,000,000.25"
+            $number = str_replace(',', '', $number); // حذف الفواصل
+        }
+    
+        return $number;
+    }
+    
     public function InvoiceEdit($id){
         $data['warehouse_list'] = Warehouse::where('is_main', 0)->get();
         $data['invoice'] = Supplier_invoice::findOrFail($id);
@@ -422,6 +445,7 @@ class SupplierController extends Controller
         $data['finalCategories'] = Category::doesntHave('children')->get();
         $data['products'] = Product::with('category')->get();
         $data['units'] = Unit::all();
+        $data['sizes'] = Size::all();
         return view('suppliers.invoices.edit', $data);
     }
 
@@ -430,57 +454,61 @@ class SupplierController extends Controller
         $invoice = Supplier_invoice::findOrFail($request->id);
         $supplier = Supplier::findOrFail($request->supplier_id);
         $main_warehouse = Warehouse::where('is_main', 1)->first();
+        $total_amount = $this->normalizeNumber($request->total_amount);
+        $total_amount_old = $this->normalizeNumber($request->total_amount_old);
 
         // ضبط الحسابات 
         if($request->invoice_type === 'cash'){
+            $wallet = Wallet::findOrFail($request->wallet_id);
+            $warehouse = Warehouse::where('id', $request->warehouse_id)->first();
             // التأكد انه اختار محفظة وحساب خزنة 
             if(!$request->warehouse_id && !$request->wallet_id){
                 return back()->with('error', 'يجب اختيار حساب خزنة ومحفظة');
             }
-            
-            $warehouse = Warehouse::where('id', $request->warehouse_id)->first();
-            $wallet = Wallet::findOrFail($request->wallet_id);
-
-            // التأكد من أن الرصيد الحالي أكبر من صفر
-            if ($wallet->current_balance <= 0) {
-                return back()->with('info', 'رصيد المحفظة يجب أن يكون أكبر من صفر .');
-            }
-
-            // التأكد من أن مبلغ الفاتورة يساوى قيمة الفاتورة
-            if ($request->total_amount > $wallet->current_balance) {
+    
+            // التأكد من أن مبلغ الفاتورة لا يتخطي قيمة الفاتورة
+            if (($this->normalizeNumber($wallet->current_balance) + $total_amount_old) < $total_amount) {
                 return back()->with('info', 'رصيد المحفظة غير كافي لإجراء هذه العملية برجاء التحقق من الرصيد .');
             }
-
+            
             // الخزنة الرئيسية
-            $main_warehouse->account()->decrement('total_capital_balance', $request->total_amount);
-            $main_warehouse->account()->increment('total_capital_balance', $request->total_amount);
-            $main_warehouse->account()->decrement('current_balance', $request->total_amount);
+            $main_warehouse->account()->increment('current_balance', $total_amount_old);
+            $main_warehouse->account()->decrement('current_balance', $total_amount);
             
             // الخزنة الفرعية
-            $warehouse->account()->decrement('total_capital_balance', $request->total_amount);
-            $warehouse->account()->increment('total_capital_balance', $request->total_amount);
-            $warehouse->account()->decrement('current_balance', $request->total_amount);
+            $warehouse->account()->increment('current_balance', $total_amount_old);
+            $warehouse->account()->decrement('current_balance', $total_amount);
             
-            // المحفظة
-            $wallet->decrement('current_balance', $request->total_amount);
-
             // المورد
-            $supplier->account()->increment('current_balance', $request->total_amount);
-            $supplier->account()->increment('total_capital_balance', $request->total_amount);
+            $supplier->account()->decrement('current_balance', $total_amount_old);
+            $supplier->account()->increment('current_balance', $total_amount);
     
+            // رصيد المحظة
+            $wallet->increment('current_balance', $total_amount_old);
+            $wallet->decrement('current_balance', $total_amount);
+
+            // تعديل الحركة 
+            $transaction = Account_transactions::where('code', $invoice->invoice_code)->first();
+            $transaction->amount = $total_amount;
+            $transaction->save();
+
+            // تعديل حركة محفظة
+            $wallet_movement = Wallet_movement::where('source_code', $invoice->invoice_code)->first();
+            $wallet_movement->amount = $total_amount;
+            $wallet_movement->save();
         }
         else {
             $supplier = Supplier::findOrFail($request->supplier_id);
-            $supplier->account()->decrement('total_capital_balance', $request->total_amount_old);
-            $supplier->account()->increment('total_capital_balance', $request->total_amount);
+            $supplier->account()->decrement('total_capital_balance', $total_amount_old);
+            $supplier->account()->increment('total_capital_balance', $total_amount);
         
             $warehouse = Warehouse::where('is_main', 1)->first();
-            $warehouse->account()->increment('total_capital_balance', $request->total_amount_old);
-            $warehouse->account()->decrement('total_capital_balance', $request->total_amount);
+            $warehouse->account()->increment('total_capital_balance', $total_amount_old);
+            $warehouse->account()->decrement('total_capital_balance', $total_amount);
         
             $warehouse_toridat = Warehouse::where('type', 'toridat')->first();
-            $warehouse_toridat->account()->increment('total_capital_balance', $request->total_amount_old);
-            $warehouse_toridat->account()->decrement('total_capital_balance', $request->total_amount);    
+            $warehouse_toridat->account()->increment('total_capital_balance', $total_amount_old);
+            $warehouse_toridat->account()->decrement('total_capital_balance', $total_amount);    
         }
         
 
@@ -512,6 +540,7 @@ class SupplierController extends Controller
             'invoice_date' => $request->invoice_date,
             'invoice_type' => $request->invoice_type,
             'total_amount' => $request->total_amount,
+            'paid_amount' => $request->total_amount,
             'cost_price' => $request->additional_cost,
             'notes' => $request->notes,
         ]);
@@ -525,13 +554,18 @@ class SupplierController extends Controller
     
         if ($items && is_array($items)) {
             foreach ($items as $item) {
+                
                 $newItem = $invoice->items()->create([
                     'supplier_invoice_id' => $invoice->id,
                     'category_id' => $item['category_id'],
                     'product_id' => $item['product_id'],
                     'unit_id' => $item['unit_id'],
+                    'size_id' => $item['size_id'],
                     'quantity' => $item['quantity'],
+                    'pricePerMeter' => round($item['pricePerMeter'], 2),
+                    'length' => $item['length'],
                     'purchase_price' => $item['purchase_price'],
+                    'total_price' => round($item['total_price'], 2),
                 ]);
     
                 $stock = Stock::where([

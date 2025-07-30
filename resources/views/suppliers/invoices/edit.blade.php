@@ -41,6 +41,10 @@
             @csrf
             <input type="hidden" value="{{ $invoice->id }}" name="id">
             <input type="hidden" value="{{ $invoice->total_amount }}" name="total_amount_old">
+            @if ($invoice->invoice_type === 'cash')
+                <input type="hidden" name="warehouse_id" value="{{ $invoice->warehouse_id }}">
+                <input type="hidden" name="wallet_id" value="{{ $invoice->wallet_id }}">
+            @endif
             <div class="card-body">
                 <div class="mb-2">
                     <label class="form-label" for="name">المورد</label>
@@ -76,38 +80,7 @@
                 </div>
                 <div class="mb-2">
                     <label class="form-label">نوع الفاتورة</label>
-                    <select name="invoice_type" class="form-select invoice_type @error('invoice_type') is-invalid @enderror">
-                        <option value="">اختر نوع الفاتورة ...</option>
-                        <option value="cash" {{ old('invoice_type', $invoice->invoice_type ?? '') == 'cash' ? 'selected' : '' }}>كاش</option>
-                        <option value="credit" {{ old('invoice_type', $invoice->invoice_type ?? '') == 'credit' ? 'selected' : '' }}>آجل</option>
-                    </select>
-                    @error('invoice_type')
-                        <div class="alert alert-danger mt-1" role="alert">
-                            <h4 class="alert-heading">خطأ</h4>
-                            <div class="alert-body">
-                                {{ @$message }}
-                            </div>
-                        </div>
-                    @enderror
-                </div>
-                <div class="mb-1 warehouse_container" style="display: none;">
-                    <label class="form-label">من حساب</label>
-                    <select name="warehouse_id" class="form-control warehouse_id">
-                        <option value="">اختر الخزنة ...</option>
-                        @foreach ($warehouse_list as $w)
-                            <option value="{{ $w->id }}">{{ $w->name }}</option>              
-                        @endforeach
-                    </select>
-                </div>
-                <div class="mb-1 wallet_container" style="display: none;">
-                    <label class="form-label">المحفظة</label>
-                    <select name="wallet_id" class="form-control wallet_id">
-                        <option value="">...</option>
-                    </select>
-                </div>
-                <div class="mb-1 balance_container" style="display: none;">
-                    <label class="form-label current_balance_label"></label>
-                    <input type="hidden" class="form-control current_balance" name="current_balance" readonly>
+                    <input type="text" class="form-control" value="{{ $invoice->invoice_type }}" readonly name="invoice_type">
                 </div>
                 <div class="mb-2">
                     <a href="#" class="addItems btn-icon-content btn btn-success waves-effect waves-float waves-light">
@@ -122,9 +95,12 @@
                                 <thead>
                                     <th>الصنف</th>
                                     <th>المنتج</th>
-                                    <th>العدد</th>
                                     <th>وحدة القياس</th>
+                                    <th>المقاس / العرض</th>
                                     <th>سعر الشراء للوحدة</th>
+                                    <th>السعر للمتر</th>
+                                    <th>العدد / الطول</th>
+                                    <th>الكمية</th>
                                     <th>الإجمالي</th>
                                     <th>حذف</th>
                                 </thead>
@@ -155,19 +131,37 @@
                                                 @endforeach
                                             </select>
                                         </td>
-                                        <td><input type="number" name="items[{{$index}}][quantity]"class="form-control quantity" value="{{ $item->quantity }}" step="any"></td>
                                         <td>
                                             <select class="select2 unitSelect" name="items[{{$index}}][unit_id]">
                                                 @foreach ($units as $unit)
                                                     <option value="{{ $unit->id }}" 
                                                         {{ (isset($item) && $item->unit_id == $unit->id) ? 'selected' : '' }}>
-                                                        {{ $unit->name }}
+                                                        {{ $unit->symbol }}
                                                     </option>
                                                 @endforeach
                                             </select>
                                         </td> 
+                                        <td>
+                                            <select class="select2 SizeSelect" name="items[{{$index}}][size_id]">
+                                                @foreach ($sizes as $size)
+                                                    <option value="{{ $size->id }}" 
+                                                        {{ (isset($item) && $item->size_id == $size->id) ? 'selected' : '' }}>
+                                                        {{ $size->width }}
+                                                    </option>
+                                                @endforeach
+                                            </select>
+                                        </td>
+
                                         <td><input type="number" name="items[{{$index}}][purchase_price]" value="{{ $item->purchase_price }}" class="form-control purchase_price" step="any"></td>
-                                        <td><input type="number" name="items[{{$index}}][total_price]" value="{{ $item->purchase_price * $item->quantity }}" class="form-control total_price" step="any" readonly></td>
+
+                                        <td><input type="number" name="items[{{$index}}][pricePerMeter]" value="{{ $item->pricePerMeter }}" class="form-control pricePerMeter" readonly step="any"></td>
+
+                                        <td><input type="number" name="items[{{$index}}][length]" value="{{ $item->length }}" class="form-control length" readonly step="any"></td>
+
+                                        <td><input type="number" name="items[{{$index}}][quantity]"class="form-control quantity" value="{{ $item->quantity }}" step="any"></td>
+
+                                        <td><input type="number" name="items[{{$index}}][total_price]" value="{{ $item->total_price }}" class="form-control total_price" step="any" readonly></td>
+
                                         <td>
                                             <button type="button" class="btn btn-danger btn-sm remove-row">
                                                 <i data-feather='trash-2'></i>
@@ -233,11 +227,6 @@
 <script>
 $(function () {
 
-    $('.table-responsive tbody .categorySelect, .table-responsive tbody .productSelect, .table-responsive tbody .unitSelect').select2({
-        dir: "rtl",
-        width: '200px',
-    });
-
     $.ajaxSetup({
         headers: {
             'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
@@ -272,39 +261,77 @@ $(function () {
     $(document).on('click', '.remove-cost', function () {
         $(this).closest('.cost-item').remove();
         calculateTotalCost();
+        calculateTotalInvoice();
     });
 
-    $(document).on('input', '.additional_cost , .quantity, .purchase_price', function () {
+    $(document).on('input', '.additional_cost,.unit_id, .quantity, .length ,.purchase_price, .SizeSelect', function () {
         let row = $(this).closest('tr');
+        calculateTotalPerMM(row);
         calculateTotalPrice(row);
     });
 
-    // حساب السعر الإجمالي
-
-    function calculateTotalPrice(row) {
-        let quantity = parseInt(row.find('.quantity').val()) || 0;
-        let purchase_price = parseInt(row.find('.purchase_price').val()) || 0;
-
-        if (quantity > 0 && purchase_price > 0) {
-            let total_price = quantity * purchase_price;
-
-            row.find('.total_price').val(total_price);
-        } else {
-            row.find('.total_price').val(0);
-        }
-
-        // أعِد حساب الفاتورة بعد كل تعديل
+    function calculateTotalCost(){
+        let costtotal = 0;
+        $('.costValue').each(function() {
+            let costValue = parseInt($(this).val());
+            costtotal += costValue;
+        });
+        $('#total-cost').val(costtotal);
         calculateTotalInvoice();
     }
 
-    // حساب إجمالي الفاتورة
+    function calculateTotalPerMM(row) {
+        let pricePerMM = 0;
+        let category = row.find('.categorySelect');
+        let unit = row.find('.unitSelect');
+        
+        let CatText = category.is('select') 
+            ? category.find('option:selected').text() 
+            : category.text();
+
+        let symbol = unit.find('option:selected').text();
+
+        let quantity = parseFloat(row.find('.quantity').val()) || 0;
+        let length = parseFloat(row.find('.length').val()) || 0;
+        let purchase_price = parseFloat(row.find('.purchase_price').val()) || 0;
+        let size = parseFloat(row.find('.SizeSelect option:selected').text()) || 0;
+
+        if(symbol === 'سم'){
+            pricePerMM = size * purchase_price;
+            row.find('.length').attr('readonly', false);
+        }
+        else {
+            pricePerMM = 0;
+            row.find('.length').attr('readonly', true);
+        }
+
+        row.find('.pricePerMeter').val(pricePerMM);  
+    }
+
+    function calculateTotalPrice(row){
+        let total_price = 0;
+        let unit = row.find('.unitSelect');
+        let symbol = unit.find('option:selected').text();
+        let length = parseFloat(row.find('.length').val()) || 0;
+        let quantity = parseFloat(row.find('.quantity').val()) || 0;
+        let pricePerMM = parseFloat(row.find('.pricePerMeter').val()) || 0;
+        let purchase_price = parseFloat(row.find('.purchase_price').val()) || 0;
+
+        if(pricePerMM !== 0){
+            total_price = (length * pricePerMM) * quantity;
+        }
+        else {
+            total_price = quantity * purchase_price;
+        }
+        row.find('.total_price').val(total_price);
+        calculateTotalInvoice();
+    }
 
     function calculateTotalInvoice() {
         let total_amount = 0;
-
         // جمع إجماليات كل صنف
         $('tr.product-item').each(function () {
-            let price = parseInt($(this).find('.total_price').val().replace(/,/g, '')) || 0;
+            let price = parseFloat($(this).find('.total_price').val().replace(/,/g, '')) || 0;
             total_amount += price;
         });
 
@@ -314,17 +341,6 @@ $(function () {
 
         // عرض النتيجة
         $('.total_amount').val(total_amount);
-    }
-
-    // حساب مجموع التكاليف
-
-    function calculateTotalCost(){
-        let costtotal = 0;
-        $('.costValue').each(function() {
-            let costValue = parseInt($(this).val());
-            costtotal += costValue;
-        });
-        $('#total-cost').val(costtotal);
     }
 
     // جلب المنتجات بناء علي التصنيف
@@ -338,7 +354,7 @@ $(function () {
             success: function(response) {
                 select.empty().append(`<option value="">اختر منتج</option>`);
                 response.data.forEach(item => {
-                    select.append(`<option value="${item.id}">${item.name} - ${item.width}</option>`);
+                    select.append(`<option value="${item.id}">${item.name}</option>`);
                 });
             }
         });
@@ -376,13 +392,20 @@ $(function () {
                         <option value="">اختر منتج</option>
                     </select>
                 </td>
-                <td><input type="number" name="items[${index}][quantity]" class="select2 quantity" step="any"></td>
                 <td>
                     <select class="select2 unitSelect" name="items[${index}][unit_id]">
                         <option value="">جاري التحميل...</option>
                     </select>
                 </td> 
+                <td>
+                    <select class="select2 SizeSelect" name="items[${index}][size_id]">
+                        <option value="">اختر المقاس</option>
+                    </select>
+                </td>
                 <td><input type="number" name="items[${index}][purchase_price]"  class="form-control purchase_price" step="any"></td>
+                <td><input type="number" name="items[${index}][pricePerMeter]" value="0"  class="form-control pricePerMeter" step="any" readonly></td>
+                <td><input type="number" name="items[${index}][length]"class="form-control length" value="0" step="any"></td>
+                <td><input type="number" name="items[${index}][quantity]"class="form-control quantity" value="1" step="any"></td>
                 <td><input type="number" name="items[${index}][total_price]" class="form-control total_price" step="any" readonly></td>
                 <td>
                     <button type="button" class="btn btn-danger btn-sm remove-row">
@@ -398,12 +421,9 @@ $(function () {
         // تفعيل أيقونات feather
         feather.replace();
 
-        // جلب آخر select مضاف
-        const lastCategorySelect = $('.categorySelect').last();
-        const lastUnitSelect = $('.unitSelect').last();
-
         // جلب التصنيفات
         $.get('{{ route("getAllHierarchicalCategories") }}', function(response) {
+            const lastCategorySelect = $('.categorySelect').last();
             if (response.status) {
                 lastCategorySelect.empty().append(`<option value="">اختر تصنيف</option>`);
                 response.data.forEach(item => {
@@ -416,95 +436,44 @@ $(function () {
 
         // جلب الوحدات
         $.get('{{ route("getUnits") }}', function(response) {
+            const lastUnitSelect = $('.unitSelect').last();
             if (response.status) {
                 lastUnitSelect.empty().append(`<option value="">اختر الوحدة</option>`);
                 response.data.forEach(item => {
-                    lastUnitSelect.append(`<option value="${item.id}">${item.name}</option>`);
+                    lastUnitSelect.append(`<option value="${item.id}">${item.symbol}</option>`);
                 });
             } else {
                 lastUnitSelect.html('<option>حدث خطأ في جلب الوحدات</option>');
             }
         });
 
-        $('.table-responsive tbody .categorySelect, .table-responsive tbody .productSelect, .table-responsive tbody .unitSelect').select2({
+        // جلب المقاسات
+        $.get('{{ route("getSizes") }}', function(response) {
+            lastSizeSelect = $(".SizeSelect").last();
+            if (response.status) {
+                lastSizeSelect.empty().append(`<option value="">اختر المقاس</option>`);
+                response.data.forEach(item => {
+                    lastSizeSelect.append(`<option value="${item.id}" data-width="${item.width}">${item.width}</option>`);
+                });
+            } else {
+                lastSizeSelect.html('<option>حدث خطأ في جلب المقاسات</option>');
+            }
+        });
+
+        $('.table-responsive tbody .select2').select2({
             dir: "rtl",
             width: '200px',
         });
 
-        function reindexItems() {
-            $('.product-item').each(function(index) {
-                $(this).find('select, input').each(function() {
-                    const name = $(this).attr('name');
-                    if (name) {
-                        // استبدل الرقم السابق بالرقم الجديد index
-                        const newName = name.replace(/items\[\d+\]/, `items[${index}]`);
-                        $(this).attr('name', newName);
-                    }
-                });
-            });
-        }
     });
     
     // حذف الصف
     $(document).on('click', '.remove-row', function () {
         $(this).closest('tr').remove();
-        reindexItems();
         calculateTotalInvoice();
         feather.replace();
     });
 
-        // change type = cash 
-        $(document).on('change', '.invoice_type', function(){
-        let invoice_type = $(this).find('option:selected').val();
-        console.log(invoice_type);
-        if(invoice_type === 'cash'){
-            $(".warehouse_container").show(500);
-            $(".wallet_container").show(500);
-            $(".balance_container").show(500);
-        }
-        else {
-            $(".warehouse_container").hide(500);
-            $(".wallet_container").hide(500);
-            $(".balance_container").hide(500);
-        }
-    })
-
-    // change warehouse_id action
-    $(document).on('change', '.warehouse_id', function(){
-        $.ajaxSetup({
-            headers: {
-                'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
-            }
-        });
-        $.ajax({
-            url: "{{ route('getWallets') }}",
-            method: 'POST',
-            data: {
-                warehouse_id: $(this).val() 
-            },
-            success: function (response) {
-                $('.wallet_id').empty();
-                $('.wallet_id').append(`<option value="">اختر محفظة ...</option>`)
-                $.each(response.data, function(index, item){
-                    $('.wallet_id').append(`<option value="${item.id}" data-balance="${item.current_balance}" data-method="${item.method}">${item.name}</option>`)
-                })
-            },
-            error: function(xhr){
-                console.log(xhr);
-            },
-        });
-    })
-
-    // get balance wallet
-    $(document).on('change', '.wallet_id', function(){
-        let balance = parseInt($(this).find('option:selected').attr('data-balance')) || 0;
-        let method = $(this).find('option:selected').attr('data-method');
-        $(".current_balance").val(balance)
-        $(".method").val(method)
-        $(".balance_container").show(500);
-        $(".current_balance_label").text('الرصيد المتوفر');
-        $(".current_balance").attr('type', 'text');
-    })
 
     $('#invoiceForm').on('submit', function(e) {
         e.preventDefault(); // منع الإرسال مؤقتًا

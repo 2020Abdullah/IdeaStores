@@ -417,7 +417,9 @@ $(function () {
             }
         });
 
-        function reindexItems() {
+    });
+
+    function reindexItems() {
             $('.product-item').each(function(index) {
                 $(this).find('select, input').each(function() {
                     const name = $(this).attr('name');
@@ -428,16 +430,14 @@ $(function () {
                     }
                 });
             });
-        }
+    }
 
         // حذف الصف
-        $(document).on('click', '.remove-row', function () {
-            $(this).closest('tr').remove();
-            reindexItems();
-            calculateTotalInvoice();
-            feather.replace();
-        });
-
+    $(document).on('click', '.remove-row', function () {
+        $(this).closest('tr').remove();
+        reindexItems();
+        calculateTotalInvoice();
+        feather.replace();
     });
 
     // تفعيل الـ select2
@@ -503,7 +503,6 @@ $(function () {
         e.preventDefault(); // منع الإرسال مؤقتًا
         // تأكيد من المستخدم
         if (confirm("هل أنت متأكد من حفظ البيانات؟")) {
-            localStorage.removeItem('unsaved_items');
             this.submit();
         } 
     });
@@ -532,59 +531,6 @@ $(function () {
             return "لديك تغييرات غير محفوظة، هل تريد فعلاً مغادرة الصفحة؟";
         }
     };
-
-    // save items in localstorage 
-    function saveItemsToLocalStorage() {
-        let items = [];
-
-        $('.product-item').each(function () {
-            let row = $(this);
-            items.push({
-                category_id: row.find('.categorySelect').val(),
-                product_id: row.find('.productSelect').val(),
-                unit_id: row.find('.unitSelect').val(),
-                size: row.find('.SizeSelect').val(),
-                purchase_price: row.find('.purchase_price').val(),
-                pricePerMeter: row.find('.pricePerMeter').val(),
-                length: row.find('.length').val(),
-                quantity: row.find('.quantity').val(),
-                total_price: row.find('.total_price').val()
-            });
-        });
-
-        localStorage.setItem('unsaved_items', JSON.stringify(items));
-    }
-
-    $(document).on('input change', '.product-item input, .product-item select', function () {
-        saveItemsToLocalStorage();
-    });
-
-    function restoreItemsFromLocalStorage() {
-        let stored = localStorage.getItem('unsaved_items');
-        if (stored) {
-            let items = JSON.parse(stored);
-            items.forEach(item => {
-                // هنا تنسخ كود إضافة صنف، ولكن تملأ القيم حسب item
-                // مثلاً:
-                $('.addItems').trigger('click'); // تضيف صف جديد
-                let lastRow = $('.product-item').last();
-
-                lastRow.find('.categorySelect').val(item.category_id).trigger('change');
-                lastRow.find('.unitSelect').val(item.unit_id);
-                lastRow.find('.SizeSelect').val(item.size);
-                lastRow.find('.purchase_price').val(item.purchase_price);
-                lastRow.find('.pricePerMeter').val(item.pricePerMeter);
-                lastRow.find('.length').val(item.length);
-                lastRow.find('.quantity').val(item.quantity);
-                lastRow.find('.total_price').val(item.total_price);
-
-                // ملاحظة: المنتجات تعتمد على التصنيف، فانتظر تحميل المنتجات ثم اختر
-                setTimeout(() => {
-                    lastRow.find('.productSelect').val(item.product_id);
-                }, 500);
-            });
-        }
-    }
 
 
 });

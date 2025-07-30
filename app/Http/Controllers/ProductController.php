@@ -17,13 +17,13 @@ class ProductController extends Controller
     }
 
     public function add(){
-        $data['main_categories'] = Category::whereNull('parent_id')->get();
+        $data['categories'] = Category::all();
         $data['units'] = Unit::all();
         return view('product.add', $data);
     }
 
     public function edit($id){
-        $data['main_categories'] = Category::whereNull('parent_id')->get();
+        $data['categories'] = Category::doesntHave('children')->get();
         $data['product'] = Product::findOrFail($id);
         $data['units'] = Unit::all();
         return view('product.edit', $data);

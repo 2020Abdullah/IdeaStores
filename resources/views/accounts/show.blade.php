@@ -7,7 +7,7 @@
     </div>
     <div class="card-balance">
         <h3>الرصيد الحالي</h3>
-        <h4>{{ number_format($transactions->sum(fn($t) => $t->direction === 'in' ? $t->amount : -$t->amount), 2) }}</h4>
+        <h4>{{ number_format($account->current_balance, 2) }}</h4>
     </div>
     <hr>
     <div class="card-body">
@@ -22,19 +22,12 @@
                         <th>طريقة الدفع</th>
                         <th>الوصف</th>
                         <th>المبلغ</th>
-                        <th>الرصيد</th>
                     </tr>
                 </thead>
                 <tbody>
-                    @php $balance = 0; @endphp
                     @forelse($transactions as $transaction)
-                        @php
-                            $amount = $transaction->amount;
-                            $direction = $transaction->direction;
-                            $balance += $direction === 'in' ? $amount : -$amount;
-                        @endphp
                         <tr>
-                            <td>{{ $transaction->created_at->format('Y-m-d H:i') }}</td>
+                            <td>{{ $transaction->created_at->format('Y-m-d') }}</td>
                             <td>
                                 {{ $transaction->direction === 'in' ? 'إيداع' : 'سحب' }}
                             </td>
@@ -49,7 +42,6 @@
                             <td class="{{ $transaction->direction === 'in' ? 'text-success' : 'text-danger' }}">
                                 {{ $transaction->direction === 'in' ? '+' : '-' }}{{ number_format($transaction->amount, 2) }}
                             </td>
-                            <td><strong>{{ number_format($balance, 2) }}</strong></td>
                         </tr>
                     @empty
                         <tr>
@@ -59,6 +51,9 @@
                 </tbody>
             </table>
         </div>
+    </div>
+    <div class="card-footer">
+        {{ $transactions->links() }}
     </div>
 </div>
 @endsection

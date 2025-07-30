@@ -32,6 +32,11 @@ class ProductRequest extends FormRequest
             'name' => [
                 'required',
                 'string',
+                Rule::unique('products')
+                ->where(function ($query) {
+                    return $query->where('category_id', $this->final_category_id);
+                })
+                ->ignore($this->id)
             ],
         ];
     }
@@ -42,6 +47,7 @@ class ProductRequest extends FormRequest
             'final_category_id.required' => 'يجب اختيار التصنيف !',
             'unit_id.required' => 'يجب اختيار وحدة القياس !',
             'name.required' => 'يجب كتابة اسم المنتج !',
+            'name.unique' => 'هذا المنتج مسجل بالفعل في نفس التصنيف !',
         ];
     }
 }

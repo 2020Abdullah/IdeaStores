@@ -27,29 +27,23 @@
     </div>
     <form action="{{ route('product.update') }}" id="formProduct" method="POST">
         @csrf
-        <input type="hidden" name="final_category_id" id="final_category_id">
         <input type="hidden" name="id" value="{{ $product->id }}">
         <div class="card-body">
                 <div class="mb-1">
-                    <label class="form-label">التصنيف الرئيسي</label>
-                    <select name="main_categories" class="form-select @error('main_categories') is-invalid @enderror" id="main_category" required>
-                        @foreach ($main_categories as $c)
-                            <option value="{{ $c->id }}" 
-                                {{ $product->category && $product->category->parent_id == $c->id ? 'selected' : ($product->category && $product->category->id == $c->id && !$product->category->parent_id ? 'selected' : '') }}>
-                                {{ $c->name }}
+                    <label class="form-label">التصنيف</label>
+                    <select name="final_category_id" class="form-select @error('final_category_id') is-invalid @enderror" id="main_category" required>
+                        @foreach ($categories as $category)
+                            <option value="{{ $category->id }}"
+                                {{ $product->category_id == $category->id ? 'selected' : '' }}>
+                                {{ $category->full_path }}
                             </option>
                         @endforeach
                     </select>
-                    @error('main_categories')
+                    @error('final_category_id')
                         <div class="alert alert-danger">
                             <p>{{ @$message }}</p>
                         </div>
                     @enderror
-                </div>
-                <div class="form-group" id="sub_category_container" style="display: none;">
-                    <label for="category_id">التصنيف الفرعي</label>
-                    <select name="category_id" id="sub_category" class="form-control">
-                    </select>
                 </div>
                 <div class="mb-1">
                     <label class="form-label">وحدة القياس</label>
@@ -81,115 +75,4 @@
     </form>
 </div>
 
-@endsection
-
-@section('js')
-<script>
-$(document).ready(function() {
-    // تأكد وجود div#category_selectors أو أنشئه داخل formProduct
-    let $selectorsWrapper = $('#category_selectors');
-    if ($selectorsWrapper.length === 0) {
-        $selectorsWrapper = $('<div id="category_selectors" class="mb-1"></div>');
-        // انقل select الرئيسي داخله مع حذف القديم
-        const $mainCategory = $('#main_category');
-        $mainCategory.parent().append($selectorsWrapper);
-        $selectorsWrapper.append($mainCategory);
-    }
-
-    const $finalCategoryInput = $('#final_category_id');
-    const productCategory = @json($product->category);
-
-    function loadSubcategories($select) {
-        const selectedId = $select.val();
-        const currentLevel = parseInt($select.data('level'));
-
-        // حدّث الحقل المخفي final_category_id
-        $finalCategoryInput.val(selectedId || '');
-
-        // امسح التفرعات بعد هذا المستوى
-        $selectorsWrapper.find('select.category-level').each(function() {
-            if (parseInt($(this).data('level')) > currentLevel) {
-                $(this).parent().remove();
-            }
-        });
-
-        if (!selectedId) return;
-
-        $.ajax({
-            url: '{{ route("getSubcategories") }}',
-            type: 'POST',
-            data: {
-                _token: '{{ csrf_token() }}',
-                category_id: selectedId
-            },
-            success: function(response) {
-                if (response.status && response.data.length > 0) {
-                    const nextLevel = currentLevel + 1;
-                    const $newSelectWrapper = $('<div class="mt-2"></div>');
-                    const options = response.data.map(cat => `<option value="${cat.id}">${cat.name}</option>`).join('');
-                    const $newSelect = $(`<select class="form-control category-level" data-level="${nextLevel}"><option value="">اختر التصنيف الفرعي...</option>${options}</select>`);
-
-                    $newSelectWrapper.append($newSelect);
-                    $selectorsWrapper.append($newSelectWrapper);
-
-                    $newSelect.on('change', function() {
-                        loadSubcategories($(this));
-                    });
-                }
-            },
-            error: function() {
-                console.error('خطأ في جلب التفرعات');
-            }
-        });
-    }
-
-    // ضبط select الرئيسي
-    const $mainCategorySelect = $('#main_category');
-    $mainCategorySelect.addClass('category-level').attr('data-level', '1');
-
-    $mainCategorySelect.on('change', function() {
-        loadSubcategories($(this));
-    });
-
-    // بناء التفرعات في حالة وجود تصنيف في المنتج
-    if (productCategory) {
-        if (productCategory.parent_id) {
-            $mainCategorySelect.val(productCategory.parent_id);
-            $finalCategoryInput.val(productCategory.id);
-
-            $.ajax({
-                url: '{{ route("getSubcategories") }}',
-                type: 'POST',
-                data: {
-                    _token: '{{ csrf_token() }}',
-                    category_id: productCategory.parent_id
-                },
-                success: function(response) {
-                    if (response.status && response.data.length > 0) {
-                        const nextLevel = 2;
-                        const $newSelectWrapper = $('<div class="mt-2"></div>');
-                        const options = response.data.map(cat => {
-                            return `<option value="${cat.id}" ${cat.id == productCategory.id ? 'selected' : ''}>${cat.name}</option>`;
-                        }).join('');
-                        const $newSelect = $(`<select class="form-control category-level" data-level="${nextLevel}"><option value="">اختر التصنيف الفرعي...</option>${options}</select>`);
-
-                        $newSelectWrapper.append($newSelect);
-                        $selectorsWrapper.append($newSelectWrapper);
-
-                        $newSelect.on('change', function() {
-                            loadSubcategories($(this));
-                        });
-                    }
-                },
-                error: function() {
-                    console.error('خطأ في جلب التفرعات');
-                }
-            });
-        } else {
-            $mainCategorySelect.val(productCategory.id);
-            $finalCategoryInput.val(productCategory.id);
-        }
-    }
-});
-</script>
 @endsection

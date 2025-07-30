@@ -96,4 +96,11 @@
     </script>
     @include('layouts.message')
     @yield('js')
+
+    <script>
+         $('.select2').select2({
+            dir: "rtl",
+            width: 'resolve'
+        });
+    </script>
 </html>

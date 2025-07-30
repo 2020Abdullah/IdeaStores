@@ -71,13 +71,23 @@
                         </td>
             
                         <td>
+
+                            @if ($c->parent)
+                                <a href="#" data-bs-toggle="modal" data-bs-target="#editcate"
+                                data-id="{{ $c->id }}" data-name="{{ $c->name }}" data-parent_id="{{ $c->parent->id }}"
+                                class="btn btn-icon btn-success waves-effect waves-float waves-light editBtn"
+                                title="تعديل">
+                                    <i data-feather='edit'></i>
+                                </a>
+                            @else
+                                <a href="#" data-bs-toggle="modal" data-bs-target="#editcate"
+                                data-id="{{ $c->id }}" data-name="{{ $c->name }}"
+                                class="btn btn-icon btn-success waves-effect waves-float waves-light editBtn"
+                                title="تعديل">
+                                    <i data-feather='edit'></i>
+                                </a>
+                            @endif
             
-                            <a href="#" data-bs-toggle="modal" data-bs-target="#editcate"
-                               data-id="{{ $c->id }}" data-name="{{ $c->name }}"
-                               class="btn btn-icon btn-success waves-effect waves-float waves-light editBtn"
-                               title="تعديل">
-                                <i data-feather='edit'></i>
-                            </a>
             
                             <a href="#" data-bs-toggle="modal" data-bs-target="#delcate"
                                data-id="{{ $c->id }}"
@@ -106,10 +116,11 @@
         $(document).on('click', '.editBtn', function(){
             let id = $(this).data('id');
             let name = $(this).data('name');
-            let symbol = $(this).data('symbol');
+            let parent_id = $(this).data('parent_id');
 
             $("#editcate input[name='id']").val(id);
             $("#editcate input[name='name']").val(name);
+            $("#editcate select[name='parent_id']").val(parent_id);
         });
 
         $(document).on('click', '.delBtn', function(){

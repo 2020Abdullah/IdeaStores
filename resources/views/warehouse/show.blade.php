@@ -33,7 +33,7 @@
                 <div class="col">
                     <div class="card-balance">
                         <h3>الرصيد الحالي</h3>
-                        <h4>{{ number_format($wallet->movements->sum('amount')) }}</h4>
+                        <h4>{{ number_format($wallet->current_balance, 2) }}</h4>
                     </div>
                 </div>
             </div>

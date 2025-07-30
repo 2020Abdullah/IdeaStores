@@ -30,15 +30,11 @@
     </div>
     <form action="{{ route('product.store') }}" id="formProduct" method="POST">
         @csrf
-        <input type="hidden" name="final_category_id" id="final_category_id">
+        {{-- <input type="hidden" name="final_category_id" id="final_category_id"> --}}
         <div class="card-body">
                 <div class="mb-1">
                     <div id="category_selectors">
-                        <select class="form-control category-level" data-level="0" required>
-                            <option value="">اختر التصنيف الرئيسي...</option>
-                            @foreach ($main_categories as $cat)
-                                <option value="{{ $cat->id }}">{{ $cat->name }}</option>
-                            @endforeach
+                        <select class="form-select select2 categorySelect" name="final_category_id" required>
                         </select>
                     </div>  
                     @error('final_category_id')
@@ -82,51 +78,20 @@
 @section('js')
 <script>
     $(function(){
-        document.addEventListener('change', function(e) {
-            if (e.target.classList.contains('category-level')) {
-                loadSubcategories(e.target);
-                document.getElementById('final_category_id').value = e.target.value || '';
-            }
-        });
-
-        function loadSubcategories(selectElement) {
-            const selectedId = selectElement.value;
-            const currentLevel = parseInt(selectElement.dataset.level);
-
-            // امسح كل التفرعات بعد هذا المستوى
-            document.querySelectorAll('#category_selectors .category-level').forEach(el => {
-                if (parseInt(el.dataset.level) > currentLevel) {
-                    el.parentElement.remove();
+        function getCategory(){
+            let categorySelect = $('.categorySelect');
+            $.get('{{ route("getAllHierarchicalCategories") }}', function(response) {
+                if (response.status) {
+                    categorySelect.empty().append(`<option value="">اختر تصنيف</option>`);
+                    response.data.forEach(item => {
+                        categorySelect.append(`<option value="${item.id}">${item.full_path}</option>`);
+                    });
+                } else {
+                    categorySelect.html('<option>حدث خطأ في جلب التصنيفات</option>');
                 }
-            });
-
-            if (!selectedId) return;
-
-            // أرسل AJAX لطلب التفرعات
-            fetch('{{ route("getSubcategories") }}', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRF-TOKEN': '{{ csrf_token() }}'
-                },
-                body: JSON.stringify({ category_id: selectedId })
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.status && data.data.length > 0) {
-                    const nextLevel = currentLevel + 1;
-                    const newSelect = document.createElement('div');
-                    newSelect.innerHTML = `
-                        <select class="form-control mt-2 category-level" data-level="${nextLevel}" onchange="loadSubcategories(this)">
-                            <option value="">اختر التصنيف الفرعي...</option>
-                            ${data.data.map(cat => `<option value="${cat.id}">${cat.name}</option>`).join('')}
-                        </select>
-                    `;
-                    document.getElementById('category_selectors').appendChild(newSelect);
-                }
-                // لو لا يوجد تفرعات: لا تفعل شيئاً
             });
         }
+        getCategory();
     })
 </script>
 @endsection
