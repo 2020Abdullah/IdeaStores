@@ -28,7 +28,7 @@
         <hr />
         <div class="card-body">
             <div class="row">
-                <div class="col-12 mb-1 text-center">
+                <div class="col mb-1 text-center">
                     <div class="card">
                         <div class="card-body">
                             <div class="card-balance">
@@ -38,6 +38,21 @@
                         </div>
                     </div>
                 </div>
+                @if ($supplier->account->opening_balance > 0)
+                    <div class="col mb-1 text-center">
+                        <div class="card">
+                            <div class="card-body">
+                                <div class="card-balance">
+                                    <h3>رصيد أول المدة</h3>
+                                    <h4>{{ number_format($supplier->account->opening_balance) }}</h4>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                @endif
+            </div>
+            <hr />
+            <div class="row">
                 <div class="col-6 mb-1">
                     <label class="form-label">المورد ID</label>
                     <input type="text" class="form-control" value="{{ $supplier->id }}" readonly>
@@ -76,6 +91,16 @@
                 <a href="{{ route('supplier.target.invoice.add', $supplier->id) }}" class="btn btn-success waves-effect waves-float waves-light">
                     إضافة فاتورة جديدة 
                 </a>
+                @if ($supplier->account->opening_balance > 0)
+                    <a href="#" data-bs-toggle="modal" data-bs-target="#PaymentBalance"
+                        data-supplier_id="{{ $supplier->id }}"
+                        data-opening_balance="{{ $supplier->account->opening_balance }}"
+                        class="btn btn-icon btn-primary waves-effect waves-float waves-light creditOpenBtn"
+                        >
+                        <span>دفع رصيد أول المدة</span>
+                        <i data-feather='credit-card'></i>
+                    </a>
+                @endif
             </div>
         </div>
         <div class="card-body">
@@ -190,6 +215,7 @@
                 <input type="hidden" name="id" class="id">
                 <input type="hidden" name="supplier_id" class="supplier_id">
                 <input type="hidden" name="method" class="method">
+                <input type="hidden" name="opening_balance" class="opening_balance">
                 <div class="modal-body">
                     <div class="mb-1">
                         <label class="form-label">من حساب</label>
@@ -230,6 +256,59 @@
         </div>
     </div>
 </div>
+
+<!-- model payment opining balance -->
+<div class="modal fade text-start modal-primary" id="PaymentBalance" tabindex="-1" aria-modal="true" role="dialog">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">دفع رصيد أول المدة</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form action="{{ route('supplier.open.payment') }}" method="POST">
+                @csrf
+                <input type="hidden" name="supplier_id" class="supplier_id">
+                <input type="hidden" name="method" class="method">
+                <div class="modal-body">
+                    <div class="mb-1">
+                        <label class="form-label">من حساب</label>
+                        <select name="warehouse_id" class="form-control warehouse_id">
+                            <option value="">اختر الخزنة ...</option>
+                            @foreach ($warehouse_list as $w)
+                                <option value="{{ $w->id }}">{{ $w->name }}</option>              
+                            @endforeach
+                        </select>
+                    </div>
+                    <div class="mb-1">
+                        <label class="form-label">المحفظة</label>
+                        <select name="wallet_id" class="form-control wallet_id">
+                            <option value="">...</option>
+                        </select>
+                    </div>
+                    <div class="mb-1 balance_container" style="display: none;">
+                        <label class="form-label current_balance_label"></label>
+                        <input type="hidden" class="form-control current_balance" name="current_balance" readonly>
+                    </div>
+                    <div class="mb-1">
+                        <label class="form-label">المبلغ المطلوب</label>
+                        <input type="number" class="form-control openingBalance" name="openingBalance" readonly>
+                    </div>
+                    <div class="mb-1">
+                        <label class="form-label">المبلغ المدفوع</label>
+                        <input type="number" class="form-control" name="amount">
+                    </div>
+                    <div class="mb-1">
+                        <label class="form-label">ملاحظات</label>
+                        <textarea name="description" class="form-control" cols="5" rows="5"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="submit" class="btn btn-success waves-effect waves-float waves-light">تأكيد العملية</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
 @endsection
 
 @section('js')
@@ -250,9 +329,19 @@
                 let id = $(this).data('id');
                 let total_amount = $(this).data('total_amount');
                 let supplier_id = $(this).data('supplier_id');
+                let opening_balance = $(this).data('opening_balance');
                 $("#PaymentInvoice .id").val(id);
                 $("#PaymentInvoice .supplier_id").val(supplier_id);
                 $("#PaymentInvoice .total_amount").val(total_amount);
+                $("#PaymentInvoice .opening_balance").val(opening_balance);
+            })
+
+            // cedit opening Balance
+            $(".creditOpenBtn").on('click', function(){
+                let supplier_id = $(this).data('supplier_id');
+                let opening_balance = $(this).data('opening_balance');
+                $("#PaymentBalance .supplier_id").val(supplier_id);
+                $("#PaymentBalance .openingBalance").val(opening_balance);
             })
 
             // change warehouse_id action
@@ -285,11 +374,11 @@
             $(document).on('change', '.wallet_id', function(){
                let balance = parseInt($(this).find('option:selected').attr('data-balance')) || 0;
                let method = $(this).find('option:selected').attr('data-method');
-               $("#PaymentInvoice .current_balance").val(balance)
-               $("#PaymentInvoice .method").val(method)
-               $("#PaymentInvoice .balance_container").show(500);
-               $("#PaymentInvoice .current_balance_label").text('الرصيد المتوفر');
-               $("#PaymentInvoice .current_balance").attr('type', 'text');
+               $(".current_balance").val(balance)
+               $(".method").val(method)
+               $(".balance_container").show(500);
+               $(".current_balance_label").text('الرصيد المتوفر');
+               $(".current_balance").attr('type', 'text');
             })
         })
     </script>

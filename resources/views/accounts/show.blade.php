@@ -16,9 +16,9 @@
                 <thead>
                     <tr>
                         <th>التاريخ</th>
+                        <th>من حساب</th>
+                        <th>إلي حساب</th>
                         <th>نوع المعاملة</th>
-                        <th>الجهة</th>
-                        <th>المصدر</th>
                         <th>طريقة الدفع</th>
                         <th>الوصف</th>
                         <th>المبلغ</th>
@@ -29,13 +29,13 @@
                         <tr>
                             <td>{{ $transaction->created_at->format('Y-m-d') }}</td>
                             <td>
-                                {{ $transaction->direction === 'in' ? 'إيداع' : 'سحب' }}
+                                {{ $account->name }}
                             </td>
                             <td>
                                 {{ optional($transaction->related)->name ?? '-' }}
                             </td>
                             <td>
-                                {{ class_basename($transaction->source_type) === 'Supplier_invoice' ? 'فاتورة شراء' : 'فاتورة بيع'}}
+                                {{ $transaction->transaction_type === 'purchase' ? 'فاتورة شراء' : 'تحويل'}}
                             </td>
                             <td>{{ $transaction->method }}</td>
                             <td>{{ $transaction->description }}</td>
