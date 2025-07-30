@@ -95,9 +95,7 @@ class WarehouseController extends Controller
 
         // تحديث رصيد حساب الخزن
         $warehous = Warehouse::findOrFail($request->warehouse_id);
-        $main_warehous = Warehouse::where('is_main', 1)->first();
         $warehous->account->increment('current_balance', $request->balance);
-        $main_warehous->account->increment('current_balance', $request->balance);
 
         // تسجيل حركة مالية 
         $wallet_movement = new Wallet_movement();
