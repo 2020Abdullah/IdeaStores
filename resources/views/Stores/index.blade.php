@@ -58,8 +58,8 @@
                             <tr>
                                 <td>{{ $stock->category->fullPath() }}</td>
                                 <td>{{ $stock->product->name }}</td>
-                                <td>{{ $stock->initial_quantity }} {{ $stock->unit->name }}</td>
-                                <td>{{ $stock->remaining_quantity }} {{ $stock->unit->name }}</td>
+                                <td>{{ $stock->initial_quantity }} {{ $stock->unit->symbol }}</td>
+                                <td>{{ $stock->remaining_quantity }} {{ $stock->unit->symbol }}</td>
                                 <td>
                                     <a href="{{ route('storesHouse.product.show', $stock->id) }}" class="btn btn-info waves-effect">
                                         <i data-feather='eye'></i>

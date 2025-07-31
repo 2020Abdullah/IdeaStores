@@ -21,18 +21,21 @@ class supplierInvoiceRequest extends FormRequest
      */
     public function rules(): array
     {
-        return [
+        $rules = [
             'supplier_id' => 'required',
-            'invoice_date' => 'required',
+            'invoice_date' => 'required|date',
             'invoice_type' => 'required',
-            // 'additional_cost' => 'required|numeric',
             'notes' => ['nullable', 'string'],
-            'items' => ['required', 'array', 'min:1'],
-            'items.*.category_id' => ['required', 'exists:categories,id'],
-            'items.*.product_id' => ['required', 'exists:products,id'],
-            'items.*.quantity' => ['required', 'numeric', 'min:1'],
-            'items.*.purchase_price' => ['required', 'numeric', 'min:0'],
         ];
+
+        if ($this->input('invoice_type') !== 'opening_balance') {
+            $rules['items'] = ['required', 'array', 'min:1'];
+            $rules['items.*.category_id'] = ['required', 'exists:categories,id'];
+            $rules['items.*.product_id'] = ['required', 'exists:products,id'];
+            $rules['items.*.quantity'] = ['required', 'numeric', 'min:1'];
+            $rules['items.*.purchase_price'] = ['required', 'numeric', 'min:0'];
+        }
+        return $rules;
     }
 
     public function messages()

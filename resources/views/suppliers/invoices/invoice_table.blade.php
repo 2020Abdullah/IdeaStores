@@ -15,7 +15,15 @@
             <td>{{ $inv->invoice_code }}</td>
             <td>{{ $inv->invoice_date }}</td>
             <td>{{ $inv->supplier->name }}</td>
-            <td>{{ $inv->invoice_type === 'cash' ? 'كاش' : 'اجل'}}</td>
+            <td>
+                @if ($inv->invoice_type === 'cash')
+                    <span>كاش</span>
+                @elseif($inv->invoice_staute === 'credit')
+                    <span>آجل</span>
+                @else
+                    <span>رصيد افتتاحي</span>
+                @endif
+            </td>
             <td>{{ number_format($inv->paid_amount) }} EGP</td>
             <td>{{ number_format($inv->total_amount) }} EGP</td>
             <td>{{ number_format($inv->total_amount - $inv->paid_amount)}} EGP</td>
@@ -24,8 +32,10 @@
                     <span class="badge badge-glow bg-danger">غير مدفوع</span>
                 @elseif($inv->invoice_staute == 2)
                     <span class="badge badge-glow bg-warning">دفع جزئي</span>
-                @else
+                @elseif($inv->invoice_staute == 3)
                     <span class="badge badge-glow bg-success">مدفوعة</span>
+                @else
+                   <span class="badge badge-glow bg-info">رصيد افتتاحي</span>
                 @endif
             </td>
             <td>
@@ -50,17 +60,6 @@
                    title="حذف">
                     <i data-feather='trash-2'></i>
                 </a> --}}
-
-                @if ($inv->invoice_staute !== 1)
-                    <a href="#" data-bs-toggle="modal" data-bs-target="#PaymentInvoice"
-                    data-id="{{ $inv->id }}"
-                    data-supplier_id="{{ $inv->supplier_id }}"
-                    data-total_amount="{{ $inv->total_amount }}"
-                    class="btn btn-icon btn-primary waves-effect waves-float waves-light creditBtn"
-                    >
-                        <i data-feather='credit-card'></i>
-                    </a>
-                @endif
 
             </td>
         </tr>

@@ -33,7 +33,7 @@
                                 <h3 class="text-success invoice-logo mt-2">{{ $app->company_name }}</h3>
                             </div>
                             <p class="card-text mb-25">{{ $app->company_info }}</p>
-                            <p class="card-text mb-0">فاتورة شراء من المورد م:/ {{ $invoice->supplier->name }}</p>
+                            <p class="card-text mb-0">فاتورة مورد م:/ {{ $invoice->supplier->name }}</p>
                         </div>
                         <div class="mt-md-0 mt-2">
                             <h4 class="invoice-title">
@@ -43,10 +43,6 @@
                             <div class="invoice-date-wrapper">
                                 <p class="invoice-date-title">تاريخ الفاتورة</p>
                                 <p class="invoice-date">{{ $invoice->invoice_date }}</p>
-                            </div>
-                            <div class="invoice-date-wrapper">
-                                <p class="invoice-date-title">كود السجل الضريبي</p>
-                                <p class="invoice-date">{{ $app->Tax_number }}</p>
                             </div>
                         </div>
                     </div>
@@ -99,7 +95,7 @@
                                     <td>{{ $item->product->name }}</td>
                                     <td>{{ $item->quantity }}</td>
                                     <td>{{ number_format($item->purchase_price) }} EGP</td>
-                                    <td>{{ number_format($item->purchase_price * $item->quantity) }} EGP</td>
+                                    <td>{{ number_format($item->total_price) }} EGP</td>
                                 </tr>
                             @endforeach
                         </tbody>

@@ -81,6 +81,7 @@
                         <option value="">اختر ...</option>
                         <option value="cash">كاش</option>
                         <option value="credit">آجل</option>
+                        <option value="opening_balance">رصيد افتتاحي</option>
                     </select>
                     @error('invoice_type')
                         <div class="alert alert-danger mt-1" role="alert">
@@ -110,11 +111,15 @@
                     <label class="form-label current_balance_label"></label>
                     <input type="hidden" class="form-control current_balance" name="current_balance" readonly>
                 </div>
+                <div class="mb-1 opening_balance_container" style="display: none;">
+                    <label class="form-label">قيمة الرصيد الإفتتاحي</label>
+                    <input type="number" class="form-control opening_balance_value" value="0" name="opening_balance_value">
+                </div>
                 <div class="mb-2">
-                    <a href="#" class="addItems btn-icon-content btn btn-success waves-effect waves-float waves-light">
+                    <button type="button" class="addItems btn-icon-content btn btn-success waves-effect waves-float waves-light">
                         <i data-feather='plus-circle'></i>
                         <span>إضافة صنف جديد</span> 
-                    </a>
+                    </button>
                 </div>
                 <div class="mb-2">  
                     <div class="table-items">
@@ -140,6 +145,7 @@
                         <span>إجمالي الفاتورة :</span>
                         <strong>0</strong> 
                         <span>EGP</span>
+                        <input type="hidden" class="total_amount_invoice" name="total_amount_invoice">
                     </div>
                 </div>
                 <div id="costs-wrapper">
@@ -147,19 +153,11 @@
                 </div>
                 <div class="mb-2">
                     <label class="form-label">مجموع التكاليف</label>
-                    <input type="text" id="total-cost" class="form-control additional_cost @error('additional_cost') is-invalid @enderror" value="0" name="additional_cost" readonly>
-                    @error('additional_cost')
-                        <div class="alert alert-danger mt-1" role="alert">
-                            <h4 class="alert-heading">خطأ</h4>
-                            <div class="alert-body">
-                                {{ @$message }}
-                            </div>
-                        </div>
-                    @enderror
+                    <input type="text" id="total-cost" class="form-control additional_cost" value="0" name="additional_cost" readonly>
                 </div>
                 <div class="mb-2">
                     <label class="form-label">إجمالي الفاتورة شامل سعر التكلفة</label>
-                    <input type="text" class="form-control total_amount" name="total_amount" readonly>
+                    <input type="text" class="form-control total_amount" value="0" name="total_amount" readonly>
                 </div>
                 <div class="mb-2">
                     <label class="form-label">ملاحظات (اختيارى)</label>
@@ -191,6 +189,13 @@ $(function () {
         calculateTotalInvoice();
     });
 
+    // تحديث رصيد الفاتورة في حالة الرصيد الإفتتاحي
+    $(document).on('input', '.opening_balance_value' ,function(){
+        let opening_balance = $(this).val();
+        $(".all_total strong").text(opening_balance);
+        $('.total_amount').val(opening_balance);
+    })
+
     let costIndex = 1;
 
     $('#add-cost').click(function () {
@@ -217,7 +222,7 @@ $(function () {
         calculateTotalInvoice();
     });
 
-    $(document).on('input', '.additional_cost,.unit_id, .quantity, .length ,.purchase_price, .SizeSelect', function () {
+    $(document).on('input', '.additional_cost, .unitSelect , .quantity, .length ,.purchase_price, .SizeSelect', function () {
         let row = $(this).closest('tr');
         calculateTotalPerMM(row);
         calculateTotalPrice(row);
@@ -243,7 +248,7 @@ $(function () {
             ? category.find('option:selected').text() 
             : category.text();
 
-        let symbol = unit.find('option:selected').text();
+        let symbol = unit.find('option:selected').text().trim();
 
         let quantity = parseFloat(row.find('.quantity').val()) || 0;
         let length = parseFloat(row.find('.length').val()) || 0;
@@ -298,6 +303,7 @@ $(function () {
         // عرض النتيجة
         $('.total_amount').val(total_amount);
         $('.all_total strong').text(all_total);
+        $('.all_total .total_amount_invoice').val(all_total);
     }
 
     let isFormChanged = false;
@@ -454,19 +460,29 @@ $(function () {
         width: '300px'
     });
 
-    // change type = cash 
+    // change type invoice 
     $(document).on('change', '.invoice_type', function(){
         let invoice_type = $(this).find('option:selected').val();
-        console.log(invoice_type);
         if(invoice_type === 'cash'){
+            $(".addItems").attr('disabled', false);
             $(".warehouse_container").show(500);
             $(".wallet_container").show(500);
             $(".balance_container").show(500);
+            $(".opening_balance_container").hide(500);
+            $("#add-cost").attr('disabled', false);
         }
-        else {
+        else if(invoice_type === 'credit') {
+            $(".addItems").attr('disabled', false);
             $(".warehouse_container").hide(500);
             $(".wallet_container").hide(500);
             $(".balance_container").hide(500);
+            $(".opening_balance_container").hide(500);
+            $("#add-cost").attr('disabled', false);
+        }
+        else {
+            $(".addItems").attr('disabled', true);
+            $(".opening_balance_container").show(500);
+            $("#add-cost").attr('disabled', true);
         }
     })
 
@@ -534,11 +550,11 @@ $(function () {
     });
 
     // مغادرة الصفحة (مثل إعادة تحميل أو إغلاق التبويب)
-    window.onbeforeunload = function () {
-        if (isFormChanged) {
-            return "لديك تغييرات غير محفوظة، هل تريد فعلاً مغادرة الصفحة؟";
-        }
-    };
+    // window.onbeforeunload = function () {
+    //     if (isFormChanged) {
+    //         return "لديك تغييرات غير محفوظة، هل تريد فعلاً مغادرة الصفحة؟";
+    //     }
+    // };
 
 
 });

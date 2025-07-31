@@ -38,6 +38,7 @@
                     <th>اسم الحساب</th>
                     <th>نوع الحساب</th>
                     <th>رصيد الربحية </th>
+                    <th>رصيد المديونية </th>
                     <th>الرصيد الحالي</th>
                     <th>إجراء</th>
                 </tr>
@@ -58,6 +59,7 @@
                             @endif
                         </td>
                         <td>{{ number_format($account->total_profit_balance) }} EGP</td>
+                        <td>{{ number_format($account->total_capital_balance) }} EGP</td>
                         <td>{{ number_format($account->current_balance) }} EGP</td>
                         <td>
                             <a href="{{ route('account.show', $account->id) }}" class="btn btn-info waves-effect">

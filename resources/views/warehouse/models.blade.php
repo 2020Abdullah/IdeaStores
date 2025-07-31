@@ -74,6 +74,7 @@
             </div>
             <form action="{{ route('warehouse.store') }}" method="POST">
                 @csrf
+                <input type="hidden" name="method" class="method">
                 <div class="modal-body">
                     <div class="mb-2">
                         <label class="form-label" for="name">اسم الخزنة</label>

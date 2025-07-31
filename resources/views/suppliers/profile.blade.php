@@ -33,23 +33,11 @@
                         <div class="card-body">
                             <div class="card-balance">
                                 <h3>الرصيد المستحق</h3>
-                                <h4>{{ number_format($supplier->account->total_capital_balance) }}</h4>
+                                <h4>{{ number_format($supplier->account->current_balance) }}</h4>
                             </div>
                         </div>
                     </div>
                 </div>
-                @if ($supplier->account->opening_balance > 0)
-                    <div class="col mb-1 text-center">
-                        <div class="card">
-                            <div class="card-body">
-                                <div class="card-balance">
-                                    <h3>رصيد أول المدة</h3>
-                                    <h4>{{ number_format($supplier->account->opening_balance) }}</h4>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                @endif
             </div>
             <hr />
             <div class="row">
@@ -89,16 +77,16 @@
             <h3 class="card-title">فواتير المورد</h3>
             <div class="card-action">
                 <a href="{{ route('supplier.target.invoice.add', $supplier->id) }}" class="btn btn-success waves-effect waves-float waves-light">
-                    إضافة فاتورة جديدة 
+                    <i data-feather='plus'></i>
+                    <span>إضافة فاتورة</span>
                 </a>
-                @if ($supplier->account->opening_balance > 0)
+                @if ($supplier->account->current_balance > 0)
                     <a href="#" data-bs-toggle="modal" data-bs-target="#PaymentBalance"
                         data-supplier_id="{{ $supplier->id }}"
-                        data-opening_balance="{{ $supplier->account->opening_balance }}"
-                        class="btn btn-icon btn-primary waves-effect waves-float waves-light creditOpenBtn"
+                        class="paymentBtn btn btn-icon btn-primary waves-effect waves-float waves-light creditOpenBtn"
                         >
-                        <span>دفع رصيد أول المدة</span>
                         <i data-feather='credit-card'></i>
+                        <span>دفع دفعة</span>
                     </a>
                 @endif
             </div>
@@ -124,8 +112,8 @@
                             <td>{{ $inv->supplier->name }}</td>
                             <td>{{ $inv->invoice_type === 'cash' ? 'كاش' : 'اجل'}}</td>
                             <td>{{ number_format($inv->paid_amount) }} EGP</td>
-                            <td>{{ number_format($inv->total_amount) }} EGP</td>
-                            <td>{{ number_format($inv->total_amount - $inv->paid_amount)}} EGP</td>
+                            <td>{{ number_format($inv->total_amount_invoice) }} EGP</td>
+                            <td>{{ number_format($inv->total_amount_invoice - $inv->paid_amount)}} EGP</td>
                             <td>
                                 @if ($inv->invoice_staute == 0)
                                     <span class="badge badge-glow bg-danger">غير مدفوع</span>
@@ -137,7 +125,7 @@
                             </td>
                             <td>
                                 
-                                <a href="{{ route('supplier.invoice.show', $inv->id) }}"
+                                <a href="{{ route('supplier.invoice.show', $inv->invoice_code) }}"
                                    class="btn btn-icon btn-info waves-effect waves-float waves-light editBtn"
                                    title="عرض">
                                     <i data-feather='eye'></i>
@@ -158,16 +146,6 @@
                                     <i data-feather='trash-2'></i>
                                 </a> --}}
 
-                                @if ($inv->invoice_staute !== 1)
-                                    <a href="#" data-bs-toggle="modal" data-bs-target="#PaymentInvoice"
-                                    data-id="{{ $inv->id }}"
-                                    data-supplier_id="{{ $inv->supplier_id }}"
-                                    data-total_amount="{{ $inv->total_amount }}"
-                                    class="btn btn-icon btn-primary waves-effect waves-float waves-light creditBtn"
-                                    >
-                                        <i data-feather='credit-card'></i>
-                                    </a>
-                                @endif
                             </td>
                         </tr>
                     @endforeach
@@ -178,94 +156,16 @@
             {{ $supplier_invoices->links() }}
         </div>
     </div>
-<!-- model delete invoice -->
-<div class="modal fade text-start modal-danger" id="delInvoice" tabindex="-1" aria-modal="true" role="dialog">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">تحذير !</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <form action="{{ route('supplier.invoice.delete') }}" method="POST">
-                @csrf
-                <input type="hidden" name="id" class="id">
-                <input type="hidden" name="total_amount" class="total_amount">
-                <input type="hidden" name="supplier_id" class="supplier_id">
-                <div class="modal-body">
-                    <label class="form-label">هل أنت متأكد من حذف هذه الفاتورة لا يمكن التراجع عن هذه العملية ؟</label>
-                </div>
-                <div class="modal-footer">
-                    <button type="submit" class="btn btn-danger waves-effect waves-float waves-light">تأكيد الحذف</button>
-                </div>
-            </form>
-        </div>
-    </div>
-</div>
 
-<!-- model payment invoice -->
-<div class="modal fade text-start modal-primary" id="PaymentInvoice" tabindex="-1" aria-modal="true" role="dialog">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">دفع فاتورة مورد</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <form action="{{ route('supplier.invoice.payment') }}" method="POST">
-                @csrf
-                <input type="hidden" name="id" class="id">
-                <input type="hidden" name="supplier_id" class="supplier_id">
-                <input type="hidden" name="method" class="method">
-                <input type="hidden" name="opening_balance" class="opening_balance">
-                <div class="modal-body">
-                    <div class="mb-1">
-                        <label class="form-label">من حساب</label>
-                        <select name="warehouse_id" class="form-control warehouse_id">
-                            <option value="">اختر الخزنة ...</option>
-                            @foreach ($warehouse_list as $w)
-                                <option value="{{ $w->id }}">{{ $w->name }}</option>              
-                            @endforeach
-                        </select>
-                    </div>
-                    <div class="mb-1">
-                        <label class="form-label">المحفظة</label>
-                        <select name="wallet_id" class="form-control wallet_id">
-                            <option value="">...</option>
-                        </select>
-                    </div>
-                    <div class="mb-1 balance_container" style="display: none;">
-                        <label class="form-label current_balance_label"></label>
-                        <input type="hidden" class="form-control current_balance" name="current_balance" readonly>
-                    </div>
-                    <div class="mb-1">
-                        <label class="form-label">المبلغ المطلوب</label>
-                        <input type="number" class="form-control total_amount" name="total_amount" readonly>
-                    </div>
-                    <div class="mb-1">
-                        <label class="form-label">المبلغ</label>
-                        <input type="number" class="form-control" name="amount">
-                    </div>
-                    <div class="mb-1">
-                        <label class="form-label">ملاحظات</label>
-                        <textarea name="description" class="form-control" cols="5" rows="5"></textarea>
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="submit" class="btn btn-success waves-effect waves-float waves-light">تأكيد العملية</button>
-                </div>
-            </form>
-        </div>
-    </div>
-</div>
-
-<!-- model payment opining balance -->
+<!-- model payment balance -->
 <div class="modal fade text-start modal-primary" id="PaymentBalance" tabindex="-1" aria-modal="true" role="dialog">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title">دفع رصيد أول المدة</h5>
+                <h5 class="modal-title">إضافة دفعة</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
-            <form action="{{ route('supplier.open.payment') }}" method="POST">
+            <form action="{{ route('supplier.payment') }}" method="POST">
                 @csrf
                 <input type="hidden" name="supplier_id" class="supplier_id">
                 <input type="hidden" name="method" class="method">
@@ -291,7 +191,7 @@
                     </div>
                     <div class="mb-1">
                         <label class="form-label">المبلغ المطلوب</label>
-                        <input type="number" class="form-control openingBalance" name="openingBalance" readonly>
+                        <input type="number" class="form-control total_balance" name="total_balance" value="{{ $supplier->account->current_balance }}" readonly>
                     </div>
                     <div class="mb-1">
                         <label class="form-label">المبلغ المدفوع</label>
@@ -324,20 +224,8 @@
             //     $("#delInvoice .total_amount").val(total_amount);
             // })
 
-            // credit action
-            $(".creditBtn").on('click', function(){
-                let id = $(this).data('id');
-                let total_amount = $(this).data('total_amount');
-                let supplier_id = $(this).data('supplier_id');
-                let opening_balance = $(this).data('opening_balance');
-                $("#PaymentInvoice .id").val(id);
-                $("#PaymentInvoice .supplier_id").val(supplier_id);
-                $("#PaymentInvoice .total_amount").val(total_amount);
-                $("#PaymentInvoice .opening_balance").val(opening_balance);
-            })
-
-            // cedit opening Balance
-            $(".creditOpenBtn").on('click', function(){
+            // payment Balance
+            $(".paymentBtn").on('click', function(){
                 let supplier_id = $(this).data('supplier_id');
                 let opening_balance = $(this).data('opening_balance');
                 $("#PaymentBalance .supplier_id").val(supplier_id);

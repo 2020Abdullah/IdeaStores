@@ -114,7 +114,7 @@ Route::middleware('auth')->group(function(){
     Route::post('supplier/invoice/delete', [SupplierController::class, 'InvoiceDelete'])->name('supplier.invoice.delete');
     Route::get('supplier/invoice/{id}/download', [SupplierController::class, 'InvoiceDownload'])->name('supplier.invoice.download');
     Route::post('supplier/invoice/payment', [SupplierController::class, 'paymentInvoice'])->name('supplier.invoice.payment');
-    Route::post('supplier/openingBalance/payment', [SupplierController::class, 'paymentOpeningBalance'])->name('supplier.open.payment');
+    Route::post('supplier/payment', [SupplierController::class, 'payment'])->name('supplier.payment');
     Route::post('supplier/invoice/filter', [SupplierController::class, 'filterInvoices'])->name('supplier.invoice.filter');
 
     // setting 

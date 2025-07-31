@@ -40,7 +40,7 @@
         <form action="{{ route('supplier.invoice.update') }}" id="invoiceForm" method="POST">
             @csrf
             <input type="hidden" value="{{ $invoice->id }}" name="id">
-            <input type="hidden" value="{{ $invoice->total_amount }}" name="total_amount_old">
+            <input type="hidden" value="{{ $invoice->invoice_code }}" name="code">
             @if ($invoice->invoice_type === 'cash')
                 <input type="hidden" name="warehouse_id" value="{{ $invoice->warehouse_id }}">
                 <input type="hidden" name="wallet_id" value="{{ $invoice->wallet_id }}">
@@ -82,135 +82,137 @@
                     <label class="form-label">نوع الفاتورة</label>
                     <input type="text" class="form-control" value="{{ $invoice->invoice_type }}" readonly name="invoice_type">
                 </div>
-                <div class="mb-2">
-                    <a href="#" class="addItems btn-icon-content btn btn-success waves-effect waves-float waves-light">
-                        <i data-feather='plus-circle'></i>
-                        <span>إضافة صنف جديد</span> 
-                    </a>
-                </div>
-                <div class="mb-2">  
-                    <div class="table-items">
-                        <div class="table-responsive">
-                            <table class="table table-bordered">
-                                <thead>
-                                    <th>الصنف</th>
-                                    <th>المنتج</th>
-                                    <th>وحدة القياس</th>
-                                    <th>العرض</th>
-                                    <th>سعر الشراء للوحدة</th>
-                                    <th>السعر للمتر</th>
-                                    <th>الطول</th>
-                                    <th>الكمية</th>
-                                    <th>الإجمالي</th>
-                                    <th>حذف</th>
-                                </thead>
-                                <tbody>
-                                    @foreach ($invoice->items as $index => $item)
-                                    <tr class="product-item">
-                                        <td>
-                                            <select class="select2 categorySelect" name="items[{{$index}}][category_id]">
-                                                @foreach ($finalCategories as $cat)
-                                                    @if ($cat->children->isEmpty()) 
-                                                        <option value="{{ $cat->id }}" 
-                                                            {{ $cat->id == $item->product->category_id ? 'selected' : '' }}>
-                                                            {{ $cat->full_path }}
+                @if ($invoice->invoice_type === 'opening_balance')
+                    <div class="mb-2">
+                        <label class="form-label">رصيد افتتاحي</label>
+                        <input type="hidden" class="form-control" name="total_amount_old" value="{{ $invoice->total_amount }}">
+                        <input type="number" class="form-control" name="total_amount" value="{{ $invoice->total_amount }}">
+                    </div>
+                @else   
+                    <div class="mb-2">
+                        <a href="#" class="addItems btn-icon-content btn btn-success waves-effect waves-float waves-light">
+                            <i data-feather='plus-circle'></i>
+                            <span>إضافة صنف جديد</span> 
+                        </a>
+                    </div>
+                    <div class="mb-2">  
+                        <div class="table-items">
+                            <div class="table-responsive">
+                                <table class="table table-bordered">
+                                    <thead>
+                                        <th>الصنف</th>
+                                        <th>المنتج</th>
+                                        <th>وحدة القياس</th>
+                                        <th>العرض</th>
+                                        <th>سعر الشراء للوحدة</th>
+                                        <th>السعر للمتر</th>
+                                        <th>الطول</th>
+                                        <th>الكمية</th>
+                                        <th>الإجمالي</th>
+                                        <th>حذف</th>
+                                    </thead>
+                                    <tbody>
+                                        @foreach ($invoice->items as $index => $item)
+                                        <tr class="product-item">
+                                            <td>
+                                                <select class="select2 categorySelect" name="items[{{$index}}][category_id]">
+                                                    @foreach ($finalCategories as $cat)
+                                                        @if ($cat->children->isEmpty()) 
+                                                            <option value="{{ $cat->id }}" 
+                                                                {{ $cat->id == $item->product->category_id ? 'selected' : '' }}>
+                                                                {{ $cat->full_path }}
+                                                            </option>
+                                                        @endif
+                                                    @endforeach
+                                                </select>
+                                            </td>
+                                            <td>
+                                                <select class="select2 productSelect" name="items[{{$index}}][product_id]">
+                                                    @foreach ($products as $product)
+                                                        @if ($product->category_id == $item->product->category_id)
+                                                            <option value="{{ $product->id }}" 
+                                                                {{ $product->id == $item->product_id ? 'selected' : '' }}>
+                                                                {{ $product->name }}
+                                                            </option>
+                                                        @endif
+                                                    @endforeach
+                                                </select>
+                                            </td>
+                                            <td>
+                                                <select class="select2 unitSelect" name="items[{{$index}}][unit_id]">
+                                                    @foreach ($units as $unit)
+                                                        <option value="{{ $unit->id }}" 
+                                                            {{ (isset($item) && $item->unit_id == $unit->id) ? 'selected' : '' }}>
+                                                            {{ $unit->symbol }}
                                                         </option>
-                                                    @endif
-                                                @endforeach
-                                            </select>
-                                        </td>
-                                        <td>
-                                            <select class="select2 productSelect" name="items[{{$index}}][product_id]">
-                                                @foreach ($products as $product)
-                                                    @if ($product->category_id == $item->product->category_id)
-                                                        <option value="{{ $product->id }}" 
-                                                            {{ $product->id == $item->product_id ? 'selected' : '' }}>
-                                                            {{ $product->name }}
+                                                    @endforeach
+                                                </select>
+                                            </td> 
+                                            <td>
+                                                <select class="select2 SizeSelect" name="items[{{$index}}][size_id]">
+                                                    @foreach ($sizes as $size)
+                                                        <option value="{{ $size->id }}" 
+                                                            {{ (isset($item) && $item->size_id == $size->id) ? 'selected' : '' }}>
+                                                            {{ $size->width }}
                                                         </option>
-                                                    @endif
-                                                @endforeach
-                                            </select>
-                                        </td>
-                                        <td>
-                                            <select class="select2 unitSelect" name="items[{{$index}}][unit_id]">
-                                                @foreach ($units as $unit)
-                                                    <option value="{{ $unit->id }}" 
-                                                        {{ (isset($item) && $item->unit_id == $unit->id) ? 'selected' : '' }}>
-                                                        {{ $unit->symbol }}
-                                                    </option>
-                                                @endforeach
-                                            </select>
-                                        </td> 
-                                        <td>
-                                            <select class="select2 SizeSelect" name="items[{{$index}}][size_id]">
-                                                @foreach ($sizes as $size)
-                                                    <option value="{{ $size->id }}" 
-                                                        {{ (isset($item) && $item->size_id == $size->id) ? 'selected' : '' }}>
-                                                        {{ $size->width }}
-                                                    </option>
-                                                @endforeach
-                                            </select>
-                                        </td>
+                                                    @endforeach
+                                                </select>
+                                            </td>
 
-                                        <td><input type="number" name="items[{{$index}}][purchase_price]" value="{{ $item->purchase_price }}" class="form-control purchase_price" step="any"></td>
+                                            <td><input type="number" name="items[{{$index}}][purchase_price]" value="{{ $item->purchase_price }}" class="form-control purchase_price" step="any"></td>
 
-                                        <td><input type="number" name="items[{{$index}}][pricePerMeter]" value="{{ $item->pricePerMeter }}" class="form-control pricePerMeter" readonly step="any"></td>
+                                            <td><input type="number" name="items[{{$index}}][pricePerMeter]" value="{{ $item->pricePerMeter }}" class="form-control pricePerMeter" readonly step="any"></td>
 
-                                        <td><input type="number" name="items[{{$index}}][length]" value="{{ $item->length }}" class="form-control length" readonly step="any"></td>
+                                            <td><input type="number" name="items[{{$index}}][length]" value="{{ $item->length }}" class="form-control length" step="any"></td>
 
-                                        <td><input type="number" name="items[{{$index}}][quantity]"class="form-control quantity" value="{{ $item->quantity }}" step="any"></td>
+                                            <td><input type="number" name="items[{{$index}}][quantity]"class="form-control quantity" value="{{ $item->quantity }}" step="any"></td>
 
-                                        <td><input type="number" name="items[{{$index}}][total_price]" value="{{ $item->total_price }}" class="form-control total_price" step="any" readonly></td>
+                                            <td><input type="number" name="items[{{$index}}][total_price]" value="{{ $item->total_price }}" class="form-control total_price" step="any" readonly></td>
 
-                                        <td>
-                                            <button type="button" class="btn btn-danger btn-sm remove-row">
-                                                <i data-feather='trash-2'></i>
-                                            </button>
-                                        </td>
-                                    </tr>
-                                    @endforeach
-                                </tbody>
-                            </table>
+                                            <td>
+                                                <button type="button" class="btn btn-danger btn-sm remove-row">
+                                                    <i data-feather='trash-2'></i>
+                                                </button>
+                                            </td>
+                                        </tr>
+                                        @endforeach
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                        <div class="all_total">
+                            <span>إجمالي الفاتورة :</span>
+                            <strong>{{ $invoice->total_amount - $invoice->cost_price }}</strong> 
+                            <span>EGP</span>
+                            <input type="hidden" name="total_amount_invoice_old" value="{{ $invoice->total_amount_invoice }}">
+                            <input type="hidden" class="total_amount_invoice" name="total_amount_invoice">
                         </div>
                     </div>
-                    <div class="all_total">
-                        <span>إجمالي الفاتورة :</span>
-                        <strong>{{ $invoice->total_amount - $invoice->cost_price }}</strong> 
-                        <span>EGP</span>
+                    <div id="costs-wrapper">
+                        <button type="button" class="btn btn-primary waves-effect waves-float waves-light mb-1" id="add-cost">+ أضف تكلفة</button>    
+                        @foreach ($invoice->costs as $index => $cost)
+                            <div class="row cost-item mb-1">
+                                <div class="col-md-6 mb-1">
+                                    <input type="text" name="costs[{{$index}}][description]" class="form-control costInfo" value="{{ $cost->description }}">
+                                </div>
+                                <div class="col-md-4 mb-1">
+                                    <input type="number" name="costs[{{$index}}][amount]" class="form-control costValue" value="{{ $cost->amount }}">
+                                </div>
+                                <div class="col-md-2 mb-1">
+                                    <button type="button" class="btn btn-danger remove-cost">حذف</button>
+                                </div>
+                            </div>
+                        @endforeach            
                     </div>
-                </div>
-                <div id="costs-wrapper">
-                    <button type="button" class="btn btn-primary waves-effect waves-float waves-light mb-1" id="add-cost">+ أضف تكلفة</button>    
-                    @foreach ($invoice->costs as $index => $cost)
-                        <div class="row cost-item mb-1">
-                            <div class="col-md-6 mb-1">
-                                <input type="text" name="costs[{{$index}}][description]" class="form-control costInfo" value="{{ $cost->description }}">
-                            </div>
-                            <div class="col-md-4 mb-1">
-                                <input type="number" name="costs[{{$index}}][amount]" class="form-control costValue" value="{{ $cost->amount }}">
-                            </div>
-                            <div class="col-md-2 mb-1">
-                                <button type="button" class="btn btn-danger remove-cost">حذف</button>
-                            </div>
-                        </div>
-                    @endforeach            
-                </div>
-                <div class="mb-2">
-                    <label class="form-label">مجموع التكاليف</label>
-                    <input type="text" id="total-cost" class="form-control additional_cost @error('additional_cost') is-invalid @enderror" name="additional_cost" value="{{ $invoice->cost_price }}" readonly>
-                    @error('additional_cost')
-                        <div class="alert alert-danger mt-1" role="alert">
-                            <h4 class="alert-heading">خطأ</h4>
-                            <div class="alert-body">
-                                {{ @$message }}
-                            </div>
-                        </div>
-                    @enderror
-                </div>
-                <div class="mb-2">
-                    <label class="form-label">إجمالي الفاتورة شامل سعر التكلفة</label>
-                    <input type="text" class="form-control total_amount" name="total_amount" value="{{ $invoice->total_amount }}" readonly>
-                </div>
+                    <div class="mb-2">
+                        <label class="form-label">مجموع التكاليف</label>
+                        <input type="text" class="form-control additional_cost" name="additional_cost" value="{{ $invoice->cost_price }}" readonly>
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label">إجمالي الفاتورة شامل سعر التكلفة</label>
+                        <input type="text" class="form-control total_amount" name="total_amount" value="{{ $invoice->total_amount }}" readonly>
+                    </div>
+                @endif
                 <div class="mb-2">
                     <label class="form-label">ملاحظات (اختيارى)</label>
                     <textarea class="form-control" cols="5" rows="5" name="notes">
@@ -269,7 +271,7 @@ $(function () {
         calculateTotalInvoice();
     });
 
-    $(document).on('input', '.additional_cost,.unit_id, .quantity, .length ,.purchase_price, .SizeSelect', function () {
+    $(document).on('input', '.additional_cost, .unitSelect, .quantity, .length ,.purchase_price, .SizeSelect', function () {
         let row = $(this).closest('tr');
         calculateTotalPerMM(row);
         calculateTotalPrice(row);
@@ -294,7 +296,7 @@ $(function () {
             ? category.find('option:selected').text() 
             : category.text();
 
-        let symbol = unit.find('option:selected').text();
+        let symbol = unit.find('option:selected').text().trim();
 
         let quantity = parseFloat(row.find('.quantity').val()) || 0;
         let length = parseFloat(row.find('.length').val()) || 0;
@@ -308,6 +310,7 @@ $(function () {
         else {
             pricePerMM = 0;
             row.find('.length').attr('readonly', true);
+            row.find('.length').val(0);
         }
 
         row.find('.pricePerMeter').val(pricePerMM);  
@@ -337,18 +340,19 @@ $(function () {
         let all_total = 0;
         // جمع إجماليات كل صنف
         $('tr.product-item').each(function () {
-            let price = parseFloat($(this).find('.total_price').val().replace(/,/g, '')) || 0;
+            let price = parseFloat($(this).find('.total_price').val()) || 0;
             total_amount += price;
             all_total += price;
         });
 
         // جمع التكلفة الإضافية
-        let additionalCost = parseInt($('.additional_cost').val().replace(/,/g, '')) || 0;
+        let additionalCost = parseInt($('.additional_cost').val()) || 0;
         total_amount += additionalCost;
 
         // عرض النتيجة
         $('.total_amount').val(total_amount);
         $('.all_total strong').text(all_total);
+        $('.all_total .total_amount_invoice').val(all_total);
     }
 
     // جلب المنتجات بناء علي التصنيف
@@ -512,11 +516,11 @@ $(function () {
     });
 
     // مغادرة الصفحة (مثل إعادة تحميل أو إغلاق التبويب)
-    window.onbeforeunload = function () {
-        if (isFormChanged) {
-            return "لديك تغييرات غير محفوظة، هل تريد فعلاً مغادرة الصفحة؟";
-        }
-    };
+    // window.onbeforeunload = function () {
+    //     if (isFormChanged) {
+    //         return "لديك تغييرات غير محفوظة، هل تريد فعلاً مغادرة الصفحة؟";
+    //     }
+    // };
 
 });
 </script>

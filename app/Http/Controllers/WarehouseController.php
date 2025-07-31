@@ -97,12 +97,22 @@ class WarehouseController extends Controller
         $warehous = Warehouse::findOrFail($request->warehouse_id);
         $warehous->account->increment('current_balance', $request->balance);
 
+        // تسجيل حركة مالية للحساب 
+        Account_transactions::create([
+            'account_id' => $warehous->account->id,
+            'direction' => 'in',
+            'method' => $wallet->method,
+            'amount' => $request->balance,
+            'transaction_type'  => 'added',
+            'description'      => 'إضافة رصيد إلي الخزنة يدوى'
+        ]);
+
         // تسجيل حركة مالية 
         $wallet_movement = new Wallet_movement();
         $wallet_movement->wallet_id = $wallet->id;
         $wallet_movement->amount = $request->balance;
         $wallet_movement->direction = 'in';
-        $wallet_movement->note = 'إضافة يدوية';
+        $wallet_movement->note = 'إضافة رصيد يدوى';
         $wallet_movement->save();
 
         return back()->with('success', 'تم إضافة رصيد إلي المحفظة بنجاح');

@@ -64,10 +64,6 @@
                     <label class="form-label">ملاحظات (اختيارى)</label>
                     <textarea name="notes" class="form-control" cols="5" rows="5"></textarea>
                 </div>
-                <div class="mb-1">
-                    <label class="form-label">رصيد أول المدة (اختيارى)</label>
-                    <input type="number" class="form-control" value="0" name="opening_balance">
-                </div>
         </div>
         <div class="card-footer">
             <button type="submit" class="btn btn-relief-success">حفظ البيانات</button>
