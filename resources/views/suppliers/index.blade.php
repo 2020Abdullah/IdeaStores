@@ -78,9 +78,13 @@
                                 <i data-feather='edit'></i>
                                 <span>تعديل</span>
                             </a>
-                            <a href="{{ route('supplier.show', $s->id) }}" class="btn btn-info waves-effect">
+                            <a href="{{ route('supplier.profile', $s->id) }}" class="btn btn-info waves-effect">
                                 <i data-feather='eye'></i>
-                                <span>تفاصيل</span>
+                                <span>بيانات المورد</span>
+                            </a>
+                            <a href="{{ route('supplier.account.show', $s->id) }}" class="btn btn-primary waves-effect">
+                                <i data-feather='eye'></i>
+                                <span>كشف حساب</span>
                             </a>
                         </td>
                     </tr>

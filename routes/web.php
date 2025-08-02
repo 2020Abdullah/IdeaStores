@@ -19,7 +19,8 @@ use App\Http\Controllers\OrderController;
 use App\Http\Controllers\SizeController;
 use App\Http\Controllers\SkillsController;
 use App\Http\Controllers\StoreHouseController;
-use App\Http\Controllers\SupplierController;
+use App\Http\Controllers\Supplier\InvoicePurchaseController;
+use App\Http\Controllers\Supplier\SupplierController;
 use App\Http\Controllers\TaskController;
 use App\Http\Controllers\UnitController;
 use App\Http\Controllers\WarehouseController;
@@ -95,7 +96,8 @@ Route::middleware('auth')->group(function(){
     
     // suppliers
     Route::get('suppliers/list', [SupplierController::class, 'index'])->name('supplier.index');
-    Route::get('suppliers/{id}/profile', [SupplierController::class, 'profileShow'])->name('supplier.show');
+    Route::get('suppliers/{id}/Account', [SupplierController::class, 'showAccount'])->name('supplier.account.show');
+    Route::get('suppliers/{id}/profile', [SupplierController::class, 'profile'])->name('supplier.profile');
     Route::get('supplier/add', [SupplierController::class, 'add'])->name('supplier.add');
     Route::get('supplier/edit/{id}', [SupplierController::class, 'edit'])->name('supplier.edit');
     Route::post('supplier/update', [SupplierController::class, 'update'])->name('supplier.update');
@@ -104,18 +106,18 @@ Route::middleware('auth')->group(function(){
     Route::post('/suppliers/import', [SupplierController::class, 'importSuppliers'])->name('import.supplier');
     Route::post('suppliers/Data/export', [SupplierController::class, 'exportData'])->name('supplier.data.export');
 
-    Route::get('suppliers/invoices', [SupplierController::class, 'InvoiceIndex'])->name('supplier.invoice.index');
-    Route::get('suppliers/invoices/add', [SupplierController::class, 'InvoiceAdd'])->name('supplier.invoice.add');
-    Route::get('supplier/{id}/invoice/add', [SupplierController::class, 'InvoiceAdd'])->name('supplier.target.invoice.add');
-    Route::post('suppliers/invoices/store', [SupplierController::class, 'InvoiceStore'])->name('supplier.invoice.store');
-    Route::get('supplier/invoice/{id}/edit', [SupplierController::class, 'InvoiceEdit'])->name('supplier.invoice.edit');
-    Route::post('suppliers/invoices/update', [SupplierController::class, 'InvoiceUpdate'])->name('supplier.invoice.update');
-    Route::get('supplier/invoice/{code}/show', [SupplierController::class, 'InvoiceShow'])->name('supplier.invoice.show');
-    Route::post('supplier/invoice/delete', [SupplierController::class, 'InvoiceDelete'])->name('supplier.invoice.delete');
-    Route::get('supplier/invoice/{id}/download', [SupplierController::class, 'InvoiceDownload'])->name('supplier.invoice.download');
-    Route::post('supplier/invoice/payment', [SupplierController::class, 'paymentInvoice'])->name('supplier.invoice.payment');
-    Route::post('supplier/payment', [SupplierController::class, 'payment'])->name('supplier.payment');
-    Route::post('supplier/invoice/filter', [SupplierController::class, 'filterInvoices'])->name('supplier.invoice.filter');
+    // invoices purchases
+    Route::get('suppliers/invoices', [InvoicePurchaseController::class, 'index'])->name('supplier.invoice.index');
+    Route::get('suppliers/invoices/add', [InvoicePurchaseController::class, 'add'])->name('supplier.invoice.add');
+    Route::get('supplier/{id}/invoice/add', [InvoicePurchaseController::class, 'add'])->name('supplier.target.invoice.add');
+    Route::post('suppliers/invoices/store', [InvoicePurchaseController::class, 'store'])->name('supplier.invoice.store');
+    Route::get('supplier/invoice/{id}/edit', [InvoicePurchaseController::class, 'edit'])->name('supplier.invoice.edit');
+    Route::post('suppliers/invoices/update', [InvoicePurchaseController::class, 'update'])->name('supplier.invoice.update');
+    Route::get('supplier/invoice/{code}/show', [InvoicePurchaseController::class, 'show'])->name('supplier.invoice.show');
+    Route::post('supplier/invoice/delete', [InvoicePurchaseController::class, 'delete'])->name('supplier.invoice.delete');
+    Route::get('supplier/invoice/{id}/download', [InvoicePurchaseController::class, 'download'])->name('supplier.invoice.download');
+    Route::post('supplier/invoice/payment', [InvoicePurchaseController::class, 'payment'])->name('supplier.invoice.payment');
+    Route::post('supplier/invoice/filter', [InvoicePurchaseController::class, 'filter'])->name('supplier.invoice.filter');
 
     // setting 
     Route::get('setting', [SettingController::class, 'setting'])->name('setting.show');

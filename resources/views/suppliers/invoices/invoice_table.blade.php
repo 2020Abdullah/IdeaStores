@@ -18,7 +18,7 @@
             <td>
                 @if ($inv->invoice_type === 'cash')
                     <span>كاش</span>
-                @elseif($inv->invoice_staute === 'credit')
+                @elseif($inv->invoice_type === 'credit')
                     <span>آجل</span>
                 @else
                     <span>رصيد افتتاحي</span>
@@ -32,7 +32,7 @@
                     <span class="badge badge-glow bg-danger">غير مدفوع</span>
                 @elseif($inv->invoice_staute == 2)
                     <span class="badge badge-glow bg-warning">دفع جزئي</span>
-                @elseif($inv->invoice_staute == 3)
+                @elseif($inv->invoice_staute == 1)
                     <span class="badge badge-glow bg-success">مدفوعة</span>
                 @else
                    <span class="badge badge-glow bg-info">رصيد افتتاحي</span>

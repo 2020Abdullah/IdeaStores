@@ -1,0 +1,127 @@
+<?php
+
+namespace App\Http\Controllers\Supplier;
+use App\Http\Controllers\Controller;
+use App\Exports\SuppliersDataExport;
+use App\Exports\SuppliersTemplateExport;
+use App\Imports\SuppliersImport;
+use App\Models\Supplier;
+use App\Models\Supplier_invoice;
+use App\Models\Warehouse;
+use Exception;
+use Illuminate\Http\Request;
+use Maatwebsite\Excel\Facades\Excel;
+
+class SupplierController extends Controller
+{
+    public function index(){
+        $suppliers_list = Supplier::all();
+        return view('suppliers.index', compact('suppliers_list'));
+    }
+
+    public function add(){
+        return view('suppliers.add');
+    }
+
+    public function store(Request $request){
+        $request->validate([
+            'name' => 'required'
+        ],[
+            'name.required' => 'يجب إدخال اسم المورد !'
+        ]);
+        try {
+            $Supplier = new Supplier();
+            $Supplier->name = $request->name;
+            $Supplier->phone = $request->phone;
+            $Supplier->busniess_name = $request->busniess_name;
+            $Supplier->busniess_type = $request->busniess_type;
+            $Supplier->whatsUp = $request->whatsUp;
+            $Supplier->place = $request->place;
+            $Supplier->notes = $request->notes;
+            $Supplier->save();
+
+            $Supplier->account()->create([
+                'name'     => 'حساب المورد: ' . $Supplier->name,
+                'type' => 'supplier',
+                'total_capital_balance' => 0,
+                'total_profit_balance' => 0,
+            ]);
+
+        }
+        catch(Exception $e){
+            return $e->getMessage();
+        }
+        return redirect()->route('supplier.index')->with('success', 'تم إضافة مورد بنجاح');
+    }
+
+    public function edit($id){
+        $supplier = Supplier::findOrFail($id);
+        return view('suppliers.edit', compact('supplier'));
+    }
+
+    public function update(Request $request){
+        $request->validate([
+            'name' => 'required'
+        ],[
+            'name.required' => 'يجب إدخال اسم المورد !'
+        ]);
+        try {
+            $Supplier = Supplier::findOrFail($request->id);
+            $Supplier->name = $request->name;
+            $Supplier->phone = $request->phone;
+            $Supplier->busniess_name = $request->busniess_name;
+            $Supplier->busniess_type = $request->busniess_type;
+            $Supplier->whatsUp = $request->whatsUp;
+            $Supplier->place = $request->place;
+            $Supplier->notes = $request->notes;
+            $Supplier->save();
+
+            // edit account name
+            $Supplier->account()->update([
+                'name' => 'حساب المورد: ' . $request->name,
+            ]);
+        }
+        catch(Exception $e){
+            return $e->getMessage();
+        }
+        return redirect()->route('supplier.index')->with('success', 'تم تعديل بيانات المورد بنجاح');
+    }
+
+    public function downloadTemplate(){
+        return Excel::download(new SuppliersTemplateExport, 'نموذج_الموردين.xlsx');
+    }
+
+    public function importSuppliers(Request $request)
+    {
+        $request->validate([
+            'file' => 'required|file|mimes:xlsx,xls',
+        ]);
+
+        Excel::import(new SuppliersImport, $request->file('file'));
+
+        return back()->with('success', 'تم استيراد الموردين بنجاح');
+    }
+
+    public function exportData(Request $request){
+        $ids = json_decode($request->recardsIds[0]); 
+
+        if (empty($ids)) {
+            return redirect()->back()->with('error', 'لم يتم تحديد موردين');
+        }
+
+        return Excel::download(new SuppliersDataExport($ids),'بيانات الموردين.xlsx');
+    }
+
+    public function showAccount($id){
+        $data['warehouse_list'] = Warehouse::where('is_main', 0)->get();
+        $data['supplier'] = Supplier::findOrFail($id);
+        $data['supplier_invoices'] = Supplier_invoice::where('supplier_id' , $id)->paginate(100);
+        return view('suppliers.Account', $data);
+    }
+
+    public function profile($id){
+        $data['supplier'] = Supplier::findOrFail($id);
+        return view('suppliers.profile', $data);
+    }
+
+}

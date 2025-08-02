@@ -107,16 +107,16 @@
                         <option value="">...</option>
                     </select>
                 </div>
-                <div class="mb-1 balance_container" style="display: none;">
+                {{-- <div class="mb-1 balance_container" style="display: none;">
                     <label class="form-label current_balance_label"></label>
                     <input type="hidden" class="form-control current_balance" name="current_balance" readonly>
-                </div>
+                </div> --}}
                 <div class="mb-1 opening_balance_container" style="display: none;">
                     <label class="form-label">قيمة الرصيد الإفتتاحي</label>
                     <input type="number" class="form-control opening_balance_value" value="0" name="opening_balance_value">
                 </div>
                 <div class="mb-2">
-                    <button type="button" class="addItems btn-icon-content btn btn-success waves-effect waves-float waves-light">
+                    <button type="button" disabled class="addItems btn-icon-content btn btn-success waves-effect waves-float waves-light">
                         <i data-feather='plus-circle'></i>
                         <span>إضافة صنف جديد</span> 
                     </button>
@@ -149,7 +149,7 @@
                     </div>
                 </div>
                 <div id="costs-wrapper">
-                    <button type="button" class="btn btn-primary waves-effect waves-float waves-light mb-1" id="add-cost">+ أضف تكلفة</button>                
+                    <button type="button" class="btn btn-primary waves-effect waves-float waves-light mb-1" id="add-cost" disabled>+ أضف تكلفة</button>                
                 </div>
                 <div class="mb-2">
                     <label class="form-label">مجموع التكاليف</label>
@@ -228,6 +228,30 @@ $(function () {
         calculateTotalPrice(row);
     });
 
+    function formatNumberValue(value) {
+        // إزالة الفواصل إذا كانت القيمة نصًا
+        if (typeof value === 'string') {
+            value = value.replace(/,/g, '');
+        }
+
+        // التحقق أن القيمة رقمية
+        if (!isNaN(value) && value !== '') {
+            return Number(value).toLocaleString('en-US'); // يعطي 1,000,000
+        }
+
+        return '0';
+    }
+
+    function calculateTotalCost(){
+        let costtotal = 0;
+        $('.costValue').each(function() {
+            let costValue = parseInt($(this).val());
+            costtotal += costValue;
+        });
+        $('#total-cost').val(costtotal);
+        calculateTotalInvoice();
+    }
+
 
     function calculateTotalCost(){
         let costtotal = 0;
@@ -282,7 +306,7 @@ $(function () {
         else {
             total_price = quantity * purchase_price;
         }
-        row.find('.total_price').val(total_price);
+        row.find('.total_price').val(formatNumberValue(total_price));
         calculateTotalInvoice();
     }
 
@@ -301,9 +325,9 @@ $(function () {
         total_amount += additionalCost;
 
         // عرض النتيجة
-        $('.total_amount').val(total_amount);
-        $('.all_total strong').text(all_total);
-        $('.all_total .total_amount_invoice').val(all_total);
+        $('.total_amount').val(formatNumberValue(total_amount));
+        $('.all_total strong').text(formatNumberValue(all_total));
+        $('.all_total .total_amount_invoice').val(formatNumberValue(all_total));
     }
 
     let isFormChanged = false;
@@ -338,11 +362,11 @@ $(function () {
                         <option value="">اختر المقاس</option>
                     </select>
                 </td>
-                <td><input type="number" name="items[${index}][purchase_price]"  class="form-control purchase_price" step="any"></td>
-                <td><input type="number" name="items[${index}][pricePerMeter]" value="0"  class="form-control pricePerMeter" step="any" readonly></td>
-                <td><input type="number" name="items[${index}][length]"class="form-control length" value="0" step="any"></td>
-                <td><input type="number" name="items[${index}][quantity]"class="form-control quantity" value="1" step="any"></td>
-                <td><input type="number" name="items[${index}][total_price]" class="form-control total_price" step="any" readonly></td>
+                <td><input type="text" name="items[${index}][purchase_price]"  class="form-control purchase_price" step="any"></td>
+                <td><input type="text" name="items[${index}][pricePerMeter]" value="0"  class="form-control pricePerMeter" step="any" readonly></td>
+                <td><input type="text" name="items[${index}][length]"class="form-control length" value="0" step="any"></td>
+                <td><input type="text" name="items[${index}][quantity]"class="form-control quantity" value="1" step="any"></td>
+                <td><input type="text" name="items[${index}][total_price]" class="form-control total_price" step="any" readonly></td>
                 <td>
                     <button type="button" class="btn btn-danger btn-sm remove-row">
                         <i data-feather='trash-2'></i>
@@ -446,7 +470,7 @@ $(function () {
             });
     }
 
-        // حذف الصف
+    // حذف الصف
     $(document).on('click', '.remove-row', function () {
         $(this).closest('tr').remove();
         reindexItems();
@@ -467,7 +491,6 @@ $(function () {
             $(".addItems").attr('disabled', false);
             $(".warehouse_container").show(500);
             $(".wallet_container").show(500);
-            $(".balance_container").show(500);
             $(".opening_balance_container").hide(500);
             $("#add-cost").attr('disabled', false);
         }
@@ -475,11 +498,12 @@ $(function () {
             $(".addItems").attr('disabled', false);
             $(".warehouse_container").hide(500);
             $(".wallet_container").hide(500);
-            $(".balance_container").hide(500);
             $(".opening_balance_container").hide(500);
             $("#add-cost").attr('disabled', false);
         }
         else {
+            $(".warehouse_container").hide(500);
+            $(".wallet_container").hide(500);
             $(".addItems").attr('disabled', true);
             $(".opening_balance_container").show(500);
             $("#add-cost").attr('disabled', true);

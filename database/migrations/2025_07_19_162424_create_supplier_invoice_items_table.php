@@ -13,9 +13,9 @@ return new class extends Migration
     {
         Schema::create('supplier_invoice_items', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('supplier_invoice_id')->constrained('supplier_invoices')->cascadeOnDelete()->cascadeOnUpdate();
-            $table->foreignId('category_id')->constrained('categories')->onDelete('restrict');
-            $table->foreignId('product_id')->constrained('products')->onDelete('restrict');
+            $table->foreignId('supplier_invoice_id')->constrained('supplier_invoices')->onDelete('SET NULL')->cascadeOnUpdate();
+            $table->foreignId('category_id')->constrained('categories')->onDelete('SET NULL');
+            $table->foreignId('product_id')->constrained('products')->onDelete('SET NULL');
             $table->foreignId('unit_id')->nullable()->constrained('units')->nullOnDelete();
             $table->foreignId('size_id')->nullable()->constrained('sizes')->nullOnDelete();
             $table->integer('quantity')->default(1)->comment('الكمية');
@@ -23,7 +23,6 @@ return new class extends Migration
             $table->decimal('length', 15, 2)->default(0)->comment('الطول');
             $table->decimal('purchase_price', 15, 2)->default(0)->comment('سعر الشراء');
             $table->decimal('total_price', 15, 2)->default(0)->comment('سعر الإجمالي');
-            $table->decimal('final_cost_price', 15, 2)->default(0)->comment('السعر النهائي لكل صنف');
             $table->timestamps();
         });
     }

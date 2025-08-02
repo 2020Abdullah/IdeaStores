@@ -32,7 +32,7 @@
 @endsection
 
 @section('content')
-<section class="addInvoice">
+<section class="editInvoice">
     <div class="card">
         <div class="card-header">
             <h3 class="card-title">تعديل الفاتورة</h3>
@@ -48,23 +48,8 @@
             <div class="card-body">
                 <div class="mb-2">
                     <label class="form-label" for="name">المورد</label>
-                    <select name="supplier_id" class="form-select">
-                        <option value="">أختر المورد ...</option>
-                        @foreach ($suppliers_list as $supplier)
-                            <option value="{{ $supplier->id }}" 
-                                {{ (isset($invoice) && $invoice->supplier_id == $supplier->id) ? 'selected' : '' }}>
-                                {{ $supplier->name }}
-                            </option>
-                        @endforeach
-                    </select>
-                    @error('supplier_id')
-                        <div class="alert alert-danger mt-1" role="alert">
-                            <h4 class="alert-heading">خطأ</h4>
-                            <div class="alert-body">
-                                {{ @$message }}
-                            </div>
-                        </div>
-                    @enderror
+                    <input type="hidden" value="{{ $invoice->supplier->id }}" name="supplier_id">
+                    <input type="text" class="form-control" value="{{ $invoice->supplier->name }}" readonly>
                 </div>
                 <div class="mb-2">
                     <label class="form-label" for="phone">تاريخ الفاتورة</label>
@@ -80,13 +65,20 @@
                 </div>
                 <div class="mb-2">
                     <label class="form-label">نوع الفاتورة</label>
-                    <input type="text" class="form-control" value="{{ $invoice->invoice_type }}" readonly name="invoice_type">
+                    <input type="hidden" class="form-control" value="{{ $invoice->invoice_type }}" name="invoice_type">                        
+                    @if ($invoice->invoice_type === 'credit')
+                        <input type="text" class="form-control" value="آجل" readonly>                        
+                    @elseif($invoice->invoice_type === 'cash')
+                        <input type="text" class="form-control" value="كاش" readonly>                        
+                    @else 
+                        <input type="text" class="form-control" value="رصيد افتتاحي" readonly>                        
+                    @endif
                 </div>
                 @if ($invoice->invoice_type === 'opening_balance')
                     <div class="mb-2">
                         <label class="form-label">رصيد افتتاحي</label>
-                        <input type="hidden" class="form-control" name="total_amount_old" value="{{ $invoice->total_amount }}">
-                        <input type="number" class="form-control" name="total_amount" value="{{ $invoice->total_amount }}">
+                        <input type="hidden" class="form-control" name="opening_balance_old" value="{{ $invoice->total_amount_invoice }}">
+                        <input type="number" class="form-control" name="opening_balance" value="{{ $invoice->total_amount_invoice }}">
                     </div>
                 @else   
                     <div class="mb-2">
@@ -159,15 +151,20 @@
                                                 </select>
                                             </td>
 
-                                            <td><input type="number" name="items[{{$index}}][purchase_price]" value="{{ $item->purchase_price }}" class="form-control purchase_price" step="any"></td>
+                                            <td><input type="text" name="items[{{$index}}][purchase_price]" value="{{ $item->purchase_price }}" class="form-control purchase_price" step="any"></td>
 
-                                            <td><input type="number" name="items[{{$index}}][pricePerMeter]" value="{{ $item->pricePerMeter }}" class="form-control pricePerMeter" readonly step="any"></td>
+                                            <td><input type="text" name="items[{{$index}}][pricePerMeter]" value="{{ $item->pricePerMeter }}" class="form-control pricePerMeter" readonly step="any"></td>
 
-                                            <td><input type="number" name="items[{{$index}}][length]" value="{{ $item->length }}" class="form-control length" step="any"></td>
+                                            @if ($item->length > 0)
+                                                <td><input type="text" name="items[{{$index}}][length]" value="{{ $item->length }}" class="form-control length" step="any"></td>    
+                                            @else 
+                                                <td><input type="text" name="items[{{$index}}][length]" value="{{ $item->length }}" class="form-control length" step="any" readonly></td>    
+                                            @endif
 
-                                            <td><input type="number" name="items[{{$index}}][quantity]"class="form-control quantity" value="{{ $item->quantity }}" step="any"></td>
 
-                                            <td><input type="number" name="items[{{$index}}][total_price]" value="{{ $item->total_price }}" class="form-control total_price" step="any" readonly></td>
+                                            <td><input type="text" name="items[{{$index}}][quantity]"class="form-control quantity" value="{{ $item->quantity }}" step="any"></td>
+
+                                            <td><input type="text" name="items[{{$index}}][total_price]" value="{{ $item->total_price }}" class="form-control total_price" step="any" readonly></td>
 
                                             <td>
                                                 <button type="button" class="btn btn-danger btn-sm remove-row">
@@ -185,7 +182,7 @@
                             <strong>{{ $invoice->total_amount - $invoice->cost_price }}</strong> 
                             <span>EGP</span>
                             <input type="hidden" name="total_amount_invoice_old" value="{{ $invoice->total_amount_invoice }}">
-                            <input type="hidden" class="total_amount_invoice" name="total_amount_invoice">
+                            <input type="hidden" class="total_amount_invoice" value="{{ $invoice->total_amount_invoice }}" name="total_amount_invoice">
                         </div>
                     </div>
                     <div id="costs-wrapper">
@@ -206,11 +203,12 @@
                     </div>
                     <div class="mb-2">
                         <label class="form-label">مجموع التكاليف</label>
-                        <input type="text" class="form-control additional_cost" name="additional_cost" value="{{ $invoice->cost_price }}" readonly>
+                        <input type="text" class="form-control additional_cost"  name="additional_cost" value="{{ $invoice->cost_price }}" readonly>
                     </div>
                     <div class="mb-2">
                         <label class="form-label">إجمالي الفاتورة شامل سعر التكلفة</label>
-                        <input type="text" class="form-control total_amount" name="total_amount" value="{{ $invoice->total_amount }}" readonly>
+                        <input type="hidden" class="form-control" name="total_amount_old" value="{{ $invoice->total_amount }}">
+                        <input type="text" class="form-control total_amount"  name="total_amount" value="{{ $invoice->total_amount }}" readonly>
                     </div>
                 @endif
                 <div class="mb-2">
@@ -226,8 +224,6 @@
         </form>
     </div>
 </section>
-
-
 @endsection
 
 @section('js')
@@ -277,13 +273,27 @@ $(function () {
         calculateTotalPrice(row);
     });
 
+    function formatNumberValue(value) {
+        // إزالة الفواصل إذا كانت القيمة نصًا
+        if (typeof value === 'string') {
+            value = value.replace(/,/g, '');
+        }
+
+        // التحقق أن القيمة رقمية
+        if (!isNaN(value) && value !== '') {
+            return Number(value).toLocaleString('en-US'); // يعطي 1,000,000
+        }
+
+        return '0';
+    }
+
     function calculateTotalCost(){
         let costtotal = 0;
         $('.costValue').each(function() {
             let costValue = parseInt($(this).val());
             costtotal += costValue;
         });
-        $('#total-cost').val(costtotal);
+        $('.additional_cost').val(costtotal);
         calculateTotalInvoice();
     }
 
@@ -331,7 +341,7 @@ $(function () {
         else {
             total_price = quantity * purchase_price;
         }
-        row.find('.total_price').val(total_price);
+        row.find('.total_price').val(formatNumberValue(total_price));
         calculateTotalInvoice();
     }
 
@@ -340,19 +350,19 @@ $(function () {
         let all_total = 0;
         // جمع إجماليات كل صنف
         $('tr.product-item').each(function () {
-            let price = parseFloat($(this).find('.total_price').val()) || 0;
+            let price = parseFloat($(this).find('.total_price').val().replace(/,/g, '')) || 0;
             total_amount += price;
             all_total += price;
         });
 
         // جمع التكلفة الإضافية
-        let additionalCost = parseInt($('.additional_cost').val()) || 0;
+        let additionalCost = parseInt($('.additional_cost').val().replace(/,/g, '')) || 0;
         total_amount += additionalCost;
 
         // عرض النتيجة
-        $('.total_amount').val(total_amount);
-        $('.all_total strong').text(all_total);
-        $('.all_total .total_amount_invoice').val(all_total);
+        $('.total_amount').val(formatNumberValue(total_amount));
+        $('.all_total strong').text(formatNumberValue(all_total));
+        $('.all_total .total_amount_invoice').val(formatNumberValue(all_total));
     }
 
     // جلب المنتجات بناء علي التصنيف
@@ -414,11 +424,11 @@ $(function () {
                         <option value="">اختر المقاس</option>
                     </select>
                 </td>
-                <td><input type="number" name="items[${index}][purchase_price]"  class="form-control purchase_price" step="any"></td>
-                <td><input type="number" name="items[${index}][pricePerMeter]" value="0"  class="form-control pricePerMeter" step="any" readonly></td>
-                <td><input type="number" name="items[${index}][length]"class="form-control length" value="0" step="any"></td>
-                <td><input type="number" name="items[${index}][quantity]"class="form-control quantity" value="1" step="any"></td>
-                <td><input type="number" name="items[${index}][total_price]" class="form-control total_price" step="any" readonly></td>
+                <td><input type="text" name="items[${index}][purchase_price]" class="form-control purchase_price" step="any"></td>
+                <td><input type="text" name="items[${index}][pricePerMeter]"  value="0"  class="form-control pricePerMeter" step="any" readonly></td>
+                <td><input type="text" name="items[${index}][length]"  class="form-control length" value="0" step="any"></td>
+                <td><input type="text" name="items[${index}][quantity]" class="form-control quantity" value="1" step="any"></td>
+                <td><input type="text" name="items[${index}][total_price]" class="form-control total_price" step="any" readonly></td>
                 <td>
                     <button type="button" class="btn btn-danger btn-sm remove-row">
                         <i data-feather='trash-2'></i>
@@ -521,6 +531,7 @@ $(function () {
     //         return "لديك تغييرات غير محفوظة، هل تريد فعلاً مغادرة الصفحة؟";
     //     }
     // };
+
 
 });
 </script>

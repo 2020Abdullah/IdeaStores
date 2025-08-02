@@ -18,7 +18,6 @@ class PaymentInvoiceRequest extends FormRequest
             'warehouse_id'     => 'required|exists:warehouses,id',
             'wallet_id'        => 'required|exists:wallets,id',
             'amount'           => ['required', 'numeric', 'gt:0'],
-            'current_balance'  => ['required', 'numeric'],
         ];
     }
 

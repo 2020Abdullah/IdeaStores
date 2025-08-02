@@ -23,7 +23,7 @@ class AccountController extends Controller
 
         // جلب كل الحركات المالية الخاصة بالحساب
         $transactions = Account_transactions::where('account_id', $account->id)
-        ->orderBy('created_at', 'desc')
+        ->orderBy('created_at', 'ASC')
         ->paginate(100);
 
         return view('accounts.show', compact('account', 'transactions'));

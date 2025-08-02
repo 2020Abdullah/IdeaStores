@@ -1,16 +1,15 @@
 <?php
 
-namespace App\Http\Controllers;
+namespace App\Http\Controllers\Supplier;
 
-use App\Exports\SuppliersDataExport;
-use App\Exports\SuppliersTemplateExport;
+use App\Http\Controllers\Controller;
+use Illuminate\Http\Request;
 use App\Http\Requests\Invoices\supplierInvoiceRequest;
 use App\Http\Requests\PaymentInvoiceRequest;
-use App\Imports\SuppliersImport;
-use App\Models\Account;
 use App\Models\Account_transactions;
 use App\Models\App;
 use App\Models\Category;
+use App\Models\InvoiceProductCost;
 use App\Models\Product;
 use App\Models\Size;
 use App\Models\Stock;
@@ -22,125 +21,17 @@ use App\Models\Unit;
 use App\Models\Wallet;
 use App\Models\Wallet_movement;
 use App\Models\Warehouse;
-use Exception;
-use Illuminate\Http\Request;
-use Maatwebsite\Excel\Facades\Excel;
 use Mpdf\Mpdf;
 
-class SupplierController extends Controller
+class InvoicePurchaseController extends Controller
 {
     public function index(){
-        $suppliers_list = Supplier::all();
-        return view('suppliers.index', compact('suppliers_list'));
-    }
-
-    public function add(){
-        return view('suppliers.add');
-    }
-
-    public function store(Request $request){
-        $request->validate([
-            'name' => 'required'
-        ],[
-            'name.required' => 'يجب إدخال اسم المورد !'
-        ]);
-        try {
-            $Supplier = new Supplier();
-            $Supplier->name = $request->name;
-            $Supplier->phone = $request->phone;
-            $Supplier->busniess_name = $request->busniess_name;
-            $Supplier->busniess_type = $request->busniess_type;
-            $Supplier->whatsUp = $request->whatsUp;
-            $Supplier->place = $request->place;
-            $Supplier->notes = $request->notes;
-            $Supplier->save();
-
-            $Supplier->account()->create([
-                'name'     => 'حساب المورد: ' . $Supplier->name,
-                'type' => 'supplier',
-                'total_capital_balance' => 0,
-                'total_profit_balance' => 0,
-            ]);
-
-        }
-        catch(Exception $e){
-            return $e->getMessage();
-        }
-        return redirect()->route('supplier.index')->with('success', 'تم إضافة مورد بنجاح');
-    }
-
-    public function edit($id){
-        $supplier = Supplier::findOrFail($id);
-        return view('suppliers.edit', compact('supplier'));
-    }
-
-    public function update(Request $request){
-        $request->validate([
-            'name' => 'required'
-        ],[
-            'name.required' => 'يجب إدخال اسم المورد !'
-        ]);
-        try {
-            $Supplier = Supplier::findOrFail($request->id);
-            $Supplier->name = $request->name;
-            $Supplier->phone = $request->phone;
-            $Supplier->busniess_name = $request->busniess_name;
-            $Supplier->busniess_type = $request->busniess_type;
-            $Supplier->whatsUp = $request->whatsUp;
-            $Supplier->place = $request->place;
-            $Supplier->notes = $request->notes;
-            $Supplier->save();
-
-            // edit account name
-            $Supplier->account()->update([
-                'name' => 'حساب المورد: ' . $request->name,
-            ]);
-        }
-        catch(Exception $e){
-            return $e->getMessage();
-        }
-        return redirect()->route('supplier.index')->with('success', 'تم تعديل بيانات المورد بنجاح');
-    }
-
-    public function downloadTemplate(){
-        return Excel::download(new SuppliersTemplateExport, 'نموذج_الموردين.xlsx');
-    }
-
-    public function importSuppliers(Request $request)
-    {
-        $request->validate([
-            'file' => 'required|file|mimes:xlsx,xls',
-        ]);
-
-        Excel::import(new SuppliersImport, $request->file('file'));
-
-        return back()->with('success', 'تم استيراد الموردين بنجاح');
-    }
-
-    public function exportData(Request $request){
-        $ids = json_decode($request->recardsIds[0]); 
-
-        if (empty($ids)) {
-            return redirect()->back()->with('error', 'لم يتم تحديد موردين');
-        }
-
-        return Excel::download(new SuppliersDataExport($ids),'بيانات الموردين.xlsx');
-    }
-
-    public function profileShow($id){
-        $data['warehouse_list'] = Warehouse::where('is_main', 0)->get();
-        $data['supplier'] = Supplier::findOrFail($id);
-        $data['supplier_invoices'] = Supplier_invoice::where('supplier_id' , $id)->paginate(100);
-        return view('suppliers.profile', $data);
-    }
-
-    public function InvoiceIndex(){
         $invoices_list = Supplier_invoice::orderBy('invoice_date', 'desc')->paginate(100);
         $warehouse_list = Warehouse::where('is_main', 0)->get();
         return view('suppliers.invoices.index', compact('invoices_list', 'warehouse_list'));
     }
     
-    public function InvoiceAdd($id = null){
+    public function add($id = null){
         $data['warehouse_list'] = Warehouse::where('is_main', 0)->get();
         if($id){
             $data['supplier'] = Supplier::findOrFail($id);
@@ -150,6 +41,20 @@ class SupplierController extends Controller
         }
         $data['main_categories'] = Category::whereNull('parent_id')->get();
         return view('suppliers.invoices.add', $data);
+    }
+
+
+    public function store(supplierInvoiceRequest $request){
+        // التحقق من الفاتورة لو هيا آجل ام كاش
+        if($request->invoice_type === 'cash'){
+            return $this->paymentCash($request);
+        }
+        else if ($request->invoice_type === 'credit') {
+            return $this->paymentcredit($request);
+        }
+        else {
+            return $this->addOpenBalance($request);
+        }
     }
 
     protected function generateNum()
@@ -174,31 +79,17 @@ class SupplierController extends Controller
         return $invoice_code;
     }
 
+    protected function normalizeNumber($number)
+    {
+        // احذف كل الفواصل فقط
+        $number = str_replace(',', '', $number);
     
-
-    public function InvoiceStore(supplierInvoiceRequest $request){
-        // التحقق من الفاتورة لو هيا آجل ام كاش
-        if($request->invoice_type === 'cash'){
-            return $this->paymentCash($request);
-        }
-        else if ($request->invoice_type === 'credit') {
-            return $this->paymentcredit($request);
-        }
-        else {
-            return $this->addOpenBalance($request);
-        }
-    }
+        return floatval($number);
+    }    
 
     protected function paymentcredit($request){
         $total_amount = $this->normalizeNumber($request->total_amount);
         $total_amount_invoice = $this->normalizeNumber($request->total_amount_invoice);
-        // أولاً: المورد
-        $supplier = Supplier::where('id', $request->supplier_id)->first();
-        $supplier->account()->increment('current_balance', $total_amount_invoice);
-
-        // ثانياً: خزنة التوريدات
-        $toridat_warehouse = Warehouse::where('type', 'toridat')->first();
-        $toridat_warehouse->account()->decrement('total_capital_balance', $total_amount);
 
         // 2. إنشاء الفاتورة 
         $invoice = Supplier_invoice::create([
@@ -224,7 +115,6 @@ class SupplierController extends Controller
         }
 
         // ضبط المخزن
-
         $main_store = StoreHouse::latest()->first(); 
 
         // إدخال أصناف الفاتورة + إدخال ستوك جديد لكل صنف
@@ -238,10 +128,10 @@ class SupplierController extends Controller
                     'unit_id' => $item['unit_id'],
                     'size_id' => $item['size_id'],
                     'quantity' => $item['quantity'],
-                    'pricePerMeter' => round($item['pricePerMeter'], 2),
+                    'pricePerMeter' => $item['pricePerMeter'],
                     'length' => $item['length'],
                     'purchase_price' => $item['purchase_price'],
-                    'total_price' => round($item['total_price'], 2),
+                    'total_price' => $this->normalizeNumber($item['total_price']),
                 ]);
 
                 // إضافة المنتج إلي المخزن لو لم يكن موجود وتحديث الكمية لو كان موجود
@@ -286,9 +176,34 @@ class SupplierController extends Controller
                 $stock_movement->quantity = $quantity;
                 $stock_movement->note = 'شراء';
                 $stock_movement->save();
+
+                // حساب نصيب الصنف من التكاليف الإضافية
+                $total_invoice_amount = floatval($invoice->total_amount_invoice) ?: 1;
+                $general_cost = floatval($request->additional_cost);
+                $item_total_price = floatval($item['total_price']);
+
+                $item_percentage = $item_total_price / $total_invoice_amount;
+
+                $cost_share = ($item_percentage * $general_cost) + $item_total_price;
+
+                InvoiceProductCost::updateOrCreate([
+                    'stock_id' => $stock->id,
+                ], [
+                    'base_cost' => floatval($item['purchase_price']),
+                    'cost_share' => $this->normalizeNumber($cost_share),
+                ]);
             }
         }
-        return back()->with('success', 'تم إنشاء فاتورة مورد بنجاح');
+
+        // تحديث الحسابات المالية وعمل مديونية
+        $supplier = Supplier::where('id', $request->supplier_id)->first();
+        $supplier->account()->increment('current_balance', $total_amount_invoice);
+
+        // تحديث الحسابات المالية وعمل مديونية
+        $toridat_warehouse = Warehouse::where('type', 'toridat')->first();
+        $toridat_warehouse->account()->decrement('total_capital_balance', $total_amount);
+
+        return redirect()->route('supplier.account.show', $request->supplier_id)->with('success', 'تم إنشاء فاتورة مورد بنجاح');
     }
 
     protected function paymentCash($request){
@@ -426,9 +341,25 @@ class SupplierController extends Controller
                 $stock_movement->quantity = $item['quantity'];
                 $stock_movement->note = 'شراء';
                 $stock_movement->save();
+
+                // حساب نصيب الصنف من التكاليف الإضافية
+                $total_invoice_amount = floatval($invoice->total_amount_invoice) ?: 1;
+                $general_cost = floatval($request->additional_cost);
+                $item_total_price = floatval($item['total_price']);
+
+                $item_percentage = $item_total_price / $total_invoice_amount;
+
+                $cost_share = ($item_percentage * $general_cost) + $item_total_price;
+
+                InvoiceProductCost::updateOrCreate([
+                    'stock_id' => $stock->id,
+                ], [
+                    'base_cost' => floatval($item['purchase_price']),
+                    'cost_share' => $this->normalizeNumber($cost_share),
+                ]);
             }
         }
-        return back()->with('success', 'تم إنشاء فاتورة مورد بنجاح');
+        return redirect()->route('supplier.account.show', $request->supplier_id)->with('success', 'تم إنشاء فاتورة مورد بنجاح');
     }
 
     protected function addOpenBalance($request){
@@ -460,24 +391,7 @@ class SupplierController extends Controller
         return redirect()->route('supplier.invoice.index')->with('success', 'تم عمل رصيد افتتاحي للمورد بنجاح');
     }
 
-    protected function normalizeNumber($number) {
-        // إذا كانت الفاصلة العشرية , فحولها إلى .
-        if (strpos($number, ',') !== false && strpos($number, '.') !== false) {
-            // في حال الإدخال مثل: "1.000.000,25"
-            $number = str_replace('.', '', $number); // حذف نقاط الألوف
-            $number = str_replace(',', '.', $number); // تحويل الفاصلة العشرية
-        } elseif (strpos($number, ',') !== false) {
-            // في حال الإدخال مثل: "1000000,25"
-            $number = str_replace(',', '.', $number); // فقط تحويل العشرية
-        } else {
-            // في حال الإدخال مثل: "1,000,000.25"
-            $number = str_replace(',', '', $number); // حذف الفواصل
-        }
-    
-        return (float) $number;
-    }
-    
-    public function InvoiceEdit($id){
+    public function edit($id){
         $data['warehouse_list'] = Warehouse::where('is_main', 0)->get();
         $data['invoice'] = Supplier_invoice::findOrFail($id);
         $data['suppliers_list'] = Supplier::all();
@@ -488,48 +402,52 @@ class SupplierController extends Controller
         return view('suppliers.invoices.edit', $data);
     }
 
-    public function InvoiceUpdate(supplierInvoiceRequest $request)
+    public function update(supplierInvoiceRequest $request)
     {
         $invoice = Supplier_invoice::findOrFail($request->id);
         $supplier = Supplier::findOrFail($request->supplier_id);
         $total_amount = $this->normalizeNumber($request->total_amount) ?? 0;
         $total_amount_old = $this->normalizeNumber($request->total_amount_old) ?? 0;
+
         $total_amount_invoice = $this->normalizeNumber($request->total_amount_invoice) ?? 0;
         $total_amount_invoice_old = $this->normalizeNumber($request->total_amount_invoice_old) ?? 0;
-        // $opening_balance = $this->normalizeNumber($request->opening_balance) || 0;
-        // $opening_balance_old = $this->normalizeNumber($request->opening_balance_old) || 0;
-        $cost_price = $request->additional_cost ?? 0;
+        
+        $opening_balance_old = $this->normalizeNumber($request->opening_balance_old) ?? 0;
+        $opening_balance = $this->normalizeNumber($request->opening_balance) ?? 0;
+        $cost_all_price = $request->additional_cost ?? 0;
 
-        // تحديث بيانات الفاتورة
         $invoice->update([
             'supplier_id' => $request->supplier_id,
             'invoice_date' => $request->invoice_date,
             'invoice_type' => $request->invoice_type,
             'total_amount' => $total_amount,
             'total_amount_invoice' => $total_amount_invoice,
-            'cost_price' => $cost_price,
+            'cost_price' => $cost_all_price,
             'notes' => $request->notes,
         ]);
-        
+
         // ضبط الحسابات 
         if($request->invoice_type === 'opening_balance'){
-            $supplier->account()->decrement('current_balance', $total_amount_old);
-            $supplier->account()->increment('current_balance', $total_amount);
+
+            $supplier->account()->decrement('current_balance', $opening_balance_old);
+            $supplier->account()->increment('current_balance', $opening_balance);
 
             $warhouse = Warehouse::where('type', 'toridat')->first();
-            $warhouse->account()->increment('total_capital_balance', $total_amount_old);
-            $warhouse->account()->decrement('total_capital_balance', $total_amount);
+            $warhouse->account()->increment('total_capital_balance', $opening_balance_old);
+            $warhouse->account()->decrement('total_capital_balance', $opening_balance);
 
             return redirect()->route('supplier.invoice.index')->with('success', 'تم تعديل الرصيد الإفتتاحي للمورد بنجاح');
         }
         elseif ($request->invoice_type === 'credit') {
+            $all_inv_paid = Supplier_invoice::where('supplier_id', $request->supplier_id)->where('paid_amount', '>', 0)->sum('paid_amount');
+            $result_inv = $total_amount_invoice - $all_inv_paid;
             $supplier = Supplier::findOrFail($request->supplier_id);
             $supplier->account()->decrement('current_balance', $total_amount_invoice_old);
-            $supplier->account()->increment('current_balance', $total_amount_invoice);
+            $supplier->account()->increment('current_balance', $result_inv);
 
             $warehouse_toridat = Warehouse::where('type', 'toridat')->first();
             $warehouse_toridat->account()->increment('total_capital_balance', $total_amount_old);
-            $warehouse_toridat->account()->decrement('total_capital_balance', $total_amount);    
+            $warehouse_toridat->account()->decrement('total_capital_balance', $total_amount - $all_inv_paid);    
         }
         else {
             $wallet = Wallet::findOrFail($request->wallet_id);
@@ -567,40 +485,47 @@ class SupplierController extends Controller
             $wallet_movement->save();
         }
 
-          // استرجاع الأصناف القديمة وتأثيرها على المخزن
-          $oldItems = $invoice->items;
-          foreach ($oldItems as $oldItem) {
-              $stock = Stock::where([
-                  'category_id' => $oldItem->category_id,
-                  'product_id' => $oldItem->product_id,
-              ])->first();
-      
-              if ($stock) {
-                  // خصم الكمية القديمة من المخزن
-                  $stock->initial_quantity -= $oldItem->quantity;
-                  $stock->remaining_quantity -= $oldItem->quantity;
-                  $stock->save();
-              }
-      
-              // حذف حركات المخزن المرتبطة بالصنف
-              Stock_movement::where('stock_id', optional($stock)->id)
-                            ->where('supplier_id', $invoice->supplier_id)
-                            ->where('note', 'شراء')
-                            ->delete();
-          }
-    
+        // استرجاع الأصناف القديمة وتأثيرها على المخزن
+        $main_store = StoreHouse::latest()->first();
+        $oldItems = $invoice->items()->get();
 
-    
+        foreach ($oldItems as $oldItem) {
+            $unit = Unit::find($oldItem->unit_id);
+            
+            if ($unit && $unit->symbol === 'سم') {
+                $old_quantity = $oldItem->length * $oldItem->quantity;
+            } else {
+                $old_quantity = $oldItem->quantity;
+            }
+
+            $stock = Stock::where([
+                'category_id' => $oldItem->category_id,
+                'product_id' => $oldItem->product_id,
+                'store_house_id' => $main_store->id,
+            ])->first();
+
+            if ($stock) {
+                $stock->initial_quantity = max(0, $stock->initial_quantity - $old_quantity);
+                $stock->remaining_quantity = max(0, $stock->remaining_quantity - $old_quantity);
+                $stock->save();
+            }
+
+            // حذف حركات المخزن المرتبطة بالصنف
+            Stock_movement::where('stock_id', optional($stock)->id)
+                        ->where('supplier_id', $invoice->supplier_id)
+                        ->where('note', 'شراء')
+                        ->delete();
+        }
+
         // حذف الأصناف القديمة لإعادة إدخالها من جديد
         $invoice->items()->delete();
-    
+
         // إدخال الأصناف الجديدة وتحديث المخزن
         $items = $request->input('items');
-        $main_store = StoreHouse::latest()->first();
-    
+
         if ($items && is_array($items)) {
             foreach ($items as $item) {
-                
+
                 $newItem = $invoice->items()->create([
                     'supplier_invoice_id' => $invoice->id,
                     'category_id' => $item['category_id'],
@@ -611,25 +536,23 @@ class SupplierController extends Controller
                     'pricePerMeter' => round($item['pricePerMeter'], 2),
                     'length' => $item['length'],
                     'purchase_price' => $item['purchase_price'],
-                    'total_price' => round($item['total_price'], 2),
+                    'total_price' => $this->normalizeNumber($item['total_price']),
                 ]);
 
-                $unit = Unit::findOrFail($item['unit_id']);
-
-                if($unit->symbol === 'سم'){
-                    $quantity = $item['length'] * $item['quantity'];
-                }
-                else {
-                    $quantity = $item['quantity'];
-                }
-
-    
                 $stock = Stock::where([
                     'category_id' => $item['category_id'],
                     'product_id' => $item['product_id'],
                     'store_house_id' => $main_store->id,
                 ])->first();
-    
+
+                $unit = Unit::findOrFail($item['unit_id']);
+
+                if ($unit->symbol === 'سم') {
+                    $quantity = $item['length'] * $item['quantity'];
+                } else {
+                    $quantity = $item['quantity'];
+                }
+
                 if ($stock) {
                     $stock->initial_quantity += $quantity;
                     $stock->remaining_quantity += $quantity;
@@ -645,7 +568,7 @@ class SupplierController extends Controller
                         'remaining_quantity' => $quantity,
                     ]);
                 }
-    
+
                 // تسجيل حركة مخزن جديدة
                 Stock_movement::create([
                     'supplier_id' => $request->supplier_id,
@@ -653,6 +576,22 @@ class SupplierController extends Controller
                     'type' => 'in',
                     'quantity' => $quantity,
                     'note' => 'شراء',
+                ]);
+
+                // حساب نصيب الصنف من التكاليف الإضافية
+                $total_invoice_amount = floatval($invoice->total_amount_invoice) ?: 1;
+                $general_cost = floatval($request->additional_cost);
+                $item_total_price = floatval($item['total_price']);
+
+                $item_percentage = $item_total_price / $total_invoice_amount;
+
+                $cost_share = ($item_percentage * $general_cost) + $item_total_price;
+
+                InvoiceProductCost::updateOrCreate([
+                    'stock_id' => $stock->id,
+                ], [
+                    'base_cost' => floatval($item['purchase_price']),
+                    'cost_share' => $this->normalizeNumber($cost_share),
                 ]);
             }
         }
@@ -681,11 +620,7 @@ class SupplierController extends Controller
         return back()->with('success', 'تم تعديل فاتورة المورد بنجاح');
     }    
 
-    public function payment(Request $request){
-
-    }
-
-    public function InvoiceDelete(Request $request){
+    public function delete(Request $request){
         $invoice = Supplier_invoice::findOrFail($request->id);
         
         // stock delete 
@@ -708,13 +643,13 @@ class SupplierController extends Controller
         return back()->with('success', 'تم حذف فاتورة المورد بنجاح');
     }
 
-    public function InvoiceShow($code){
+    public function show($code){
         $invoice = Supplier_invoice::with('supplier')->where('invoice_code', $code)->first();
         $app = App::latest()->first();
         return view('suppliers.invoices.show', compact('invoice', 'app'));
     }
 
-    public function InvoiceDownload($id){
+    public function download($id){
         $invoice = Supplier_invoice::findOrFail($id);
         $app = App::latest()->first();
 
@@ -734,76 +669,110 @@ class SupplierController extends Controller
             ->header('Content-Type', 'application/pdf');
     }
 
-    public function paymentInvoice(PaymentInvoiceRequest $request){
+    public function payment(PaymentInvoiceRequest $request){
         $wallet = Wallet::findOrFail($request->wallet_id);
         $supplier = Supplier::findOrFail($request->supplier_id);
         $warehouse = Warehouse::where('id', $request->warehouse_id)->first();
 
-        // التأكد من أن الرصيد الحالي أكبر من صفر
-        if ($wallet->current_balance <= 0) {
-            return back()->with('info', 'رصيد المحفظة يجب أن يكون أكبر من صفر .');
+        $amount = $this->normalizeNumber($request->amount);
+
+        // تسجيل حركة إدخال مال في الخزنة
+        Account_transactions::create([
+            'account_id' => $warehouse->account->id,
+            'direction'  => 'in',
+            'method'     => $wallet->method,
+            'amount'     => $amount,
+            'transaction_type' => 'added',
+            'description' => 'إضافة رصيد إلي الخزنة'
+        ]);
+
+        // تسجيل حركة محفظة 
+        $wallet_movement = new Wallet_movement();
+        $wallet_movement->wallet_id = $request->wallet_id;
+        $wallet_movement->amount = $amount;
+        $wallet_movement->direction = 'in';
+        $wallet_movement->note = 'إضافة رصيد';
+        $wallet_movement->save();
+
+        // // التأكد من أن الرصيد الحالي أكبر من صفر
+        // if ($wallet->current_balance <= 0) {
+        //     return back()->with('info', 'رصيد المحفظة يجب أن يكون أكبر من صفر .');
+        // }
+
+        // // التأكد من أن المبلغ لا يتجاوز الرصيد المتاح
+        // if ($request->amount > $wallet->current_balance) {
+        //     return back()->with('info', 'رصيد المحفظة غير كافي لإجراء هذه العملية .');
+        // }
+
+
+        // تحديث الفواتير تلقائياً عند دفع دفعة مقدمة 
+        $invoices = Supplier_invoice::where('supplier_id', $request->supplier_id)
+                    ->where('invoice_staute', '!=', 1) // تجاهل الفواتير المدفوعة
+                    ->orderBy('invoice_date', 'asc') // ترتيب حسب الأقدمية
+                    ->get();
+        foreach($invoices as $inv){
+            $remaining = $inv->total_amount_invoice - $inv->paid_amount;
+            if ($amount >= $remaining) {
+                // دفع الفاتورة بالكامل
+                $inv->update([
+                    'invoice_staute' => 1,
+                    'paid_amount' => $amount
+                ]);
+                $amount -= $remaining;
+            } elseif ($amount > 0) {
+                // دفع جزئي
+                $inv->update([
+                    'invoice_staute' => 2,
+                    'paid_amount' => $inv->paid_amount + $amount
+                ]);
+                $amount = 0;
+                break; // المبلغ خلص
+            } else {
+                break; // لا يوجد مبلغ متبقي
+            }
         }
 
-        // التأكد من أن المبلغ لا يتجاوز الرصيد المتاح
-        if ($request->amount > $wallet->current_balance) {
-            return back()->with('info', 'رصيد المحفظة غير كافي لإجراء هذه العملية برجاء التحقق من الرصيد المتوفر في المحفظة .');
-        }
+        $amount = $this->normalizeNumber($request->amount);
 
-        // 1. تحديث الفاتورة
-        $invoice = Supplier_invoice::findOrFail($request->id);
-        $Remaining = ($request->total_amount - $request->amount);
-        if($Remaining > 0)
-        {
-            $invoice->paid_amount = $request->amount;
-            $invoice->invoice_staute = 2;
-            $invoice->save();
-        }
-        elseif($Remaining < 0)
-        {
-            return back()->with('info', 'مطلوب دفع ' . $request->total_amount . 'فقط لا غير');
-        }
-        else {
-            $invoice->paid_amount = $request->amount;
-            $invoice->invoice_staute = 1;
-            $invoice->save();
-        }
-        
-        // 2. تسجيل حركة معاملات 
+        // تسجيل حركة محفظة 
+        $wallet_movement = new Wallet_movement();
+        $wallet_movement->wallet_id = $request->wallet_id;
+        $wallet_movement->amount = -$amount;
+        $wallet_movement->direction = 'out';
+        $wallet_movement->note = 'دفعة';
+        $wallet_movement->save();
+
+        // تسجيل حركة معاملة في الخزنة
         Account_transactions::create([
             'account_id' => $warehouse->account->id,
             'direction'  => 'out',
-            'code'  => $invoice->invoice_code,
             'method'     => $request->method,
-            'amount'     => $request->amount,
-            'transaction_type' => 'purchase',
+            'amount'     => -$amount,
+            'transaction_type' => 'payment',
             'related_type' => Supplier::class,  
             'related_id' => $supplier->id,
             'description' => $request->description
         ]);
 
-        // 3. تحديث الحسابات المالية 
+        // تحديث الحسابات المالية
+        $wallet->current_balance = $wallet->movements->sum('amount');
+        $wallet->save();
 
-        // أولاً:حساب المورد
-        $supplier->account()->decrement('total_capital_balance', $request->amount);
+        $warehouse->account->current_balance = $warehouse->account->transactions->sum('amount');
+        $warehouse->save();
 
-        // ثانياً: خزنة المستهدفة + حساب المحفظة 
-        $warehouse->account()->increment('total_capital_balance', $request->amount);
-        $warehouse->account()->decrement('current_balance', $request->amount);
+        $warehouse->account()->increment('total_capital_balance', $amount);
+        $supplier->account()->decrement('current_balance', $amount);
 
-        $wallet->decrement('current_balance', $request->amount);
+        // $supplier->account()->decrement('current_balance', $amount);
+        // $warehouse->account()->decrement('current_balance', $amount); 
+        // $warehouse->account()->increment('total_capital_balance', $amount); 
+        // $wallet->decrement('current_balance', $amount);
 
-        // 4. تسجيل حركة محفظة 
-        $wallet_movement = new Wallet_movement();
-        $wallet_movement->wallet_id = $request->wallet_id;
-        $wallet_movement->amount = $request->amount;
-        $wallet_movement->direction = 'out';
-        $wallet_movement->note = 'فاتورة شراء';
-        $wallet_movement->source_code = $invoice->invoice_code;
-        $wallet_movement->save();
-        return back()->with('success', 'تم الدفع وتغيير حالة الفاتورة بنجاح');
+        return back()->with('success', 'تم دفع الدفعة بنجاح');
     }
 
-    public function filterInvoices(Request $request){
+    public function filter(Request $request){
         $query = Supplier_invoice::query();
 
         if ($request->filled('searchText')) {

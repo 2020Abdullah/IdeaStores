@@ -35,7 +35,13 @@
                                 {{ optional($transaction->related)->name ?? '-' }}
                             </td>
                             <td>
-                                {{ $transaction->transaction_type === 'purchase' ? 'فاتورة شراء' : 'تحويل'}}
+                                @if ($transaction->transaction_type === 'payment')
+                                    مدفوعات
+                                @elseif($transaction->transaction_type === 'expense')
+                                    مصروفات
+                                @else 
+                                    تحويل رصيد
+                                @endif
                             </td>
                             <td>{{ $transaction->method }}</td>
                             <td>{{ $transaction->description }}</td>

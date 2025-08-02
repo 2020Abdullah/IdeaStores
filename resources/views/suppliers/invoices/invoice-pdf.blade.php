@@ -80,7 +80,6 @@
         <div class="supplier-info">
             <p><strong>المورد:</strong> {{ $invoice->supplier->name }}</p>
             <p><strong>تاريخ الفاتورة:</strong> {{ $invoice->invoice_date }}</p>
-            <p><strong>كود السجل الضريبي:</strong> {{ $app->Tax_number }}</p>
         </div>
     
         <!-- Costs Table -->
