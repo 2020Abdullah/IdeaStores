@@ -50,7 +50,7 @@ class InvoicePurchaseController extends Controller
             return $this->addOpenBalance($request);
         }
         else {
-            $this->paymentcredit($request);
+            return $this->paymentcredit($request);
         }
     }
 
