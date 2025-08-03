@@ -507,6 +507,7 @@ $(function () {
             $(".addItems").attr('disabled', true);
             $(".opening_balance_container").show(500);
             $("#add-cost").attr('disabled', true);
+            $('#table-items').empty();
         }
     })
 
