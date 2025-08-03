@@ -435,6 +435,11 @@ class InvoicePurchaseController extends Controller
             $warhouse = Warehouse::where('type', 'toridat')->first();
             $warhouse->account()->increment('total_capital_balance', $opening_balance_old);
             $warhouse->account()->decrement('total_capital_balance', $opening_balance);
+            
+            $invoice->update([
+                'total_amount' => $opening_balance,
+                'total_amount_invoice' => $opening_balance,
+            ]);
 
             return redirect()->route('supplier.invoice.index')->with('success', 'تم تعديل الرصيد الإفتتاحي للمورد بنجاح');
         }
