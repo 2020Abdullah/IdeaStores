@@ -107,10 +107,10 @@
                         <option value="">...</option>
                     </select>
                 </div>
-                {{-- <div class="mb-1 balance_container" style="display: none;">
+                <div class="mb-1 balance_container" style="display: none;">
                     <label class="form-label current_balance_label"></label>
                     <input type="hidden" class="form-control current_balance" name="current_balance" readonly>
-                </div> --}}
+                </div>
                 <div class="mb-1 opening_balance_container" style="display: none;">
                     <label class="form-label">قيمة الرصيد الإفتتاحي</label>
                     <input type="number" class="form-control opening_balance_value" value="0" name="opening_balance_value">
