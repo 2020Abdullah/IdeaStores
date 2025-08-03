@@ -440,8 +440,7 @@ class InvoicePurchaseController extends Controller
                 'total_amount' => $opening_balance,
                 'total_amount_invoice' => $opening_balance,
             ]);
-
-            return redirect()->route('supplier.invoice.index')->with('success', 'تم تعديل الرصيد الإفتتاحي للمورد بنجاح');
+            return redirect()->route('supplier.index')->with('success', 'تم تعديل الرصيد الإفتتاحي للمورد بنجاح');
         }
         elseif ($request->invoice_type === 'credit') {
             $all_inv_paid = Supplier_invoice::where('supplier_id', $request->supplier_id)->where('paid_amount', '>', 0)->sum('paid_amount');
