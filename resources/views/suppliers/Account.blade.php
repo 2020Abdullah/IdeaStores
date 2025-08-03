@@ -60,6 +60,7 @@
                 @if ($supplier->account->current_balance > 0)
                     <a href="#" data-bs-toggle="modal" data-bs-target="#PaymentBalance"
                         data-supplier_id="{{ $supplier->id }}"
+                        data-
                         class="paymentBtn btn btn-icon btn-primary waves-effect waves-float waves-light creditOpenBtn"
                         >
                         <i data-feather='credit-card'></i>
@@ -171,10 +172,20 @@
                             <option value="">...</option>
                         </select>
                     </div>
-                    {{-- <div class="mb-1 balance_container" style="display: none;">
+                    <div class="mb-1 balance_container" style="display: none;">
                         <label class="form-label current_balance_label"></label>
-                        <input type="hidden" class="form-control current_balance" name="current_balance" readonly>
-                    </div> --}}
+                        <input type="text" class="form-control current_balance" name="current_balance" readonly>
+                    </div>
+                    <div class="mb-1 alert_container" style="display: none;">
+                        <div class="alert alert-danger">
+                            <div class="alert-header">
+                                يوجد خطأ
+                            </div>
+                            <div class="alert-body">
+                                <p></p>
+                            </div>
+                        </div>
+                    </div>
                     <div class="mb-1">
                         <label class="form-label">المديونية</label>
                         <input type="number" class="form-control total_balance" name="total_balance" value="{{ $supplier->account->current_balance }}" readonly>
@@ -247,7 +258,16 @@
             // get balance wallet
             $(document).on('change', '.wallet_id', function(){
                let method = $(this).find('option:selected').attr('data-method');
+               let current_balance = parseFloat($(this).find('option:selected').attr('data-balance')) || 0;
+               let total_balance = parseFloat($(".total_balance").val()) || 0;
                $(".method").val(method)
+               $(".balance_container .current_balance").val(current_balance)
+               $(".balance_container").show(500);
+
+               if(current_balance < total_balance){
+                    $(".alert_container").show(500);
+                    $(".alert_container p").text('رصيد المحفظة غير كافي الخزنة هتكون السالب')
+               }
             })
 
             // item select only
