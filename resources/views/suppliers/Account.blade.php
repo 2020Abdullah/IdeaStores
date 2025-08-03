@@ -25,9 +25,11 @@
         <div class="card-header">
             <h3 class="card-title">كشف حساب مورد : {{ $supplier->name }}</h3>
             <div class="card-action">
-                <a href="#" class="btn btn-primary waves-effect waves-float waves-light">
-                    تصدير كشف الحساب
-                </a>
+                <form action="{{ route('supplier.account.export') }}" method="POST">
+                    @csrf
+                    <input type="hidden" value="{{ $supplier->id }}" name="supplier_id">
+                    <button type="submit" class="btn btn-success waves-effect waves-float waves-light">تصدير PDF</button>
+                </form>
             </div>
         </div>
         <hr />
@@ -244,14 +246,43 @@
 
             // get balance wallet
             $(document).on('change', '.wallet_id', function(){
-            //    let balance = parseInt($(this).find('option:selected').attr('data-balance')) || 0;
                let method = $(this).find('option:selected').attr('data-method');
-            //    $(".current_balance").val(balance)
                $(".method").val(method)
-            //    $(".balance_container").show(500);
-            //    $(".current_balance_label").text('الرصيد المتوفر');
-            //    $(".current_balance").attr('type', 'text');
             })
+
+            // item select only
+
+            $(document).on('change', '.selectItem', function(){
+                getRecoards();
+            });
+
+            // item select All
+            $(document).on('change', '#selectAll' ,function(){
+
+                $('.selectItem').prop('checked', this.checked);
+
+                getRecoards();
+
+            });
+
+            function getRecoards(){
+                let recardsIds = [];
+
+                $.each($('.selectItem:checked'), function(){
+                    recardsIds.push($(this).val());
+                })
+
+                $('.recardsIds').val(JSON.stringify(recardsIds));
+
+                if(recardsIds.length > 0){
+                    $(".exportData").attr('disabled', false);
+                    $(".exportData").removeClass('disabled');
+                }
+                else {
+                    $(".exportData").attr('disabled', true);
+                    $(".exportData").addClass('disabled');
+                }
+            }
         })
     </script>
 @endsection

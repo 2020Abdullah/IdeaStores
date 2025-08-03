@@ -44,7 +44,7 @@
                     </li>
                 </ul>
             </li>
-
+{{-- 
             <li class="nav-item has-sub">
                 <a class="d-flex align-items-center" href="#">
                     <i data-feather='file-text'></i>
@@ -58,7 +58,7 @@
                         </a>
                     </li>
                 </ul>
-            </li>
+            </li> --}}
 
             <li class="nav-item has-sub">
                 <a class="d-flex align-items-center" href="#">

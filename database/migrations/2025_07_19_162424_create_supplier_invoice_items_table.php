@@ -13,9 +13,9 @@ return new class extends Migration
     {
         Schema::create('supplier_invoice_items', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('supplier_invoice_id')->constrained('supplier_invoices')->onDelete('SET NULL')->cascadeOnUpdate();
-            $table->foreignId('category_id')->constrained('categories')->onDelete('SET NULL');
-            $table->foreignId('product_id')->constrained('products')->onDelete('SET NULL');
+            $table->foreignId('supplier_invoice_id')->constrained('supplier_invoices')->cascadeOnUpdate()->cascadeOnUpdate();
+            $table->foreignId('category_id')->nullable()->constrained('categories')->onDelete('SET NULL')->cascadeOnUpdate();
+            $table->foreignId('product_id')->nullable()->constrained('products')->onDelete('SET NULL')->cascadeOnUpdate();
             $table->foreignId('unit_id')->nullable()->constrained('units')->nullOnDelete();
             $table->foreignId('size_id')->nullable()->constrained('sizes')->nullOnDelete();
             $table->integer('quantity')->default(1)->comment('الكمية');

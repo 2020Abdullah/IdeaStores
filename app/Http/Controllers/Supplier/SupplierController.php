@@ -5,12 +5,14 @@ use App\Http\Controllers\Controller;
 use App\Exports\SuppliersDataExport;
 use App\Exports\SuppliersTemplateExport;
 use App\Imports\SuppliersImport;
+use App\Models\App;
 use App\Models\Supplier;
 use App\Models\Supplier_invoice;
 use App\Models\Warehouse;
 use Exception;
 use Illuminate\Http\Request;
 use Maatwebsite\Excel\Facades\Excel;
+use Mpdf\Mpdf;
 
 class SupplierController extends Controller
 {
@@ -122,6 +124,29 @@ class SupplierController extends Controller
     public function profile($id){
         $data['supplier'] = Supplier::findOrFail($id);
         return view('suppliers.profile', $data);
+    }
+
+    public function exportAccount(Request $request){
+        return $request;
+        $app = App::latest()->first();
+        $invoices = Supplier_invoice::where('supplier_id', $request->supplier_id)->latest()->get();
+        $first_inv_date = Supplier_invoice::where('supplier_id', $request->supplier_id)->first()->invoice_date; 
+        $last_inv_date = Supplier_invoice::where('supplier_id', $request->supplier_id)->latest()->first()->invoice_date;
+
+        $html = view('suppliers.show_account_pdf', compact('first_inv_date', 'app', 'last_inv_date', 'invoices'))->render();
+
+        // إعداد mPDF بدعم RTL واللغة العربية
+        $mpdf = new Mpdf([
+            'mode' => 'utf-8',
+            'format' => 'A4',
+            'default_font' => 'Arial',
+            'default_font_size' => 14
+        ]);
+
+        $mpdf->WriteHTML($html);
+
+        return response($mpdf->Output('account.pdf', 'I'), 200)
+            ->header('Content-Type', 'application/pdf');
     }
 
 }

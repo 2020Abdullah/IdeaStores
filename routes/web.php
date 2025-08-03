@@ -105,6 +105,7 @@ Route::middleware('auth')->group(function(){
     Route::get('/suppliers/template', [SupplierController::class, 'downloadTemplate'])->name('download.supplier.Template');
     Route::post('/suppliers/import', [SupplierController::class, 'importSuppliers'])->name('import.supplier');
     Route::post('suppliers/Data/export', [SupplierController::class, 'exportData'])->name('supplier.data.export');
+    Route::post('supplier/account/export', [SupplierController::class, 'exportAccount'])->name('supplier.account.export');
 
     // invoices purchases
     Route::get('suppliers/invoices', [InvoicePurchaseController::class, 'index'])->name('supplier.invoice.index');
@@ -118,6 +119,9 @@ Route::middleware('auth')->group(function(){
     Route::get('supplier/invoice/{id}/download', [InvoicePurchaseController::class, 'download'])->name('supplier.invoice.download');
     Route::post('supplier/invoice/payment', [InvoicePurchaseController::class, 'payment'])->name('supplier.invoice.payment');
     Route::post('supplier/invoice/filter', [InvoicePurchaseController::class, 'filter'])->name('supplier.invoice.filter');
+
+    // products prices
+    Route::get('products/prices', []);
 
     // setting 
     Route::get('setting', [SettingController::class, 'setting'])->name('setting.show');

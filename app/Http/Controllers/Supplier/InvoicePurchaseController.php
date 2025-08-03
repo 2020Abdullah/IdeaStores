@@ -676,23 +676,26 @@ class InvoicePurchaseController extends Controller
 
         $amount = $this->normalizeNumber($request->amount);
 
-        // تسجيل حركة إدخال مال في الخزنة
-        Account_transactions::create([
-            'account_id' => $warehouse->account->id,
-            'direction'  => 'in',
-            'method'     => $wallet->method,
-            'amount'     => $amount,
-            'transaction_type' => 'added',
-            'description' => 'إضافة رصيد إلي الخزنة'
-        ]);
+        if($warehouse->account->current_balance < $amount){
+            // تسجيل حركة إدخال مال في الخزنة
+            Account_transactions::create([
+                'account_id' => $warehouse->account->id,
+                'direction'  => 'in',
+                'method'     => $wallet->method,
+                'amount'     => $amount,
+                'transaction_type' => 'added',
+                'description' => 'إضافة رصيد إلي الخزنة'
+            ]);
+    
+            // تسجيل حركة محفظة 
+            $wallet_movement = new Wallet_movement();
+            $wallet_movement->wallet_id = $request->wallet_id;
+            $wallet_movement->amount = $amount;
+            $wallet_movement->direction = 'in';
+            $wallet_movement->note = 'إضافة رصيد';
+            $wallet_movement->save();
+        }
 
-        // تسجيل حركة محفظة 
-        $wallet_movement = new Wallet_movement();
-        $wallet_movement->wallet_id = $request->wallet_id;
-        $wallet_movement->amount = $amount;
-        $wallet_movement->direction = 'in';
-        $wallet_movement->note = 'إضافة رصيد';
-        $wallet_movement->save();
 
         // // التأكد من أن الرصيد الحالي أكبر من صفر
         // if ($wallet->current_balance <= 0) {
@@ -755,6 +758,7 @@ class InvoicePurchaseController extends Controller
         ]);
 
         // تحديث الحسابات المالية
+
         $wallet->current_balance = $wallet->movements->sum('amount');
         $wallet->save();
 
