@@ -89,21 +89,28 @@
         <table>
             <thead>
                 <tr>
-                    <th>الصنف</th>
-                    <th>المنتج</th>
-                    <th>العرض</th>
-                    <th>الطول</th>
-                    <th>الكمية</th>
-                    <th>سعر الوحدة</th>
-                    <th>الإجمالي</th>
+                    <th>كود الفاتورة</th>
+                    <th>تاريخ الفاتورة</th>
+                    <th>نوع الفاتورة</th>
+                    <th>حالة الفاتورة</th>
+                    <th>المبلغ المدفوع</th>
+                    <th>إجمالي الفاتورة</th>
                 </tr>
             </thead>
             <tbody>
-                @foreach ($invoice->items as $item)
+                @foreach ($invoices as $invoice)
                     <tr>
-                        <td>{{ $item->product->category->full_path }}</td>
-                        <td>{{ $item->product->name }}</td>
-                        <td>{{ $item->quantity }}</td>
+                        <td>{{ $invoice->invoice_code }}</td>
+                        <td>{{ $invoice->invoice_date }}</td>
+                        <td>
+                            @if ($invoice->invoice_type === 'cash')
+                                كاش
+                            @elseif ($invoice->invoice_type === 'credit')
+                                آجل
+                            @else 
+                                رصيد افتتاحي
+                            @endif
+                        </td>
                         <td>{{ $item->size->width }}</td>
                         <td>{{ $item->length }}</td>
                         <td>{{ number_format($item->purchase_price) }} EGP</td>

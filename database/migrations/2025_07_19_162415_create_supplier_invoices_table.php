@@ -16,11 +16,12 @@ return new class extends Migration
             $table->foreignId('supplier_id')->constrained('suppliers')->cascadeOnDelete()->cascadeOnUpdate();
             $table->string('invoice_code')->uniqid();
             $table->date('invoice_date');
-            $table->enum('invoice_type', ['cash', 'credit']);
+            $table->enum('invoice_type', ['cash', 'credit', 'opening_balance']);
             $table->tinyInteger('invoice_staute')->default(0)->comment('حالة الفاتورة');
             $table->decimal('paid_amount', 15, 2)->default(0)->comment('إجمالي المدفوع');
-            $table->decimal('cost_price', 15,2)->comment('التكاليف');
-            $table->decimal('total_amount', 15,2)->comment('إجمالي الفاتورة');
+            $table->decimal('cost_price', 15,2)->default(0)->comment('التكاليف');
+            $table->decimal('total_amount', 15,2)->default(0)->comment('إجمالي الفاتورة');
+            $table->decimal('total_amount_invoice', 15,2)->default(0)->comment('إجمالي الفاتورة بدون تكاليف');
             $table->text('notes')->nullable();
             $table->softDeletes();
             $table->timestamps();
