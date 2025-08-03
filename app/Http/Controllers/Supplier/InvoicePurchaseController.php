@@ -49,6 +49,10 @@ class InvoicePurchaseController extends Controller
         if($request->invoice_type === 'opening_balance'){
             return $this->addOpenBalance($request);
         }
+        elseif($request->invoice_type === 'cash')
+        {
+            return $this->paymentCash($request);
+        }
         else {
             return $this->paymentcredit($request);
         }
@@ -217,7 +221,7 @@ class InvoicePurchaseController extends Controller
         }
 
         // التأكد من أن مبلغ الفاتورة لا يتخطي رصيد المحفظة 
-        if ($wallet->current_balance < $request->total_amount) {
+        if ($wallet->current_balance < $request->total_amount) {   
             return back()->with('info', 'رصيد المحفظة غير كافي لإجراء هذه العملية برجاء التحقق من الرصيد .');
         }
 
