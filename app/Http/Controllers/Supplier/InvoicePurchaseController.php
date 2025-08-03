@@ -303,10 +303,10 @@ class InvoicePurchaseController extends Controller
                     'unit_id' => $item['unit_id'],
                     'size_id' => $item['size_id'],
                     'quantity' => $item['quantity'],
-                    'pricePerMeter' => round($item['pricePerMeter'], 2),
+                    'pricePerMeter' => $item['pricePerMeter'],
                     'length' => $item['length'],
                     'purchase_price' => $item['purchase_price'],
-                    'total_price' => round($item['total_price'], 2),
+                    'total_price' => $this->normalizeNumber($item['total_price']),
                 ]);
 
                 // إضافة المنتج إلي المخزن لو لم يكن موجود وتحديث الكمية لو كان موجود
