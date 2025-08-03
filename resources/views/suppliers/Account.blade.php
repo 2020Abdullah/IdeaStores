@@ -178,9 +178,9 @@
                     </div>
                     <div class="mb-1 alert_container" style="display: none;">
                         <div class="alert alert-danger">
-                            <div class="alert-header">
+                            <h4 class="alert-heading">
                                 يوجد خطأ
-                            </div>
+                            </h4>
                             <div class="alert-body">
                                 <p></p>
                             </div>
@@ -266,7 +266,7 @@
 
                if(current_balance < total_balance){
                     $(".alert_container").show(500);
-                    $(".alert_container p").text('رصيد المحفظة غير كافي الخزنة هتكون السالب')
+                    $(".alert_container p").text('رصيد المحفظة غير كافي الخزنة سيصبح رصيد كل من المحفظة والخزنة بالسالب')
                }
             })
 

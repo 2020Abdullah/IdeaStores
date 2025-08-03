@@ -88,18 +88,18 @@ class WarehouseController extends Controller
     }
 
     public function addBalance(Request $request){
-        // تحديث الرصيد
+        $warehouse = Warehouse::findOrFail($request->warehouse_id);
         $wallet = Wallet::findOrFail($request->wallet_id);
-        $wallet->current_balance += $request->balance;
-        $wallet->save();
 
-        // تحديث رصيد حساب الخزن
-        $warehous = Warehouse::findOrFail($request->warehouse_id);
-        $warehous->account->increment('current_balance', $request->balance);
+        // تحديث الحسابات
+        $result = $request->balance + $warehouse->account->current_balance;
+        $warehouse->account->increment('current_balance', $request->balance);
+        $warehouse->account->increment('total_capital_balance', $result);
+        $wallet->increment('current_balance', $request->balance);
 
         // تسجيل حركة مالية للحساب 
         Account_transactions::create([
-            'account_id' => $warehous->account->id,
+            'account_id' => $warehouse->account->id,
             'direction' => 'in',
             'method' => $wallet->method,
             'amount' => $request->balance,

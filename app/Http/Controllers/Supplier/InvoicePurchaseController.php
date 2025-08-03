@@ -713,6 +713,7 @@ class InvoicePurchaseController extends Controller
                     ->where('invoice_staute', '!=', 1) // تجاهل الفواتير المدفوعة
                     ->orderBy('invoice_date', 'asc') // ترتيب حسب الأقدمية
                     ->get();
+
         foreach($invoices as $inv){
             $remaining = $inv->total_amount_invoice - $inv->paid_amount;
             if ($amount >= $remaining) {
@@ -737,6 +738,25 @@ class InvoicePurchaseController extends Controller
 
         $amount = $this->normalizeNumber($request->amount);
 
+        // تحديث الحسابات المالية
+
+        // $wallet->current_balance = $wallet->movements->sum('amount');
+        // $wallet->save();
+
+        // $warehouse->account->current_balance = $warehouse->account->transactions->sum('amount');
+        // $warehouse->save();
+        
+        $supplier->account()->decrement('current_balance', $amount);
+        if($warehouse->account->current_balance < $amount){
+            $warehouse->account()->decrement('current_balance', $amount);
+            $wallet->decrement('current_balance', $amount);
+        }
+        else {
+            $warehouse->account()->increment('current_balance', $amount);
+            $warehouse->account()->increment('total_capital_balance', $amount);
+            $wallet->decrement('current_balance', $amount);
+        }
+
         // تسجيل حركة محفظة 
         $wallet_movement = new Wallet_movement();
         $wallet_movement->wallet_id = $request->wallet_id;
@@ -756,22 +776,6 @@ class InvoicePurchaseController extends Controller
             'related_id' => $supplier->id,
             'description' => $request->description
         ]);
-
-        // تحديث الحسابات المالية
-
-        $wallet->current_balance = $wallet->movements->sum('amount');
-        $wallet->save();
-
-        $warehouse->account->current_balance = $warehouse->account->transactions->sum('amount');
-        $warehouse->save();
-
-        $warehouse->account()->increment('total_capital_balance', $amount);
-        $supplier->account()->decrement('current_balance', $amount);
-
-        $supplier->account()->decrement('current_balance', $amount);
-        $warehouse->account()->decrement('current_balance', $amount); 
-        $warehouse->account()->increment('total_capital_balance', $amount); 
-        $wallet->decrement('current_balance', $amount);
 
         return back()->with('success', 'تم دفع الدفعة بنجاح');
     }
