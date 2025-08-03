@@ -45,15 +45,12 @@ class InvoicePurchaseController extends Controller
 
 
     public function store(supplierInvoiceRequest $request){
-        // التحقق من الفاتورة لو هيا آجل ام كاش
-        if($request->invoice_type === 'cash'){
-            return $this->paymentCash($request);
-        }
-        else if ($request->invoice_type === 'credit') {
-            return $this->paymentcredit($request);
+        // التحقق من الفاتورة لو هيا رصيد افتتاحي ام لا
+        if($request->invoice_type === 'opening_balance'){
+            return $this->addOpenBalance($request);
         }
         else {
-            return $this->addOpenBalance($request);
+            $this->paymentcredit($request);
         }
     }
 
