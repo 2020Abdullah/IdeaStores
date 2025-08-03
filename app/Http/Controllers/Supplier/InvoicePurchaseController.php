@@ -203,7 +203,7 @@ class InvoicePurchaseController extends Controller
         $toridat_warehouse = Warehouse::where('type', 'toridat')->first();
         $toridat_warehouse->account()->decrement('total_capital_balance', $total_amount);
 
-        return redirect()->route('supplier.account.show', $request->supplier_id)->with('success', 'تم إنشاء فاتورة مورد بنجاح');
+        return redirect()->route('supplier.index')->with('success', 'تم إنشاء فاتورة مورد بنجاح');
     }
 
     protected function paymentCash($request){
@@ -388,7 +388,7 @@ class InvoicePurchaseController extends Controller
         $warhouse = Warehouse::where('type', 'toridat')->first();
         $warhouse->account()->decrement('total_capital_balance', $request->opening_balance_value);
 
-        return redirect()->route('supplier.invoice.index')->with('success', 'تم عمل رصيد افتتاحي للمورد بنجاح');
+        return redirect()->route('supplier.index')->with('success', 'تم عمل رصيد افتتاحي للمورد بنجاح');
     }
 
     public function edit($id){
