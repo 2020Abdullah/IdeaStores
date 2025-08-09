@@ -587,15 +587,17 @@ class InvoicePurchaseController extends Controller
             'amount' => -$cost_total
         ]);
 
+        
         // تحديث التكاليف الإضافية
         $costs = $request->input('costs');
         if ($costs && is_array($costs)) {
             foreach ($costs as $cost) {
-                $invoice->costs()->update([
-                    'amount'  => $cost['amount'],
-                ]);
+                $exponse = Exponse::where('expense_item_id', $cost['exponse_id'])->first();
+                $exponse->amount = $cost['amount'];
+                $exponse->save();
             }
         }
+     
 
         // تحديث حالة الفاتورة
 
@@ -629,6 +631,16 @@ class InvoicePurchaseController extends Controller
         $newAmount = $this->normalizeNumber($request->total_amount_invoice);
         $invoice = Supplier_invoice::findOrFail($request->id);
 
+        // تحديث التكاليف الإضافية
+        $costs = $request->input('costs');
+        if ($costs && is_array($costs)) {
+            foreach ($costs as $cost) {
+                $exponse = Exponse::where('expense_item_id', $cost['exponse_id'])->first();
+                $exponse->amount = $cost['amount'];
+                $exponse->save();
+            }
+        }
+
         Account_transactions::where('source_code', $invoice->invoice_code)->update([
             'amount' => -$total_amount
         ]);
@@ -645,16 +657,6 @@ class InvoicePurchaseController extends Controller
             'cost_price' => $request->additional_cost,
             'notes' => $request->notes,
         ]);
-
-         // تحديث التكاليف الإضافية
-         $costs = $request->input('costs');
-         if ($costs && is_array($costs)) {
-             foreach ($costs as $cost) {
-                 $invoice->costs()->update([
-                     'amount'   => $cost['amount'],
-                 ]);
-             }
-         }
 
         $this->updateStock($request, $invoice);
         return redirect()->route('supplier.index')->with('success', 'تم تعديل فاتورة المورد بنجاح');
