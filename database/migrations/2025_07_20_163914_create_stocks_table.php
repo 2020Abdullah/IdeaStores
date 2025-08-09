@@ -17,8 +17,8 @@ return new class extends Migration
             $table->foreignId('product_id')->constrained()->onDelete('cascade');
             $table->foreignId('store_house_id')->constrained()->onDelete('cascade');
             $table->foreignId('unit_id')->nullable()->constrained('units')->nullOnDelete();
-            $table->decimal('initial_quantity', 8,2)->default(0)->comment('الكمية الواردة');       
-            $table->decimal('remaining_quantity', 8,2)->default(0)->comment('الكمية المتبقية');      
+            $table->integer('initial_quantity')->default(0)->comment('الكمية الواردة');       
+            $table->integer('remaining_quantity')->default(0)->comment('الكمية المتبقية');      
             $table->date('date')->nullable()->comment('تاريخ الإضافة بتاريخ الفاتورة');
             $table->timestamps();
         });

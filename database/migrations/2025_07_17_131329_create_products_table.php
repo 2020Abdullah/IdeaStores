@@ -16,8 +16,7 @@ return new class extends Migration
             $table->foreignId('category_id')->constrained()->onDelete('cascade');
             $table->foreignId('unit_id')->nullable()->constrained('units')->nullOnDelete();
             $table->string('name'); 
-            $table->decimal('width', 8, 1)->nullable(); 
-            $table->decimal('length', 8, 1)->nullable(); 
+            $table->softDeletes();
             $table->timestamps();
         });
     }

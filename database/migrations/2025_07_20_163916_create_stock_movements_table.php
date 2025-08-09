@@ -16,9 +16,9 @@ return new class extends Migration
             $table->foreignId('supplier_id')->nullable()->constrained('suppliers')->onDelete('SET Null');
             $table->foreignId('stock_id')->constrained('stocks')->onDelete('cascade');
             $table->enum('type', ['in','out'])->comment('in => إضافة / out => خصم'); 
-            $table->decimal('quantity',15,2)->comment('الكمية المحركة');   
+            $table->integer('quantity')->comment('الكمية المحركة');   
             $table->text('note')->nullable()->comment('شراء / بيع'); 
-            $table->string('source_code')->comment('كود الفاتورة'); 
+            $table->string('source_code')->nullable()->comment('كود الفاتورة'); 
             $table->date('date')->nullable()->comment('تاريخ الإضافة بتاريخ الفاتورة');
             $table->timestamps();
         });

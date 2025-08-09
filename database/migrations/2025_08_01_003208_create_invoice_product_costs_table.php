@@ -17,7 +17,7 @@ return new class extends Migration
             $table->decimal('base_cost', 10, 2)->comment('السعر الأساسي من المورد');         // السعر الأساسي من المورد
             $table->decimal('cost_share', 10, 2)->comment('سعر التكلفة للصنف');        // نصيب المنتج من التكاليف
             $table->decimal('suggested_price', 10, 2)->nullable()->comment('سعر البيع المقترح'); 
-            $table->decimal('rate', 2, 2)->default(0)->comment('النسبة لعمل البيع المقترح'); 
+            $table->integer('rate')->default(0)->comment('النسبة لعمل البيع المقترح'); 
             $table->timestamps();
         });
     }
