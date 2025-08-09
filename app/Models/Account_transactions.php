@@ -16,9 +16,8 @@ class Account_transactions extends Model
         return $this->morphTo();
     }
 
-    public function source()
-    {
-        return $this->morphTo();
+    public function account(){
+        return $this->belongsTo(Account::class, 'account_id');
     }
 
 }
