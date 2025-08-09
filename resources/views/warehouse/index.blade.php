@@ -46,9 +46,8 @@
                             <tr>
                                 <td>{{ $w->name }}</td>
                                 <td>خزنة فرعية</td>
-                                {{-- <td>{{ number_format($w->account->total_capital_balance) }}</td> --}}
-                                <td>{{ number_format($w->account->transactions()->where('transaction_type', 'profit')->sum('amount')) }}</td>
-                                <td>{{ number_format($w->account->transactions()->sum('amount')) }}</td>
+                                <td>{{ number_format($w->account->transactions->where('transaction_type', 'profit')->sum('amount')) }}</td>
+                                <td>{{ number_format($w->account->transactions->sum('amount')) }}</td>
                                 <td>
                                     @if ($w->statue == 1)
                                         <span class="badge badge-light-success">مفعلة</span>
