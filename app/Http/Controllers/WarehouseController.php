@@ -37,7 +37,6 @@ class WarehouseController extends Controller
                 $warehouse->account()->create([
                     'name' => 'حساب خزنة رئيسية',
                     'type' => 'warehouse',
-                    'total_capital_balance' => 0,
                     'total_profit_balance' => 0,
                 ]);
             }
@@ -45,7 +44,6 @@ class WarehouseController extends Controller
                 $warehouse->account()->create([
                     'name' => 'حساب ' . $request->name,
                     'type' => 'warehouse',
-                    'total_capital_balance' => 0,
                     'total_profit_balance' => 0,
                 ]);
             }
@@ -93,7 +91,6 @@ class WarehouseController extends Controller
         // تحديث الحسابات
         $result = $request->balance + $warehouse->account->current_balance;
         $warehouse->account->increment('current_balance', $request->balance);
-        $warehouse->account->increment('total_capital_balance', $result);
         $wallet->increment('current_balance', $request->balance);
 
         // تسجيل حركة مالية للحساب 
