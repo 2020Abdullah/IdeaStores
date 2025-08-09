@@ -23,6 +23,8 @@ return new class extends Migration
             $table->string('details')->nullable();
             
             $table->decimal('current_balance', 8, 2)->default(0);
+
+            $table->softDeletes();
             
             $table->timestamps();
         });

@@ -71,7 +71,11 @@
                                 <input class="form-check-input selectItem" type="checkbox" value="{{ $s->id }}" id="select{{$s->id}}">
                             </div>
                         </td>
-                        <td>{{ $s->name }}</td>
+                        <td>
+                            <a href="{{ route('supplier.account.show', $s->id) }}">
+                                {{ $s->name }}
+                            </a>
+                        </td>
                         <td>{{ number_format($s->account->current_balance ) }}</td>
                         <td>
                             <a href="{{ route('supplier.edit', $s->id) }}" class="btn btn-success waves-effect">
@@ -82,9 +86,9 @@
                                 <i data-feather='eye'></i>
                                 <span>بيانات المورد</span>
                             </a>
-                            <a href="{{ route('supplier.account.show', $s->id) }}" class="btn btn-primary waves-effect">
-                                <i data-feather='eye'></i>
-                                <span>كشف حساب</span>
+                            <a href="{{ route('supplier.target.invoice.add', $s->id) }}" class="btn btn-success waves-effect waves-float waves-light">
+                                <i data-feather='plus'></i>
+                                <span>إضافة فاتورة</span>
                             </a>
                         </td>
                     </tr>

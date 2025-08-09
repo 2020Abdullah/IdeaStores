@@ -115,6 +115,16 @@
                     <label class="form-label">قيمة الرصيد الإفتتاحي</label>
                     <input type="number" class="form-control opening_balance_value" value="0" name="opening_balance_value">
                 </div>
+                <div class="mb-1 alert_container" style="display: none;">
+                    <div class="alert alert-danger">
+                        <h4 class="alert-heading">
+                            يوجد خطأ
+                        </h4>
+                        <div class="alert-body">
+                            <p></p>
+                        </div>
+                    </div>
+                </div>
                 <div class="mb-2">
                     <button type="button" disabled class="addItems btn-icon-content btn btn-success waves-effect waves-float waves-light">
                         <i data-feather='plus-circle'></i>
@@ -197,24 +207,37 @@ $(function () {
     })
 
     let costIndex = 1;
-
     $('#add-cost').click(function () {
+        const exponseItems = @json($exponse_list);
+        let options = `<option value="">اختر بند تكلفة</option>`;
+        exponseItems.forEach(item => {
+            options += `<option value="${item.id}">${item.name}</option>`;
+        });
+
         const newCost = `
             <div class="row cost-item mb-1">
                 <div class="col-md-6 mb-1">
-                    <input type="text" name="costs[${costIndex}][description]" class="form-control costInfo" placeholder="وصف التكلفة (مثلاً: شحن)">
+                    <select name="costs[${costIndex}][exponse_id]" class="select2 cost-select">
+                        ${options}
+                    </select>
                 </div>
                 <div class="col-md-4 mb-1">
-                    <input type="number" name="costs[${costIndex}][amount]" class="form-control costValue" placeholder="القيمة (مثلاً: 300)">
+                    <input type="number" name="costs[${costIndex}][amount]" class="form-control costValue" placeholder="القيمة">
                 </div>
                 <div class="col-md-2 mb-1">
                     <button type="button" class="btn btn-danger remove-cost">حذف</button>
                 </div>
             </div>
         `;
+
         $('#costs-wrapper').append(newCost);
         costIndex++;
+        $('.select2').select2({
+            dir: "rtl",
+            width: '100%'
+        });
     });
+
 
     $(document).on('click', '.remove-cost', function () {
         $(this).closest('.cost-item').remove();
@@ -223,9 +246,27 @@ $(function () {
     });
 
     $(document).on('input', '.additional_cost, .unitSelect , .quantity, .length ,.purchase_price, .SizeSelect', function () {
+        let balance = parseInt($(this).find('option:selected').attr('data-balance')) || 0;
+        let total_amount = parseFloat($('.total_amount').val()) || 0;
         let row = $(this).closest('tr');
+        let invoice_type = $(this).find('option:selected').val();
         calculateTotalPerMM(row);
         calculateTotalPrice(row);
+
+        if(invoice_type !== 'opening_balance'){
+            if(balance <= 0 || balance < total_amount){
+                $(".alert_container").show(500);
+                $(".alert_container p").text('رصيد المحفظة غير كافي الخزنة سيصبح رصيد كل من المحفظة والخزنة بالسالب')
+            }
+            else {
+                $(".alert_container").hide(500);
+                $(".alert_container p").text('')
+            }
+        }
+        else {
+            $(".alert_container").hide(500);
+            $(".alert_container p").text('')
+        }
     });
 
     function formatNumberValue(value) {
@@ -286,6 +327,7 @@ $(function () {
         else {
             pricePerMM = 0;
             row.find('.length').attr('readonly', true);
+            row.find('.length').val(size);
         }
 
         row.find('.pricePerMeter').val(pricePerMM);  
@@ -487,6 +529,24 @@ $(function () {
     // change type invoice 
     $(document).on('change', '.invoice_type', function(){
         let invoice_type = $(this).find('option:selected').val();
+        let balance = parseInt($(this).find('option:selected').attr('data-balance')) || 0;
+        let total_amount = parseFloat($('.total_amount').val()) || 0;
+        
+        if(invoice_type !== 'opening_balance'){
+            if(balance <= 0 || balance < total_amount){
+                $(".alert_container").show(500);
+                $(".alert_container p").text('رصيد المحفظة غير كافي الخزنة سيصبح رصيد كل من المحفظة والخزنة بالسالب')
+            }
+            else {
+                $(".alert_container").hide(500);
+                $(".alert_container p").text('')
+            }
+        }
+        else {
+            $(".alert_container").hide(500);
+            $(".alert_container p").text('')
+        }
+
         if(invoice_type === 'cash'){
             $(".addItems").attr('disabled', false);
             $(".warehouse_container").show(500);
@@ -549,11 +609,51 @@ $(function () {
     })
 
     $('#invoiceForm').on('submit', function(e) {
-        e.preventDefault(); // منع الإرسال مؤقتًا
-        // تأكيد من المستخدم
+        e.preventDefault();
+        let isValid = true;
+        let message = "";
+
+        let invoice_type = $(this).find('option:selected').val();
+
+        if (invoice_type === 'opening_balance') {
+            let opening_balance_value = $(".opening_balance_value").val();
+            if (!opening_balance_value || opening_balance_value == 0) {
+                toastr.info('يجب ملئ حقل الرصيد الإفتتاحي');
+                return; // وقف مباشرة
+            }
+        } else {
+            // تحقق أولًا هل فيه أصناف أصلاً
+            if ($('.product-item').length === 0) {
+                toastr.info("يجب إضافة صنف واحد على الأقل إلى الفاتورة قبل الحفظ.");
+                return;
+            }
+
+            // تحقق من كل صف
+            $('.product-item').each(function(index, row) {
+                let category = $(row).find('.categorySelect').val();
+                let product = $(row).find('.productSelect').val();
+                let unit = $(row).find('.unitSelect').val();
+                let size = $(row).find('.SizeSelect').val();
+                let quantity = $(row).find('.quantity').val();
+                let purchasePrice = $(row).find('.purchase_price').val();
+
+                if (!category || !product || !unit || !size || quantity <= 0 || purchasePrice <= 0) {
+                    isValid = false;
+                    message = "تأكد من إدخال جميع البيانات المطلوبة لكل صنف (تصنيف، منتج، وحدة، مقاس، كمية، وسعر الشراء).";
+                    return false; // يوقف الـ each
+                }
+            });
+
+            if (!isValid) {
+                toastr.info(message);
+                return;
+            }
+        }
+
+        // لو كل شيء تمام، اعرض التأكيد
         if (confirm("هل أنت متأكد من حفظ البيانات؟")) {
             this.submit();
-        } 
+        }
     });
 
 

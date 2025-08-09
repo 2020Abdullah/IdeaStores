@@ -34,14 +34,12 @@ return new class extends Migration
                 'open_balance',     // رصيد افتتاحي
             ]);
 
-            // الحساب أو الجهة المرتبطة بالحركة (مثلاً: العميل الذي دفع / الخزنة التي تم التحويل إليها)
-            $table->nullableMorphs('related'); // related_type + related_id
-
-            // العلاقة المصدر (مثلاً: الفاتورة أو المصروف المرتبط)
-            $table->nullableMorphs('source'); // source_type + source_id
+            $table->nullableMorphs('related'); 
 
             // وصف أو ملاحظة اختيارية
             $table->string('description')->nullable();
+            $table->string('source_code')->nullable();
+            $table->date('date')->nullable()->comment('تاريخ الإضافة بتاريخ الفاتورة');
             $table->timestamps();
         });
     }

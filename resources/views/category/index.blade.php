@@ -99,7 +99,7 @@
                     </tr>
                 @empty
                     <tr class="text-center">
-                        <td colspan="3">لا يوجد تصنيفات مضافة</td>
+                        <td colspan="4">لا يوجد تصنيفات مضافة</td>
                     </tr>
                 @endforelse
             </table>            

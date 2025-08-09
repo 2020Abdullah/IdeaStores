@@ -18,6 +18,8 @@ return new class extends Migration
             $table->enum('type', ['in','out'])->comment('in => إضافة / out => خصم'); 
             $table->decimal('quantity',15,2)->comment('الكمية المحركة');   
             $table->text('note')->nullable()->comment('شراء / بيع'); 
+            $table->string('source_code')->comment('كود الفاتورة'); 
+            $table->date('date')->nullable()->comment('تاريخ الإضافة بتاريخ الفاتورة');
             $table->timestamps();
         });
     }

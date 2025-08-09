@@ -19,6 +19,7 @@ return new class extends Migration
             $table->foreignId('unit_id')->nullable()->constrained('units')->nullOnDelete();
             $table->decimal('initial_quantity', 8,2)->default(0)->comment('الكمية الواردة');       
             $table->decimal('remaining_quantity', 8,2)->default(0)->comment('الكمية المتبقية');      
+            $table->date('date')->nullable()->comment('تاريخ الإضافة بتاريخ الفاتورة');
             $table->timestamps();
         });
     }

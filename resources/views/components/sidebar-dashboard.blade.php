@@ -44,7 +44,7 @@
                     </li>
                 </ul>
             </li>
-{{-- 
+
             <li class="nav-item has-sub">
                 <a class="d-flex align-items-center" href="#">
                     <i data-feather='file-text'></i>
@@ -52,13 +52,19 @@
                 </a>
                 <ul class="menu-content">
                     <li>
+                        <a class="d-flex align-items-center" href="{{ route('supplier.invoice.add') }}">
+                            <i data-feather='circle'></i>
+                            <span class="menu-item text-truncate">إضافة فاتورة</span>
+                        </a>
+                    </li>
+                    <li>
                         <a class="d-flex align-items-center" href="{{ route('supplier.invoice.index') }}">
                             <i data-feather='circle'></i>
                             <span class="menu-item text-truncate">فواتير الموردين</span>
                         </a>
                     </li>
                 </ul>
-            </li> --}}
+            </li>
 
             <li class="nav-item has-sub">
                 <a class="d-flex align-items-center" href="#">
@@ -66,16 +72,28 @@
                     <span class="menu-title text-truncate">إدارة الحسابات</span>
                 </a>
                 <ul class="menu-content">
-                    <li>
-                        <a class="d-flex align-items-center" href="#">
-                            <i data-feather='circle'></i>
-                            <span class="menu-item text-truncate">إضافة حساب جديد</span>
+                    <li class="nav-item">
+                        <a class="d-flex align-items-center" href="{{ route('external.debts') }}">
+                            <i data-feather='credit-card'></i>
+                            <span class="menu-title text-truncate">الديون الخارجية</span>
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a class="d-flex align-items-center" href="{{ route('account.index') }}">
+                        <a class="d-flex align-items-center" href="#">
                             <i data-feather='credit-card'></i>
-                            <span class="menu-title text-truncate">الحسابات المالية</span>
+                            <span class="menu-title text-truncate">الموقف المالي</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="d-flex align-items-center" href="{{ route('warehouse.index') }}">
+                            <i data-feather='credit-card'></i>
+                            <span class="menu-title text-truncate">الخزن</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="d-flex align-items-center" href="#">
+                            <i data-feather='credit-card'></i>
+                            <span class="menu-title text-truncate">الجرود</span>
                         </a>
                     </li>
                 </ul>
@@ -116,7 +134,7 @@
                         </a>
                     </li>
                     <li>
-                        <a class="d-flex align-items-center" href="#">
+                        <a class="d-flex align-items-center" href="{{ route('product.Price.show') }}">
                             <i data-feather='circle'></i>
                             <span class="menu-item text-truncate">عرض الأسعار</span>
                         </a>
@@ -124,21 +142,49 @@
                 </ul>
             </li>
 
-            <li class="nav-item">
-                <a class="d-flex align-items-center" href="{{ route('warehouse.index') }}">
-                    <i data-feather='credit-card'></i>
-                    <span class="menu-title text-truncate">الخزن</span>
+            <li class="nav-item has-sub">
+                <a class="d-flex align-items-center" href="#">
+                    <i data-feather='book-open'></i>
+                    <span class="menu-title text-truncate">إدارة المخزن</span>
                 </a>
+                <ul class="menu-content">
+                    <li>
+                        <a class="d-flex align-items-center" href="{{ route('storesHouse.add') }}">
+                            <i data-feather='circle'></i>
+                            <span class="menu-item text-truncate">إضافة مخزن</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a class="d-flex align-items-center" href="{{ route('storesHouse.index') }}">
+                            <i data-feather='circle'></i>
+                            <span class="menu-item text-truncate">المخزن</span>
+                        </a>
+                    </li>
+                </ul>
             </li>
 
-            <li class="nav-item">
-                <a class="d-flex align-items-center" href="{{ route('storesHouse.index') }}">
-                    <i data-feather='database'></i>
-                    <span class="menu-title text-truncate">المخزن</span>
+                 
+            <li class="nav-item has-sub">
+                <a class="d-flex align-items-center" href="#">
+                    <i data-feather='file-text'></i>
+                    <span class="menu-title text-truncate">المصروفات</span>
                 </a>
+                <ul class="menu-content">
+                    <li>
+                        <a class="d-flex align-items-center" href="{{ route('expenses.items') }}">
+                            <i data-feather='circle'></i>
+                            <span class="menu-item text-truncate">بنود المصروفات</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a class="d-flex align-items-center" href="#">
+                            <i data-feather='circle'></i>
+                            <span class="menu-item text-truncate">المصروفات</span>
+                        </a>
+                    </li>
+                </ul>
             </li>
 
-                        
             <li class="nav-item has-sub">
                 <a class="d-flex align-items-center" href="#">
                     <i data-feather='settings'></i>

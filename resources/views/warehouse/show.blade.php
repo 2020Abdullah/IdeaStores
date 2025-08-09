@@ -33,7 +33,7 @@
                 <div class="col">
                     <div class="card-balance">
                         <h3>الرصيد الحالي</h3>
-                        <h4>{{ number_format($wallet->current_balance, 2) }}</h4>
+                        <h4>{{ number_format($wallet->movements->sum('amount')) }}</h4>
                     </div>
                 </div>
             </div>
@@ -74,11 +74,8 @@
                                     @if ($movement->note == 'فاتورة شراء')
                                         <a href="{{ route('supplier.invoice.show', $movement->source_code) }}">
                                             # {{ $movement->source_code }}
-                                        </a>
-                                    @else
-                                        
+                                        </a>                                        
                                     @endif
-                                    
                                 @else
                                     -
                                 @endif

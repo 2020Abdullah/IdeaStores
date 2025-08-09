@@ -48,18 +48,20 @@
                 <div class="table-responsive">
                     <table class="table table-bordered">
                         <tr>
+                            <th>التاريخ</th>
                             <th>التصنيف</th>
-                            <th>اسم المنتج</th>
+                            <th>المنتج</th>
                             <th>الكمية الواردة</th>
                             <th>الكمية المتبقية</th>
                             <th>عرض الحركات</th>
                         </tr>
                         @foreach ($stocks as $stock)
                             <tr>
+                                <td>{{ $stock->date }}</td>
                                 <td>{{ $stock->category->fullPath() }}</td>
                                 <td>{{ $stock->product->name }}</td>
-                                <td>{{ $stock->initial_quantity }} {{ $stock->unit->symbol }}</td>
-                                <td>{{ $stock->remaining_quantity }} {{ $stock->unit->symbol }}</td>
+                                <td>{{ $stock->initial_quantity }} {{ $stock->unit->name }}</td>
+                                <td>{{ $stock->remaining_quantity }} {{ $stock->unit->name }}</td>
                                 <td>
                                     <a href="{{ route('storesHouse.product.show', $stock->id) }}" class="btn btn-info waves-effect">
                                         <i data-feather='eye'></i>

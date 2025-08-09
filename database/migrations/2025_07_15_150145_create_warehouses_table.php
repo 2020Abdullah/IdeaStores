@@ -17,6 +17,7 @@ return new class extends Migration
             $table->enum('type', ['main', 'toridat', 'la7amat']);
             $table->tinyInteger('is_main')->default(0);
             $table->tinyInteger('statue')->default(1);
+            $table->softDeletes();
             $table->timestamps();
         });
     }

@@ -8,7 +8,7 @@
             <div class="breadcrumb-wrapper">
                 <ol class="breadcrumb">
                     <li class="breadcrumb-item">
-                        <a href="{{ route('dashboard') }}">الرئيسية</a>
+                        <a href="{{ route('warehouse.index') }}">الرئيسية</a>
                     </li>
                     <li class="breadcrumb-item active">
                         <a href="#">عرض المحافظ</a>
@@ -31,8 +31,8 @@
             <div class="row">
                 <div class="col">
                     <div class="card-balance">
-                        <h3>الرصيد الكلي</h3>
-                        <h4>{{ number_format($warehouse->account->current_balance) }}</h4>
+                        <h3>رصيد الخزنة</h3>
+                        <h4>{{ number_format($warehouse->account->transactions->sum('amount') ) }}</h4>
                     </div>
                 </div>
             </div>
@@ -64,7 +64,7 @@
                             <td>{{ $wallet->name }}</td>
                             <td>{{ $wallet->method }}</td>
                             <td>{{ $wallet->details }}</td>
-                            <td>{{ number_format($wallet->current_balance) ?? 0 }}</td>
+                            <td>{{ number_format($wallet->movements->sum('amount')) }}</td>
                             <td>
                                 <a href="{{ route('wallet.show', $wallet->id) }}"
                                     class="btn btn-icon btn-info waves-effect waves-float waves-light"

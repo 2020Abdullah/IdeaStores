@@ -1,27 +1,18 @@
 <?php
 
 use App\Http\Controllers\AccountController;
-use App\Http\Controllers\AppController;
 use App\Http\Controllers\CategoryController;
-use App\Http\Controllers\CustomerController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\ProductController;
-use App\Http\Controllers\ProjectController;
-use App\Http\Controllers\ServiceController;
 use App\Http\Controllers\SettingController;
-use App\Http\Controllers\TemplateController;
 use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\Api\SyncController;
 use App\Http\Controllers\BackupController;
-use App\Http\Controllers\CategoryTypeController;
-use App\Http\Controllers\ContactController;
-use App\Http\Controllers\OrderController;
+use App\Http\Controllers\ExponseItemController;
+use App\Http\Controllers\ExternalDebtsController;
 use App\Http\Controllers\SizeController;
-use App\Http\Controllers\SkillsController;
 use App\Http\Controllers\StoreHouseController;
 use App\Http\Controllers\Supplier\InvoicePurchaseController;
 use App\Http\Controllers\Supplier\SupplierController;
-use App\Http\Controllers\TaskController;
 use App\Http\Controllers\UnitController;
 use App\Http\Controllers\WarehouseController;
 use App\Http\Controllers\WelcomeController;
@@ -46,10 +37,11 @@ Route::middleware('auth')->group(function(){
     Route::get('warehouse/index', [WarehouseController::class, 'index'])->name('warehouse.index');
     Route::get('warehouse/add', [WarehouseController::class, 'add'])->name('warehouse.add');
     Route::post('warehouse/store', [WarehouseController::class, 'store'])->name('warehouse.store');
+    Route::get('warehouse/{id}/show/transactions', [WarehouseController::class, 'showTransactions'])->name('warehouse.transactions');
     Route::post('getWallets', [WarehouseController::class, 'getWalletByWarhouse'])->name('getWallets');
     
     // wallets
-    Route::get('warehouse/{id}/wallets', [WarehouseController::class, 'walletsIndex'])->name('wallets.index');
+    Route::get('warehouse/{id}/wallets/show', [WarehouseController::class, 'walletsIndex'])->name('wallets.index');
     Route::post('warehouse/wallet/store', [WarehouseController::class, 'walletStore'])->name('wallet.store');
     Route::post('warehouse/wallet/update', [WarehouseController::class, 'walletUpdate'])->name('wallet.update');
     Route::get('warehouse/wallet/{id}', [WarehouseController::class, 'walletShow'])->name('wallet.show');
@@ -93,6 +85,8 @@ Route::middleware('auth')->group(function(){
     Route::post('product/update', [ProductController::class, 'update'])->name('product.update');
     Route::post('product/delete', [ProductController::class, 'delete'])->name('product.delete');
     Route::post('getProducts', [ProductController::class, 'getProducts'])->name('getProducts');
+    Route::get('products/price/show', [ProductController::class, 'showPrice'])->name('product.Price.show');
+    Route::post('product/price/update', [ProductController::class, 'updatePrice'])->name('product.Price.update');
     
     // suppliers
     Route::get('suppliers/list', [SupplierController::class, 'index'])->name('supplier.index');
@@ -121,12 +115,11 @@ Route::middleware('auth')->group(function(){
     Route::post('supplier/invoice/filter', [InvoicePurchaseController::class, 'filter'])->name('supplier.invoice.filter');
 
     // products prices
-    Route::get('products/prices', []);
+    // Route::get('products/prices', []);
 
     // setting 
     Route::get('setting', [SettingController::class, 'setting'])->name('setting.show');
     Route::post('Profile/update', [SettingController::class, 'updateProfile'])->name('setting.update');
-
 
     // sizes
     Route::get('sizes/index', [SizeController::class, 'index'])->name('size.index');
@@ -134,6 +127,17 @@ Route::middleware('auth')->group(function(){
     Route::post('sizes/update', [SizeController::class, 'update'])->name('size.update');
     Route::post('sizes/delete', [SizeController::class, 'delete'])->name('size.delete');
     Route::get('getSizes', [SizeController::class, 'getSizes'])->name('getSizes');
+
+    // Expenses
+    Route::get('Expenses/items', [ExponseItemController::class, 'index'])->name('expenses.items');
+    Route::get('Expenses/item/add', [ExponseItemController::class, 'add'])->name('expenses.item.add');
+    Route::get('Expenses/item/{id}/edit', [ExponseItemController::class, 'edit'])->name('expenses.item.edit');
+    Route::post('Expenses/item/store', [ExponseItemController::class, 'store'])->name('expenses.item.store');
+    Route::post('Expenses/item/update', [ExponseItemController::class, 'update'])->name('expenses.item.update');
+    Route::get('Expenses/item/{id}/show', [ExponseItemController::class, 'show'])->name('expenses.item.show');
+
+    // external debts
+    Route::get('external/debts/show', [ExternalDebtsController::class, 'index'])->name('external.debts');
 
     // backup
     Route::get('/backup', fn() => view('backup'))->name('backup.view');

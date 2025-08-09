@@ -2,7 +2,7 @@
 <html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
-    <title>فاتورة #{{ $invoice->invoice_code }}</title>
+    <title>كشف حساب المورد {{ $supplier->name }}</title>
     <style>
         body {
             font-family: 'Arial', sans-serif;
@@ -77,10 +77,10 @@
     
         <!-- Supplier & Invoice Info -->
         <div class="supplier-info">
-            <p><strong>كشف حساب المورد :</strong> {{ $invoice->supplier->name }}</p>
+            <p><strong>كشف حساب المورد :</strong> {{ $supplier->name }}</p>
             <p>
-                <strong>من:</strong> <span>{{ $invoice->first_inv_date }}</span>
-                <strong>إلي:</strong> <span>{{ $invoice->last_inv_date }}</span>
+                <strong>من:</strong> <span>{{ $first_inv_date }}</span>
+                <strong>إلي:</strong> <span>{{ $last_inv_date }}</span>
             </p>
         </div>
     
@@ -92,9 +92,9 @@
                     <th>كود الفاتورة</th>
                     <th>تاريخ الفاتورة</th>
                     <th>نوع الفاتورة</th>
-                    <th>حالة الفاتورة</th>
-                    <th>المبلغ المدفوع</th>
                     <th>إجمالي الفاتورة</th>
+                    <th>المبلغ المدفوع</th>
+                    <th>حالة الفاتورة</th>
                 </tr>
             </thead>
             <tbody>
@@ -111,16 +111,23 @@
                                 رصيد افتتاحي
                             @endif
                         </td>
-                        <td>{{ $item->size->width }}</td>
-                        <td>{{ $item->length }}</td>
-                        <td>{{ number_format($item->purchase_price) }} EGP</td>
-                        <td>{{ number_format($item->total_price) }} EGP</td>
+                        <td>{{ number_format($invoice->total_amount_invoice) }} EGP</td>
+                        <td>{{ number_format($invoice->paid_amount) }} EGP</td>
+                        <td>
+                            @if ($invoice->invoice_staute == 0)
+                                <span class="badge badge-glow bg-danger">غير مدفوع</span>
+                            @elseif($invoice->invoice_staute == 2)
+                                <span class="badge badge-glow bg-warning">لم يتم التصفية</span>
+                            @else
+                                <span class="badge badge-glow bg-success">مدفوعة</span>
+                            @endif
+                        </td>
                     </tr>
                 @endforeach
             </tbody>
         </table>
     
-        <p class="total">إجمالي الفاتورة: {{ number_format($invoice->items->sum('total_price')) }} EGP</p>
+        <p class="total">إجمالي الرصيد المستحق : {{ number_format($supplier->account->current_balance) }} EGP</p>
     
         <!-- Note -->
         <div class="note">

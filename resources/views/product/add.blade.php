@@ -94,4 +94,10 @@
         getCategory();
     })
 </script>
+<script>
+    $('.select2').select2({
+       dir: "rtl",
+       width: '100%'
+   });
+</script>
 @endsection

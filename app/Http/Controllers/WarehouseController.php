@@ -126,4 +126,10 @@ class WarehouseController extends Controller
             'data' => $wallets
         ]);
     }
+
+    public function showTransactions($id){
+        $warehouse = Warehouse::findOrFail($id);
+        $transactions = Account_transactions::where('account_id', $warehouse->account->id)->paginate(100);
+        return view('warehouse.transactions', compact('transactions', 'warehouse'));
+    }
 }

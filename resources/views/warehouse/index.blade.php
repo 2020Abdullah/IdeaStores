@@ -7,9 +7,6 @@
             <h2 class="content-header-title float-start mb-0">الخزن</h2>
             <div class="breadcrumb-wrapper">
                 <ol class="breadcrumb">
-                    <li class="breadcrumb-item">
-                        <a href="index.html">الرئيسية</a>
-                    </li>
                     <li class="breadcrumb-item active">
                         <a href="#">بيانات الخزن</a>
                     </li>
@@ -22,38 +19,10 @@
 
 @section('content')
     <section class="warehouse">
-        <!-- card main warehouse -->
+        <!-- all warehouse -->
         <div class="card">
             <div class="card-header">
-                <h3 class="card-title">خزنة رئيسية</h3>
-            </div>
-            <div class="card-body">
-                <div class="row">
-                    <div class="col">
-                        <div class="card-balance">
-                            <h3>الرصيد الحالي</h3>
-                            <h4>{{ number_format($all_balance) }}</h4>
-                        </div>
-                    </div>
-                    <div class="col">
-                        <div class="card-balance">
-                            <h3>رصيد مديونية</h3>
-                            <h4>{{ number_format($all_total_capital_balance) }}</h4>
-                        </div>
-                    </div>
-                    <div class="col">
-                        <div class="card-balance">
-                            <h3>رصيد ربحية</h3>
-                            <h4>{{ number_format($all_total_profit_balance) }}</h4>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-        <!-- sub warehouse -->
-        <div class="card">
-            <div class="card-header">
-                <h3>الخزن الفرعية</h3>
+                <h3>كل الخزن</h3>
                 @if ($warehouse_list->count() < 2)
                     <div class="card-action">
                         <button type="button" class="btn btn-outline-success round waves-effect" data-bs-toggle="modal" data-bs-target="#addWarehouse">
@@ -68,7 +37,6 @@
                         <tr>
                             <th>الخزنة</th>
                             <th>نوع الخزنة</th>
-                            <th>رصيد مديونية</th>
                             <th>رصيد الربحية</th>
                             <th>الرصيد الحالي</th>
                             <th>حالة الخزنة</th>
@@ -78,9 +46,9 @@
                             <tr>
                                 <td>{{ $w->name }}</td>
                                 <td>خزنة فرعية</td>
-                                <td>{{ number_format($w->account->total_capital_balance) }}</td>
-                                <td>{{ number_format($w->account->total_profit_balance) }}</td>
-                                <td>{{ number_format($w->account->current_balance) }}</td>
+                                {{-- <td>{{ number_format($w->account->total_capital_balance) }}</td> --}}
+                                <td>{{ number_format($w->account->transactions()->where('transaction_type', 'profit')->sum('amount')) }}</td>
+                                <td>{{ number_format($w->account->transactions()->sum('amount')) }}</td>
                                 <td>
                                     @if ($w->statue == 1)
                                         <span class="badge badge-light-success">مفعلة</span>
@@ -89,9 +57,13 @@
                                     @endif
                                 </td>
                                 <td>
-                                    <a href="{{ route('wallets.index', $w->id) }}" class="btn btn-info waves-effect">
+                                    <a href="{{ route('wallets.index', $w->id) }}" class="btn btn-primary waves-effect">
                                         <i data-feather='eye'></i>
-                                        <span>تفاصيل</span>
+                                        <span>المحافظ</span>
+                                    </a>
+                                    <a href="{{ route('warehouse.transactions', $w->id) }}" class="btn btn-danger waves-effect">
+                                        <i data-feather='eye'></i>
+                                        <span>سجل الحركات</span>
                                     </a>
                                 </td>
                             </tr>   

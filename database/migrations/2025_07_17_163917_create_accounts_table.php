@@ -15,10 +15,10 @@ return new class extends Migration
             $table->id();
             $table->string('name');
             $table->nullableMorphs('accountable');
-            $table->enum('type', ['warehouse', 'supplier', 'customer', 'partner', 'expense']);
-            $table->decimal('total_capital_balance', 15, 2)->default(0);
+            $table->enum('type', ['warehouse', 'supplier', 'customer']);
             $table->decimal('total_profit_balance', 15, 2)->default(0);
             $table->tinyInteger('is_main')->default(0);
+            $table->decimal('current_balance', 15,2)->default(0);
             $table->softDeletes();
             $table->timestamps();
         });

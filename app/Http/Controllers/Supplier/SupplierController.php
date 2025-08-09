@@ -127,13 +127,13 @@ class SupplierController extends Controller
     }
 
     public function exportAccount(Request $request){
-        return $request;
         $app = App::latest()->first();
+        $supplier = Supplier::where('id', $request->supplier_id)->first();
         $invoices = Supplier_invoice::where('supplier_id', $request->supplier_id)->latest()->get();
         $first_inv_date = Supplier_invoice::where('supplier_id', $request->supplier_id)->first()->invoice_date; 
         $last_inv_date = Supplier_invoice::where('supplier_id', $request->supplier_id)->latest()->first()->invoice_date;
 
-        $html = view('suppliers.show_account_pdf', compact('first_inv_date', 'app', 'last_inv_date', 'invoices'))->render();
+        $html = view('suppliers.show_account_pdf', compact('supplier', 'first_inv_date', 'app', 'last_inv_date', 'invoices'))->render();
 
         // إعداد mPDF بدعم RTL واللغة العربية
         $mpdf = new Mpdf([

@@ -4,7 +4,9 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\Product\ProductRequest;
 use App\Models\Category;
+use App\Models\InvoiceProductCost;
 use App\Models\Product;
+use App\Models\Stock;
 use App\Models\Unit;
 use Exception;
 use Illuminate\Http\Request;
@@ -75,5 +77,23 @@ class ProductController extends Controller
         return response()->json([
             'data' => $products
         ]);
+    }
+
+    public function showPrice(){
+        $stocks = Stock::with('cost')->paginate(100);
+        return view('product.price', compact('stocks'));
+    }
+
+    public function updatePrice(Request $request){
+        $rate = $request->rate / 100;
+        $price_sale = InvoiceProductCost::where('stock_id', $request->stock_id)->first();
+    
+        if ($price_sale) {
+            $price_sale->rate = $request->rate; // تخزن النسبة كما هي (مثلاً 20)
+            $price_sale->suggested_price = $request->cost_price + ($request->cost_price * $rate);
+            $price_sale->save();
+        }
+        
+        return back()->with('success', 'تم حذف البيانات بنجاح');
     }
 }

@@ -46,8 +46,8 @@
                 <tr>
                     <th>المنتج</th>
                     <th>التصنيف</th>
+                    <th>اسم الوحدة</th>
                     <th>الوحدة</th>
-                    <th>العرض</th>
                     <th>إجراء</th>
                 </tr>
                 @forelse ($products as $p)
@@ -62,8 +62,8 @@
                                لا يوجد
                            @endif
                         </td>
+                        <td>{{ $p->unit->name }}</td>
                         <td>{{ $p->unit->symbol }}</td>
-                        <td>{{ $p->width }}</td>
                         <td>
                             <a href="{{ route('product.edit', $p->id) }}" class="btn btn-icon btn-success waves-effect waves-float waves-light editBtn">
                                 <i data-feather='edit'></i>

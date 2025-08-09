@@ -11,11 +11,12 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('invoice_supplier_costs', function (Blueprint $table) {
+        Schema::create('exponse_items', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('supplier_invoice_id')->constrained('supplier_invoices')->cascadeOnDelete()->cascadeOnUpdate();
-            $table->string('description');
-            $table->decimal('amount', 8, 2);
+            $table->string('name');
+            $table->boolean('affect_debt')->comment('هل يؤثر علي المديونة ؟');
+            $table->boolean('affect_wallet')->comment('هل يؤثر علي الخزنة');
+            $table->softDeletes();
             $table->timestamps();
         });
     }
@@ -25,6 +26,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('invoice_supplier_costs');
+        Schema::dropIfExists('exponse_items');
     }
 };

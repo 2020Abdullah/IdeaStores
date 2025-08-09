@@ -3,7 +3,7 @@
 @section('css')
 <style>
     .table input {
-        width: 200px!important;
+        width: 100px!important;
     }
 </style>
 @endsection
@@ -16,7 +16,7 @@
             <div class="breadcrumb-wrapper">
                 <ol class="breadcrumb">
                     <li class="breadcrumb-item">
-                        <a href="{{ route('dashboard') }}">الرئيسية</a>
+                        <a href="{{ route('supplier.invoice.index') }}">الرئيسية</a>
                     </li>
                     <li class="breadcrumb-item">
                         <a href="#">بيانات الفاتورة</a>
@@ -190,10 +190,17 @@
                         @foreach ($invoice->costs as $index => $cost)
                             <div class="row cost-item mb-1">
                                 <div class="col-md-6 mb-1">
-                                    <input type="text" name="costs[{{$index}}][description]" class="form-control costInfo" value="{{ $cost->description }}">
+                                    <select name="costs[{{ $index }}][exponse_id]" class="select2 cost-select">
+                                        @foreach ($exponse_list as $ex_item)
+                                            <option value="{{ $ex_item->id }}" 
+                                                {{ (isset($ex_item) && $ex_item->id == $cost->expense_item_id) ? 'selected' : '' }}>
+                                                {{ $ex_item->name }}
+                                            </option>
+                                        @endforeach
+                                    </select>
                                 </div>
                                 <div class="col-md-4 mb-1">
-                                    <input type="number" name="costs[{{$index}}][amount]" class="form-control costValue" value="{{ $cost->amount }}">
+                                    <input type="number" name="costs[{{ $index }}][amount]" class="form-control costValue" value="{{ $cost->amount }}" placeholder="القيمة">
                                 </div>
                                 <div class="col-md-2 mb-1">
                                     <button type="button" class="btn btn-danger remove-cost">حذف</button>
@@ -230,6 +237,16 @@
 <script>
 $(function () {
 
+    $('.cost-select').select2({
+        dir: "rtl",
+        width: '100%'
+    });
+
+    $('.product-item .select2').select2({
+        dir: "rtl",
+        width: '200px'
+    });
+
     $.ajaxSetup({
         headers: {
             'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
@@ -244,21 +261,34 @@ $(function () {
     // إضافة التكاليف
     let costIndex = 1;
     $('#add-cost').click(function () {
+        const exponseItems = @json($exponse_list);
+        let options = `<option value="">اختر بند تكلفة</option>`;
+        exponseItems.forEach(item => {
+            options += `<option value="${item.id}">${item.name}</option>`;
+        });
+
         const newCost = `
             <div class="row cost-item mb-1">
                 <div class="col-md-6 mb-1">
-                    <input type="text" name="costs[${costIndex}][description]" class="form-control costInfo" placeholder="وصف التكلفة (مثلاً: شحن)">
+                    <select name="costs[${costIndex}][exponse_id]" class="select2 cost-select">
+                        ${options}
+                    </select>
                 </div>
                 <div class="col-md-4 mb-1">
-                    <input type="number" name="costs[${costIndex}][amount]" class="form-control costValue" placeholder="القيمة (مثلاً: 300)">
+                    <input type="number" name="costs[${costIndex}][amount]" class="form-control costValue" placeholder="القيمة">
                 </div>
                 <div class="col-md-2 mb-1">
                     <button type="button" class="btn btn-danger remove-cost">حذف</button>
                 </div>
             </div>
         `;
+
         $('#costs-wrapper').append(newCost);
         costIndex++;
+        $('.select2').select2({
+            dir: "rtl",
+            width: '100%'
+        });
     });
 
     $(document).on('click', '.remove-cost', function () {
@@ -320,7 +350,7 @@ $(function () {
         else {
             pricePerMM = 0;
             row.find('.length').attr('readonly', true);
-            row.find('.length').val(0);
+            row.find('.length').val(size);
         }
 
         row.find('.pricePerMeter').val(pricePerMM);  
@@ -488,22 +518,75 @@ $(function () {
         });
 
     });
+
+    function reindexItems() {
+        $('.product-item').each(function(index) {
+            $(this).find('select, input').each(function() {
+                const name = $(this).attr('name');
+                if (name) {
+                    // استبدل الرقم السابق بالرقم الجديد index
+                    const newName = name.replace(/items\[\d+\]/, `items[${index}]`);
+                    $(this).attr('name', newName);
+                }
+            });
+        });
+    }
     
     // حذف الصف
     $(document).on('click', '.remove-row', function () {
         $(this).closest('tr').remove();
+        reindexItems();
         calculateTotalInvoice();
         feather.replace();
     });
 
 
     $('#invoiceForm').on('submit', function(e) {
-        e.preventDefault(); // منع الإرسال مؤقتًا
+        e.preventDefault();
+        let isValid = true;
+        let message = "";
 
-        // تأكيد من المستخدم
+        let invoice_type = $(this).find('option:selected').val();
+
+        if (invoice_type === 'opening_balance') {
+            let opening_balance_value = $(".opening_balance_value").val();
+            if (!opening_balance_value) {
+                toastr.info('يجب ملئ حقل الرصيد الإفتتاحي');
+                return; // وقف مباشرة
+            }
+        } else {
+            // تحقق أولًا هل فيه أصناف أصلاً
+            if ($('.product-item').length === 0) {
+                toastr.info("يجب إضافة صنف واحد على الأقل إلى الفاتورة قبل الحفظ.");
+                return;
+            }
+
+            // تحقق من كل صف
+            $('.product-item').each(function(index, row) {
+                let category = $(row).find('.categorySelect').val();
+                let product = $(row).find('.productSelect').val();
+                let unit = $(row).find('.unitSelect').val();
+                let size = $(row).find('.SizeSelect').val();
+                let quantity = $(row).find('.quantity').val();
+                let purchasePrice = $(row).find('.purchase_price').val();
+
+                if (!category || !product || !unit || !size || quantity <= 0 || purchasePrice <= 0) {
+                    isValid = false;
+                    message = "تأكد من إدخال جميع البيانات المطلوبة لكل صنف (تصنيف، منتج، وحدة، مقاس، كمية، وسعر الشراء).";
+                    return false; // يوقف الـ each
+                }
+            });
+
+            if (!isValid) {
+                toastr.info(message);
+                return;
+            }
+        }
+
+        // لو كل شيء تمام، اعرض التأكيد
         if (confirm("هل أنت متأكد من حفظ البيانات؟")) {
             this.submit();
-        } 
+        }
     });
 
     let isFormChanged = false;

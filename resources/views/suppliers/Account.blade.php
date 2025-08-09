@@ -57,16 +57,14 @@
                     <i data-feather='plus'></i>
                     <span>إضافة فاتورة</span>
                 </a>
-                @if ($supplier->account->current_balance > 0)
-                    <a href="#" data-bs-toggle="modal" data-bs-target="#PaymentBalance"
-                        data-supplier_id="{{ $supplier->id }}"
-                        data-
-                        class="paymentBtn btn btn-icon btn-primary waves-effect waves-float waves-light creditOpenBtn"
-                        >
-                        <i data-feather='credit-card'></i>
-                        <span>دفع دفعة</span>
-                    </a>
-                @endif
+                <a href="#" data-bs-toggle="modal" data-bs-target="#PaymentBalance"
+                    data-supplier_id="{{ $supplier->id }}"
+                    data-
+                    class="paymentBtn btn btn-icon btn-primary waves-effect waves-float waves-light creditOpenBtn"
+                    >
+                    <i data-feather='credit-card'></i>
+                    <span>دفع دفعة</span>
+                </a>
             </div>
         </div>
         <div class="card-body">
@@ -77,9 +75,8 @@
                         <th>تاريخ الفاتورة</th>
                         <th>اسم المورد</th>
                         <th>نوع الفاتورة</th>
-                        <th>المبلغ المدفوع</th>
                         <th>إجمالي الفاتورة</th>
-                        <th>المتبقي</th>
+                        <th>المبلغ المدفوع</th>
                         <th>حالة الفاتورة</th>
                         <th>إجراء</th>
                     </tr>
@@ -97,9 +94,8 @@
                                     <span>رصيد افتتاحي</span>
                                 @endif
                             </td>
-                            <td>{{ number_format($inv->paid_amount) }} EGP</td>
                             <td>{{ number_format($inv->total_amount_invoice) }} EGP</td>
-                            <td>{{ number_format($inv->total_amount_invoice - $inv->paid_amount)}} EGP</td>
+                            <td>{{ number_format($inv->paid_amount) }} EGP</td>
                             <td>
                                 @if ($inv->invoice_staute == 0)
                                     <span class="badge badge-glow bg-danger">غير مدفوع</span>

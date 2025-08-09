@@ -22,4 +22,8 @@ class Stock extends Model
     public function unit(){
         return $this->belongsTo(Unit::class);
     }
+
+    public function cost(){
+        return $this->hasOne(InvoiceProductCost::class, 'stock_id');
+    }
 }

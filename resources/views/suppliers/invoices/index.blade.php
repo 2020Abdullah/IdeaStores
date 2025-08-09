@@ -65,15 +65,6 @@
             <a href="{{ route('supplier.invoice.add') }}" class="btn btn-success waves-effect waves-float waves-light">
                 إضافة فاتورة جديدة 
             </a>
-            <a href="{{ route('download.supplier.Template') }}" class="btn btn-info waves-effect waves-float waves-light">
-                تنزيل قالب 
-            </a>
-            <a href="#" data-bs-toggle="modal" data-bs-target="#importFile" class="btn btn-warning waves-effect waves-float waves-light">
-                استيراد بيانات
-            </a>
-            <a href="button" class="btn btn-danger waves-effect waves-float waves-light">
-                تصدير اكسيل
-            </a>
         </div>
     </div>
     <div class="card-body">

@@ -23,6 +23,8 @@ return new class extends Migration
             $table->decimal('total_amount', 15,2)->default(0)->comment('إجمالي الفاتورة');
             $table->decimal('total_amount_invoice', 15,2)->default(0)->comment('إجمالي الفاتورة بدون تكاليف');
             $table->text('notes')->nullable();
+            $table->foreignId('warehouse_id')->nullable()->constrained('warehouses')->onDelete('SET NULL')->cascadeOnUpdate();
+            $table->foreignId('wallet_id')->nullable()->constrained('wallets')->onDelete('SET NULL')->cascadeOnUpdate();
             $table->softDeletes();
             $table->timestamps();
         });
