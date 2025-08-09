@@ -17,7 +17,6 @@ class WarehouseController extends Controller
     public function index(){
         $data['warehouse_list'] = Warehouse::where('is_main', 0)->get();
         $data['all_balance'] = Account::where('type', 'warehouse')->sum('current_balance');
-        $data['all_total_capital_balance'] = Account::where('type', 'warehouse')->sum('total_capital_balance');
         $data['all_total_profit_balance'] = Account::where('type', 'warehouse')->sum('total_profit_balance');
         return view('warehouse.index', $data);
     }
