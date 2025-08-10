@@ -73,10 +73,10 @@
                                 <td>{{ $loop->iteration }}</td>
                                 <td>{{ $trans->payment_date }}</td>
                                 <td>
-                                    @if($trans->direction === 'out')
-                                        <span class="text-danger">-{{ number_format($trans->amount, 2) }}</span>
-                                    @else
+                                    @if($trans->direction === 'in')
                                         <span class="text-success">+{{ number_format($trans->amount, 2) }}</span>
+                                    @else
+                                        <span class="text-danger">-{{ number_format($trans->amount, 2) }}</span>
                                     @endif
                                 </td>
                                 <td>{{ ucfirst($trans->method) }}</td>
