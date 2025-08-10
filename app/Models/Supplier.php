@@ -21,6 +21,12 @@ class Supplier extends Model
         return $this->hasMany(Supplier_invoice::class, 'supplier_id');
     }
 
+    public function paymentTransactions()
+    {
+        return $this->morphMany(PaymentTransaction::class, 'related');
+    }
+
+
     // protected static function booted()
     // {
     //     static::created(function ($supplier) {

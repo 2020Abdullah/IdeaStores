@@ -58,21 +58,33 @@
         <div class="card-body">
             <div class="table-responsive">
                 <table class="table table-bordered">
-                    <tr>
-                        <th>رقم الدفعة</th>
-                        <th>مبلغ الدفعة</th>
-                    </tr>
-                    @foreach ($supplier->account->relateable as $trans)
+                    <thead>
                         <tr>
-                            <td>{{ $loop->iteration }}</td>
-                            <td>
-                                <span class="text-success">
-                                    +{{ -$trans->amount }}
-                                </span>
-                            </td>
+                            <th>رقم الدفعة</th>
+                            <th>تاريخ الدفعة</th>
+                            <th>مبلغ الدفعة</th>
+                            <th>طريقة الدفع</th>
+                            <th>البيان</th>
                         </tr>
-                    @endforeach
-                </table>
+                    </thead>
+                    <tbody>
+                        @foreach ($supplier->paymentTransactions as $trans)
+                            <tr>
+                                <td>{{ $loop->iteration }}</td>
+                                <td>{{ $trans->payment_date }}</td>
+                                <td>
+                                    @if($trans->direction === 'out')
+                                        <span class="text-danger">-{{ number_format($trans->amount, 2) }}</span>
+                                    @else
+                                        <span class="text-success">+{{ number_format($trans->amount, 2) }}</span>
+                                    @endif
+                                </td>
+                                <td>{{ ucfirst($trans->method) }}</td>
+                                <td>{{ $trans->description }}</td>
+                            </tr>
+                        @endforeach
+                    </tbody>
+                </table>                
             </div>
         </div>
     </div>
@@ -289,7 +301,7 @@
                $(".balance_container .current_balance").val(current_balance)
                $(".balance_container").show(500);
 
-               if(current_balance < total_balance){
+               if(current_balance <= 0){
                     $(".alert_container").show(500);
                     $(".alert_container p").text('رصيد المحفظة غير كافي الخزنة سيصبح رصيد كل من المحفظة والخزنة بالسالب')
                }

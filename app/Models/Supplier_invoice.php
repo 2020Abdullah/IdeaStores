@@ -33,4 +33,9 @@ class Supplier_invoice extends Model
         return $this->morphOne(Account_transactions::class, 'related');
     }
 
+    public function payments()
+    {
+        return $this->morphMany(PaymentTransaction::class, 'source');
+    }
+
 }

@@ -13,6 +13,7 @@ use App\Models\Exponse;
 use App\Models\ExponseItem;
 use App\Models\ExternalDebts;
 use App\Models\InvoiceProductCost;
+use App\Models\paymentTransaction;
 use App\Models\Product;
 use App\Models\Size;
 use App\Models\Stock;
@@ -821,6 +822,19 @@ class InvoicePurchaseController extends Controller
             'related_type' => Supplier::class,  
             'related_id' => $supplier->id,
             'description' => $request->description
+        ]);
+        
+        // تسجيل دفعة للمورد
+        paymentTransaction::create([
+            'related_type' => Supplier::class,
+            'related_id' => $supplier->id,
+            'source_type' => null, 
+            'source_id' => null,   
+            'direction' => 'in',
+            'amount' => $amount,
+            'payment_date' => now()->toDateString(),
+            'method' => $request->method,
+            'description' => $request->description ?? 'دفعة مقدمة'
         ]);
 
         $transaction = Account_transactions::where('account_id', $warehouse->account->id)->sum('amount');
