@@ -17,7 +17,7 @@
             border: 4px solid #333;
             padding: 10px;
             margin: 10px;
-            height: calc(100% - 40px);
+            height: 100%;
         }
 
         @font-face {
@@ -35,6 +35,10 @@
             margin: 0;
         }
 
+        .supplier-info {
+            text-align: center;
+        }
+
         .company-info, .supplier-info {
             margin-bottom: 20px;
         }
@@ -43,6 +47,20 @@
             width: 100%;
             border-collapse: collapse;
             margin-bottom: 20px;
+            page-break-inside: auto;
+        }
+
+        thead {
+            display: table-header-group;
+        }
+
+        tbody {
+            display: table-row-group;
+        }
+
+        tr {
+            page-break-inside: avoid;
+            page-break-after: auto;
         }
 
         th, td {
@@ -65,22 +83,29 @@
             text-align: center;
             font-size: 12px;
         }
+        .invoice-header img {
+            width: 80px;
+            height: 80px;
+            display: block;
+            margin: 0 auto 10px auto;
+        }
     </style>
 </head>
 <body>
     <div class="page">
         <!-- Header -->
         <div class="invoice-header">
+            <img src="{{ public_path('assets/images/web/logo.png') }}" alt="Logo" style="width: 100px; height: 100px; display: block; margin: 0 auto 10px auto;">
             <h2>{{ $app->company_name }}</h2>
             <p>{{ $app->company_info }}</p>
         </div>
     
         <!-- Supplier & Invoice Info -->
         <div class="supplier-info">
-            <p><strong>كشف حساب المورد :</strong> {{ $supplier->name }}</p>
+            <p><strong>كشف حساب مورد :</strong> {{ $supplier->name }}</p>
             <p>
-                <strong>من:</strong> <span>{{ $first_inv_date }}</span>
-                <strong>إلي:</strong> <span>{{ $last_inv_date }}</span>
+                <strong>من  : </strong> <span>{{ $first_inv_date }}</span>
+                <strong>إلي : </strong> <span>{{ $last_inv_date }}</span>
             </p>
         </div>
     
@@ -158,7 +183,7 @@
             </tbody>
         </table>
     
-        <p class="total">إجمالي الرصيد المستحق : {{ number_format($supplier->account->current_balance) }} EGP</p>
+        <p class="total">إجمالي الرصيد : {{ number_format($supplier->account->current_balance) }} EGP</p>
     
         <!-- Note -->
         <div class="note">

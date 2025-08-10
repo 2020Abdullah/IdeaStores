@@ -8,7 +8,7 @@
             <div class="breadcrumb-wrapper">
                 <ol class="breadcrumb">
                     <li class="breadcrumb-item">
-                        <a href="{{ route('dashboard') }}">الرئيسية</a>
+                        <a href="{{ route('supplier.index') }}">الرئيسية</a>
                     </li>
                     <li class="breadcrumb-item active">
                         <a href="#">حساب المورد</a>
@@ -68,7 +68,7 @@
                         </tr>
                     </thead>
                     <tbody>
-                        @foreach ($supplier->paymentTransactions as $trans)
+                        @foreach ($payments as $trans)
                             <tr>
                                 <td>{{ $loop->iteration }}</td>
                                 <td>{{ $trans->payment_date }}</td>
@@ -86,6 +86,9 @@
                     </tbody>
                 </table>                
             </div>
+        </div>
+        <div class="card-footer">
+            {{ $payments->links() }}
         </div>
     </div>
 
@@ -304,6 +307,10 @@
                if(current_balance <= 0){
                     $(".alert_container").show(500);
                     $(".alert_container p").text('رصيد المحفظة غير كافي الخزنة سيصبح رصيد كل من المحفظة والخزنة بالسالب')
+               }
+               else {
+                    $(".alert_container").hide(500);
+                    $(".alert_container p").text('');
                }
             })
 

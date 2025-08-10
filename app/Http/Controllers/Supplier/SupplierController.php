@@ -6,9 +6,11 @@ use App\Exports\SuppliersDataExport;
 use App\Exports\SuppliersTemplateExport;
 use App\Imports\SuppliersImport;
 use App\Models\App;
+use App\Models\paymentTransaction;
 use App\Models\Supplier;
 use App\Models\Supplier_invoice;
 use App\Models\Warehouse;
+use Carbon\Carbon;
 use Exception;
 use Illuminate\Http\Request;
 use Maatwebsite\Excel\Facades\Excel;
@@ -117,6 +119,7 @@ class SupplierController extends Controller
     public function showAccount($id){
         $data['warehouse_list'] = Warehouse::where('is_main', 0)->get();
         $data['supplier'] = Supplier::findOrFail($id);
+        $data['payments'] = $data['supplier']->paymentTransactions()->paginate(100);
         $data['supplier_invoices'] = Supplier_invoice::where('supplier_id' , $id)->paginate(100);
         return view('suppliers.Account', $data);
     }
@@ -130,9 +133,15 @@ class SupplierController extends Controller
         $app = App::latest()->first();
         $supplier = Supplier::where('id', $request->supplier_id)->first();
         $invoices = Supplier_invoice::where('supplier_id', $request->supplier_id)->latest()->get();
-        $first_inv_date = Supplier_invoice::where('supplier_id', $request->supplier_id)->first()->invoice_date; 
-        $last_inv_date = Supplier_invoice::where('supplier_id', $request->supplier_id)->latest()->first()->invoice_date;
-
+        
+        // جلب أول وآخر تاريخ فاتورة وتحويلها لكائنات Carbon
+        $firstInvoice = Supplier_invoice::where('supplier_id', $request->supplier_id)->first();
+        $lastInvoice = Supplier_invoice::where('supplier_id', $request->supplier_id)->latest()->first();
+    
+        // تحويل التواريخ إلى تنسيق عربي جميل مثلاً d/m/Y
+        $first_inv_date = $firstInvoice ? Carbon::parse($firstInvoice->invoice_date)->format('d-m-Y') : '-';
+        $last_inv_date = $lastInvoice ? Carbon::parse($lastInvoice->invoice_date)->format('d-m-Y') : '-';
+    
         $html = view('suppliers.show_account_pdf', compact('supplier', 'first_inv_date', 'app', 'last_inv_date', 'invoices'))->render();
 
         // إعداد mPDF بدعم RTL واللغة العربية
