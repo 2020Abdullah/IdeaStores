@@ -526,155 +526,170 @@ class InvoicePurchaseController extends Controller
         return redirect()->route('supplier.index')->with('success', 'تم تعديل الرصيد الافتتاحي بنجاح مع ضبط الديون والرصيد.');
     }
 
-    protected function updateCredit($request){
-        $invoice = Supplier_invoice::findOrFail($request->id);
-        $supplier = Supplier::findOrFail($request->supplier_id);
-        $cost_total = $this->normalizeNumber($request->additional_cost);
-        $paid = $this->normalizeNumber($invoice->paid_amount);
-        $newAmount = $this->normalizeNumber($request->total_amount_invoice);
-        $total_amount = $this->normalizeNumber($request->total_amount);
-        $remaining = max($newAmount - $paid, 0);
-        $diff = $this->normalizeNumber($request->total_amount_invoice) - $paid;
-
-        $invoice->update([
-            'invoice_date' => $request->invoice_date,
-            'total_amount' => $total_amount,
-            'total_amount_invoice' => $newAmount,
-            'cost_price' => $request->additional_cost,
-            'notes' => $request->notes,
-        ]);
+    protected function updateCredit($request)
+    {
+        DB::beginTransaction();
+        try {
+            $invoice = Supplier_invoice::findOrFail($request->id);
+            $supplier = Supplier::findOrFail($request->supplier_id);
     
-        // 1. في حالة ان الفاتورة لم يتم دفعها جزئي أو لم يتم دفع اى قيمة 
-        if($invoice->invoice_staute != 1){
-            // ارفع المديونية 
-            if($invoice->debts){
-                $debt = $invoice->debts;
-                if ($paid >= $newAmount) {
-                    // الدين تم دفعه بالكامل → نحذفه
-                    $debt->delete();
-                    $invoice->update([
-                        'invoice_staute' => 1,
-                    ]);
-
-                } else {
-                    // تحديث بيانات الدين
-                    $debt->update([
-                        'amount'    => $newAmount,
-                        'paid'      => min($paid, $newAmount),
-                        'remaining' => $remaining,
-                        'is_paid'   => 0,
+            $cost_total = $this->normalizeNumber($request->additional_cost);
+            $newAmount = $this->normalizeNumber($request->total_amount_invoice);
+            $total_amount = $this->normalizeNumber($request->total_amount);
+            $oldAmount = $invoice->total_amount_invoice;
+            $paid = $this->normalizeNumber($invoice->paid_amount);
+    
+            // تحديث بيانات الفاتورة
+            $invoice->update([
+                'invoice_date' => $request->invoice_date,
+                'total_amount' => $total_amount,
+                'total_amount_invoice' => $newAmount,
+                'cost_price' => $request->additional_cost,
+                'notes' => $request->notes,
+            ]);
+    
+            // لو فيه دين قديم نحذفه قبل إعادة الحساب
+            $invoice->debts()->delete();
+    
+            $currentBalance = floatval($supplier->account->current_balance ?? 0);
+    
+            // إذا تم دفعها بالكامل نحذف الدين ونحدث الحالة
+            if ($paid >= $newAmount) {
+                $invoice->update([
+                    'paid_amount' => $newAmount,
+                    'invoice_staute' => 1 // مدفوعة بالكامل
+                ]);
+            } else {
+                // لا يوجد رصيد يغطي الفاتورة بالكامل
+                if ($currentBalance >= 0) {
+                    $invoice->debts()->create([
+                        'description' => 'فاتورة شراء معدلة للمورد ' . $supplier->name,
+                        'amount' => $newAmount,
+                        'paid' => 0,
+                        'remaining' => $newAmount,
+                        'is_paid' => 0,
                         'date' => $invoice->invoice_date,
                     ]);
                     $invoice->update([
-                        'invoice_staute' => 0,
+                        'paid_amount' => 0,
+                        'invoice_staute' => 2
                     ]);
+                } else {
+                    $availableCredit = abs($currentBalance);
+                    if ($availableCredit >= $newAmount) {
+                        // الرصيد يغطي بالكامل → لا دين
+                        $invoice->update([
+                            'paid_amount' => $newAmount,
+                            'invoice_staute' => 1
+                        ]);
+                    } else {
+                        // الرصيد يغطي جزئياً
+                        $paidFromCredit = $availableCredit;
+                        $remaining = $newAmount - $paidFromCredit;
+    
+                        $invoice->debts()->create([
+                            'description' => 'فاتورة شراء معدلة للمورد ' . $supplier->name,
+                            'amount' => $newAmount,
+                            'paid' => $paidFromCredit,
+                            'remaining' => $remaining,
+                            'is_paid' => 0,
+                            'date' => $invoice->invoice_date,
+                        ]);
+                        $invoice->update([
+                            'paid_amount' => $paidFromCredit,
+                            'invoice_staute' => 2
+                        ]);
+                    }
                 }
             }
-        }
-        else {
-            if($paid < $newAmount){
-                ExternalDebts::create([
-                    'debtable_type' => Supplier_invoice::class,
-                    'debtable_id'   => $invoice->id,
-                    'description'   => 'فاتورة شراء للمورد ' . $supplier->name,
-                    'amount'        => $newAmount,
-                    'paid'          => $diff,
-                    'remaining'     => $diff,
-                    'is_paid'       => 0,
-                    'date' => $invoice->invoice_date,
-                ]);
-
-                $invoice->update([
-                    'paid_amount' => $diff,
-                ]);
+    
+            // تعديل رصيد المورد بالفرق
+            $difference = $newAmount - $oldAmount;
+            $supplier->account->increment('current_balance', $difference);
+    
+            // تعديل حركة الخزنة للتكاليف
+            $invoice->transaction()->update([
+                'amount' => -$cost_total
+            ]);
+    
+            // تحديث التكاليف الإضافية
+            $costs = $request->input('costs');
+            if ($costs && is_array($costs)) {
+                foreach ($costs as $cost) {
+                    $exponse = Exponse::where('expense_item_id', $cost['exponse_id'])->first();
+                    if ($exponse) {
+                        $exponse->update([
+                            'amount' => $cost['amount']
+                        ]);
+                    }
+                }
             }
-            else {
-                $invoice->update([
-                    'paid_amount' => $invoice->total_amount_invoice,
-                ]);
-                $invoice->debt->delete();
-            }
+    
+            // تحديث المخزون
+            $this->updateStock($request, $invoice);
+    
+            DB::commit();
+            return redirect()->route('supplier.index')->with('success', 'تم تعديل فاتورة المورد الآجل بنجاح مع ضبط الديون والرصيد.');
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return redirect()->back()->with('error', 'حدث خطأ: ' . $e->getMessage());
         }
-
-        // 2. تعديل حركة الخزنة لضبط الرصيد عند تغيير التكاليف
-        $invoice->transaction()->update([
-            'amount' => -$cost_total
-        ]);
-
-        
-        // تحديث التكاليف الإضافية
-        $costs = $request->input('costs');
-        if ($costs && is_array($costs)) {
-            foreach ($costs as $cost) {
-                $exponse = Exponse::where('expense_item_id', $cost['exponse_id'])->first();
-                $exponse->amount = $cost['amount'];
-                $exponse->save();
-            }
-        }
-     
-
-        // تحديث حالة الفاتورة
-
-        if ($paid == 0) {
-            $invoice->update(['invoice_staute' => 0]); // غير مدفوعة
-        } elseif ($paid >= $newAmount) {
-            $invoice->update(['invoice_staute' => 1]); // مدفوعة بالكامل
-        } else {
-            $invoice->update(['invoice_staute' => 2]); // مدفوعة جزئياً
-        }
-
-        // 3. ضبط حساب المورد
-        $all_paid = Supplier_invoice::where('supplier_id', $request->supplier_id)->sum('paid_amount');
-        $all_amount_invoice = Supplier_invoice::where('supplier_id', $request->supplier_id)->sum('total_amount_invoice');
-
-        $supplier_account = ($all_amount_invoice - $all_paid);
-
-        $supplier->account()->update([
-            'current_balance' => $supplier_account
-        ]);
-
-
-        // 4. ضبط ستوك المخزن
-        $this->updateStock($request, $invoice);
-
-        return redirect()->route('supplier.index')->with('success', 'تم تعديل الرصيد الافتتاحي بنجاح مع ضبط الديون والرصيد.');
     }
 
-    protected function updateCash($request){
-        $total_amount = $this->normalizeNumber($request->total_amount);
-        $newAmount = $this->normalizeNumber($request->total_amount_invoice);
-        $invoice = Supplier_invoice::findOrFail($request->id);
-
-        // تحديث التكاليف الإضافية
-        $costs = $request->input('costs');
-        if ($costs && is_array($costs)) {
-            foreach ($costs as $cost) {
-                $exponse = Exponse::where('expense_item_id', $cost['exponse_id'])->first();
-                $exponse->amount = $cost['amount'];
-                $exponse->save();
+    protected function updateCash($request)
+    {
+        DB::beginTransaction();
+        try {
+            $invoice = Supplier_invoice::findOrFail($request->id);
+    
+            $total_amount = $this->normalizeNumber($request->total_amount);
+            $newAmount    = $this->normalizeNumber($request->total_amount_invoice);
+            $oldAmount    = $invoice->total_amount_invoice;
+            $cost_total   = $this->normalizeNumber($request->additional_cost);
+    
+            // تحديث بيانات الفاتورة
+            $invoice->update([
+                'invoice_date'         => $request->invoice_date,
+                'total_amount'         => $total_amount,
+                'total_amount_invoice' => $newAmount,
+                'paid_amount'          => $newAmount, // كاش → مدفوع بالكامل
+                'cost_price'           => $request->additional_cost,
+                'notes'                => $request->notes,
+            ]);
+    
+            // تحديث التكاليف الإضافية
+            $costs = $request->input('costs');
+            if ($costs && is_array($costs)) {
+                foreach ($costs as $cost) {
+                    $exponse = Exponse::where('expense_item_id', $cost['exponse_id'])->first();
+                    if ($exponse) {
+                        $exponse->update([
+                            'amount' => $cost['amount']
+                        ]);
+                    }
+                }
             }
+    
+            // تعديل حركة المعاملات (الخزنة) حسب المبلغ الجديد
+            Account_transactions::where('source_code', $invoice->invoice_code)->update([
+                'amount' => -$newAmount
+            ]);
+    
+            Wallet_movement::where('source_code', $invoice->invoice_code)->update([
+                'amount' => -$newAmount
+            ]);
+    
+            // ضبط المخزون بعد التعديل
+            $this->updateStock($request, $invoice);
+    
+            DB::commit();
+            return redirect()->route('supplier.index')->with('success', 'تم تعديل فاتورة المورد الكاش بنجاح');
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return redirect()->back()->with('error', 'حدث خطأ: ' . $e->getMessage());
         }
-
-        Account_transactions::where('source_code', $invoice->invoice_code)->update([
-            'amount' => -$total_amount
-        ]);
-
-        Wallet_movement::where('source_code', $invoice->invoice_code)->update([
-            'amount' => -$total_amount
-        ]);
-
-        $invoice->update([
-            'invoice_date' => $request->invoice_date,
-            'total_amount' => $total_amount,
-            'total_amount_invoice' => $newAmount,
-            'paid_amount' => $newAmount,
-            'cost_price' => $request->additional_cost,
-            'notes' => $request->notes,
-        ]);
-
-        $this->updateStock($request, $invoice);
-        return redirect()->route('supplier.index')->with('success', 'تم تعديل فاتورة المورد بنجاح');
     }
+    
     
     public function edit($id){
         $data['warehouse_list'] = Warehouse::where('is_main', 0)->get();
