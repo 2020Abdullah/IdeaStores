@@ -246,27 +246,9 @@ $(function () {
     });
 
     $(document).on('input', '.additional_cost, .unitSelect , .quantity, .length ,.purchase_price, .SizeSelect', function () {
-        let balance = parseInt($(this).find('option:selected').attr('data-balance')) || 0;
-        let total_amount = parseFloat($('.total_amount').val()) || 0;
         let row = $(this).closest('tr');
-        let invoice_type = $(this).find('option:selected').val();
         calculateTotalPerMM(row);
         calculateTotalPrice(row);
-
-        if(invoice_type !== 'opening_balance'){
-            if(balance <= 0 || balance < total_amount){
-                $(".alert_container").show(500);
-                $(".alert_container p").text('رصيد المحفظة غير كافي الخزنة سيصبح رصيد كل من المحفظة والخزنة بالسالب')
-            }
-            else {
-                $(".alert_container").hide(500);
-                $(".alert_container p").text('')
-            }
-        }
-        else {
-            $(".alert_container").hide(500);
-            $(".alert_container p").text('')
-        }
     });
 
     function formatNumberValue(value) {
@@ -322,14 +304,10 @@ $(function () {
 
         if(symbol === 'سم'){
             pricePerMM = size * purchase_price;
-            row.find('.length').attr('readonly', false);
         }
         else {
             pricePerMM = 0;
-            row.find('.length').attr('readonly', true);
-            row.find('.length').val(size);
         }
-
         row.find('.pricePerMeter').val(pricePerMM);  
     }
 
@@ -532,14 +510,10 @@ $(function () {
         let balance = parseInt($(this).find('option:selected').attr('data-balance')) || 0;
         let total_amount = parseFloat($('.total_amount').val()) || 0;
         
-        if(invoice_type !== 'opening_balance'){
+        if(invoice_type === 'cash'){
             if(balance <= 0 || balance < total_amount){
                 $(".alert_container").show(500);
                 $(".alert_container p").text('رصيد المحفظة غير كافي الخزنة سيصبح رصيد كل من المحفظة والخزنة بالسالب')
-            }
-            else {
-                $(".alert_container").hide(500);
-                $(".alert_container p").text('')
             }
         }
         else {

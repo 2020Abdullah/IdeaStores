@@ -49,6 +49,35 @@
             <hr />
         </div>
     </div>
+
+    <!-- الدفعات -->
+    <div class="card">
+        <div class="card-header">
+            <h3 class="card-title">الدفعات</h3>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-bordered">
+                    <tr>
+                        <th>رقم الدفعة</th>
+                        <th>مبلغ الدفعة</th>
+                    </tr>
+                    @foreach ($supplier->account->relateable as $trans)
+                        <tr>
+                            <td>{{ $loop->iteration }}</td>
+                            <td>
+                                <span class="text-success">
+                                    +{{ -$trans->amount }}
+                                </span>
+                            </td>
+                        </tr>
+                    @endforeach
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- الفواتير -->
     <div class="card">
         <div class="card-header">
             <h3 class="card-title">فواتير المورد</h3>

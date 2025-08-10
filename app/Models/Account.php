@@ -25,4 +25,9 @@ class Account extends Model
     {
         return $this->hasMany(Account_transactions::class, 'account_id');
     }
+
+    public function relateable()
+    {
+        return $this->hasMany(Account_transactions::class, 'related_id');
+    }
 }

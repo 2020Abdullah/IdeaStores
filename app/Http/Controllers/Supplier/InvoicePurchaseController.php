@@ -25,6 +25,7 @@ use App\Models\Unit;
 use App\Models\Wallet;
 use App\Models\Wallet_movement;
 use App\Models\Warehouse;
+use Illuminate\Support\Facades\DB;
 use Mpdf\Mpdf;
 
 class InvoicePurchaseController extends Controller
@@ -171,115 +172,127 @@ class InvoicePurchaseController extends Controller
     }
 
     protected function credit($request){
-        /*
-            1- إنشاء الفاتورة
-            2- إضافة تكاليف الفاتورة إن وجدت
-            3- إضافة حركة خزنة وحركة محفظة لتكاليف الفاتورة إن وجدت
-            4- عمل مديونية خارجية بعيداً عن الخزنة 
-            5- إضافة ستوك المخزن مع التحقق من وجود نفس المنتج والصنف وتحديث الكمية
-            6- حساب تكلفة كل منتج من التكاليف
-            7- تسجيل حركز مخزن
-        */
+        DB::beginTransaction();
+        try {
+            $total_amount = $this->normalizeNumber($request->total_amount);
+            $total_amount_invoice = $this->normalizeNumber($request->total_amount_invoice);
+            $cost_total = $this->normalizeNumber($request->additional_cost);
+            $supplier = Supplier::where('id', $request->supplier_id)->first();
+            $toridat_warehouse = Warehouse::where('type', 'toridat')->first();
+            $cash_wallet = Wallet::where('method', 'cash')->first();
+    
+            // 1. إنشاء الفاتورة (ضعنا paid_amount افتراضياً 0 وحالة 2 غير مدفوعة جزئياً)
+            $invoice = Supplier_invoice::create([
+                'supplier_id' => $request->supplier_id,
+                'invoice_code' => $this->generateNum(),
+                'invoice_date' => $request->invoice_date,
+                'invoice_type' => $request->invoice_type,
+                'total_amount' => $total_amount,
+                'total_amount_invoice' => $total_amount_invoice,
+                'cost_price' => $request->additional_cost,
+                'paid_amount' => 0,
+                'invoice_staute' => 2, // 1 = مدفوعة، 2 = لم تُسدَّد كلياً/جزئياً
+                'notes' => $request->notes,
+            ]);
+    
+            // 2. إضافة التكاليف في البنود الصحيحة (كما في كودك)
+            $costs = $request->input('costs');
+            if ($costs && is_array($costs)) {
+                foreach ($costs as $cost) {
+                    $invoice->costs()->create([
+                        'expense_item_id' => $cost['exponse_id'], 
+                        'account_id'      => $toridat_warehouse->account->id,
+                        'amount'          => $cost['amount'],
+                        'note'            => 'تكاليف إضافية',
+                        'date' => $invoice->invoice_date,
+                    ]);
+                }
 
-        $total_amount = $this->normalizeNumber($request->total_amount);
-        $total_amount_invoice = $this->normalizeNumber($request->total_amount_invoice);
-        $cost_total = $this->normalizeNumber($request->additional_cost);
-        $supplier = Supplier::where('id', $request->supplier_id)->first();
-        $toridat_warehouse = Warehouse::where('type', 'toridat')->first();
-        $cash_wallet = Wallet::where('method', 'cash')->first();
-
-        // 1. إنشاء الفاتورة 
-        $invoice = Supplier_invoice::create([
-            'supplier_id' => $request->supplier_id,
-            'invoice_code' => $this->generateNum(),
-            'invoice_date' => $request->invoice_date,
-            'invoice_type' => $request->invoice_type,
-            'total_amount' => $total_amount,
-            'total_amount_invoice' => $total_amount_invoice,
-            'cost_price' => $request->additional_cost,
-            'notes' => $request->notes,
-        ]);
-
-        // 2. إضافة التكاليف في البنود الصحيحة
-        $costs = $request->input('costs');
-        if ($costs && is_array($costs)) {
-            foreach ($costs as $cost) {
-                $invoice->costs()->create([
-                    'expense_item_id' => $cost['exponse_id'],
-                    'account_id'      => $toridat_warehouse->account->id,
-                    'amount'          => $cost['amount'],
-                    'note'            => 'تكاليف إضافية',
+                // إضافة تكاليف في الخزنة 
+                Account_transactions::create([
+                    'account_id' => $toridat_warehouse->account->id,
+                    'direction'  => 'out',
+                    'method'     => $cash_wallet->method,
+                    'amount'     => -$cost_total,
+                    'transaction_type' => 'expense',
+                    'related_type' => Supplier_invoice::class,  
+                    'related_id' => $invoice->id,
+                    'description' => $request->notes ?? 'مصروفات فواتير',
+                    'source_code' => $invoice->invoice_code,
                     'date' => $invoice->invoice_date,
                 ]);
+        
+                // 5. تسجيل حركة محفظة
+                $wallet_movement = new Wallet_movement();
+                $wallet_movement->wallet_id = $cash_wallet->id;
+                $wallet_movement->amount = -$cost_total;
+                $wallet_movement->direction = 'out';
+                $wallet_movement->note = 'مصروفات فواتير';
+                $wallet_movement->source_code = $invoice->invoice_code;
+                $wallet_movement->save();
+        
             }
-        }
-
-        // 3. تسجيل حركة خزنة
-        Account_transactions::create([
-            'account_id' => $toridat_warehouse->account->id,
-            'direction' => 'out',
-            'method' => 'cash',
-            'amount' => -$cost_total,
-            'transaction_type' => 'expense',
-            'related_type'     => Supplier_invoice::class,
-            'related_id'       => $invoice->id,
-            'description'       => 'مصروفات فواتير',
-            'date' => $invoice->invoice_date,
-        ]);
-
-        // 4. تسجيل حركات المحافظ
-        $cash_wallet->movements()->create([
-            'amount' => -$cost_total,
-            'direction' => 'out',
-            'note' => 'دفع مصروفات فاتورة شراء',
-            'source_code' => $invoice->invoice_code
-        ]);
-
-        if($supplier->account->current_balance >= 0){
-            // 5. عمل مديوينة خارجية 
-            $invoice->debts()->create([
-                'description'   => 'فاتورة شراء للمورد ' . $invoice->supplier->name,
-                'amount'        => $total_amount_invoice,
-                'paid'          => 0,
-                'remaining'     => $total_amount_invoice,
-                'is_paid'       => 0,
-                'date' => $invoice->invoice_date,
-            ]);
-        }
-        else {
-            $diff_debt = $total_amount_invoice + $supplier->account->current_balance;
-            // عمل مديونية خارجية بباقي القيمة
-            if($diff_debt == 0){
-                $invoice->update([
-                    'total_amount_invoice' => $total_amount_invoice,
-                    'paid_amount' => $total_amount_invoice,
-                    'invoice_staute' => 1
-                ]);
-            }
-            else {
+    
+            // رصيد المورد الحالي (قد يكون سالباً)
+            $currentBalance = floatval($supplier->account->current_balance ?? 0);
+    
+            if ($currentBalance >= 0) {
+                // لا يوجد رصيد يغطي الفاتورة -> نسجل دين كامل
                 $invoice->debts()->create([
                     'description'   => 'فاتورة شراء للمورد ' . $invoice->supplier->name,
                     'amount'        => $total_amount_invoice,
-                    'paid'          => $diff_debt,
-                    'remaining'     => $diff_debt,
+                    'paid'          => 0,
+                    'remaining'     => $total_amount_invoice,
                     'is_paid'       => 0,
                     'date' => $invoice->invoice_date,
                 ]);
                 $invoice->update([
-                    'total_amount_invoice' => $total_amount_invoice,
-                    'paid_amount' => $diff_debt,
+                    'paid_amount' => 0,
                     'invoice_staute' => 2
                 ]);
+            } else {
+                // يوجد رصيد للمورد (قيمة سالبة في current_balance تعني أنه "له فلوس")
+                $availableCredit = abs($currentBalance); // قيمة موجبة
+                if ($availableCredit >= $total_amount_invoice) {
+                    // الرصيد يكفي لتسديد الفاتورة بالكامل
+                    $invoice->debts()->delete();
+                    $invoice->update([
+                        'paid_amount' => $total_amount_invoice,
+                        'invoice_staute' => 1
+                    ]);
+                } else {
+                    // الرصيد يغطي جزء من الفاتورة فقط
+                    $paidFromCredit = $availableCredit;
+                    $remaining = $total_amount_invoice - $paidFromCredit;
+    
+                    $invoice->debts()->create([
+                        'description'   => 'فاتورة شراء للمورد ' . $invoice->supplier->name,
+                        'amount'        => $total_amount_invoice,
+                        'paid'          => $paidFromCredit,
+                        'remaining'     => $remaining,
+                        'is_paid'       => 0,
+                        'date' => $invoice->invoice_date,
+                    ]);
+    
+                    $invoice->update([
+                        'paid_amount' => $paidFromCredit,
+                        'invoice_staute' => 2
+                    ]);
+                }
             }
+    
+            // تحديث رصيد المورد: زيادة بمقدار قيمة الفاتورة (يعكس حالة الحساب صافي)
+            $supplier->account->increment('current_balance', $total_amount_invoice);
+    
+            // 6. عمل ستوك المخزن 
+            $this->updateStock($request, $invoice);
+    
+            DB::commit();
+            return redirect()->route('supplier.account.show', $request->supplier_id)->with('success', 'تم إنشاء فاتورة مورد بنجاح');
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return redirect()->back()->with('error', 'حدث خطأ: ' . $e->getMessage());
         }
-
-        // تحديث رصيد المورد
-        $supplier->account->increment('current_balance', $total_amount_invoice);
-
-        // 6. عمل ستوك المخزن 
-        $this->updateStock($request, $invoice);
-
-        return redirect()->route('supplier.account.show', $request->supplier_id)->with('success', 'تم إنشاء فاتورة مورد بنجاح');   
     }
 
     protected function generateNum()

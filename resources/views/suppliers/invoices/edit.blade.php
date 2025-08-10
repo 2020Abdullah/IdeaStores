@@ -345,12 +345,9 @@ $(function () {
 
         if(symbol === 'سم'){
             pricePerMM = size * purchase_price;
-            row.find('.length').attr('readonly', false);
         }
         else {
             pricePerMM = 0;
-            row.find('.length').attr('readonly', true);
-            row.find('.length').val(size);
         }
 
         row.find('.pricePerMeter').val(pricePerMM);  

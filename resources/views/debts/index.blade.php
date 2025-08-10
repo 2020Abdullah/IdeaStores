@@ -27,7 +27,7 @@
             <div class="col">
                 <div class="card-balance">
                     <h3>الديون الخارجية</h3>
-                    <h4>{{ number_format( $debts->sum('amount')  - $debts->sum('paid') ) }} EGP</h4>
+                    <h4>{{ number_format($debts->sum('remaining')) }} EGP</h4>
                 </div>
             </div>
         </div>
