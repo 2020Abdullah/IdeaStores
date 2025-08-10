@@ -25,7 +25,7 @@
         <div class="card-header">
             <h3 class="card-title">كشف حساب مورد : {{ $supplier->name }}</h3>
             <div class="card-action">
-                <form action="{{ route('supplier.account.export') }}" method="POST">
+                <form action="{{ route('supplier.account.export') }}" method="POST" target="_blank">
                     @csrf
                     <input type="hidden" value="{{ $supplier->id }}" name="supplier_id">
                     <button type="submit" class="btn btn-success waves-effect waves-float waves-light">تصدير PDF</button>

@@ -84,7 +84,7 @@
             </p>
         </div>
     
-        <!-- Items Table -->
+        <!-- invoices Table -->
         <h4>الفواتير:</h4>
         <table>
             <thead>
@@ -122,6 +122,37 @@
                                 <span class="badge badge-glow bg-success">مدفوعة</span>
                             @endif
                         </td>
+                    </tr>
+                @endforeach
+            </tbody>
+        </table>
+        
+        <!-- payments Table -->
+        <h4>الدفعات:</h4>
+        <table>
+            <thead>
+                <tr>
+                    <th>رقم الدفعة</th>
+                    <th>تاريخ الدفعة</th>
+                    <th>مبلغ الدفعة</th>
+                    <th>طريقة الدفع</th>
+                    <th>البيان</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach ($supplier->paymentTransactions as $trans)
+                    <tr>
+                        <td>{{ $loop->iteration }}</td>
+                        <td>{{ $trans->payment_date }}</td>
+                        <td>
+                            @if($trans->direction === 'out')
+                                <span class="text-danger">-{{ number_format($trans->amount, 2) }}</span>
+                            @else
+                                <span class="text-success">+{{ number_format($trans->amount, 2) }}</span>
+                            @endif
+                        </td>
+                        <td>{{ ucfirst($trans->method) }}</td>
+                        <td>{{ $trans->description }}</td>
                     </tr>
                 @endforeach
             </tbody>
