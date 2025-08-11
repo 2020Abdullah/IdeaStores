@@ -39,8 +39,8 @@
                     <div class="card">
                         <div class="card-body">
                             <div class="card-balance">
-                                <h3>الرصيد المستحق</h3>
-                                <h4>{{ number_format($supplier->account->current_balance) }}</h4>
+                                <h3>الرصيد</h3>
+                                <h4>{{ number_format(-$supplier->account->current_balance) }}</h4>
                             </div>
                         </div>
                     </div>

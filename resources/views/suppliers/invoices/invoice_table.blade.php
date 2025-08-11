@@ -13,7 +13,11 @@
         <tr>
             <td>{{ $inv->invoice_code }}</td>
             <td>{{ $inv->invoice_date }}</td>
-            <td>{{ $inv->supplier->name }}</td>
+            <td>
+                <a href="{{ route('supplier.account.show', $inv->supplier->id) }}">
+                    {{ $inv->supplier->name }}
+                </a>
+            </td>
             <td>
                 @if ($inv->invoice_type === 'cash')
                     <span>كاش</span>

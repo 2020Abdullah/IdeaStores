@@ -65,7 +65,7 @@
                 </div>
                 <div class="mb-2">
                     <label class="form-label">نوع الفاتورة</label>
-                    <input type="hidden" class="form-control" value="{{ $invoice->invoice_type }}" name="invoice_type">                        
+                    <input type="hidden" class="form-control invoice_type" value="{{ $invoice->invoice_type }}" name="invoice_type">                        
                     @if ($invoice->invoice_type === 'credit')
                         <input type="text" class="form-control" value="آجل" readonly>                        
                     @elseif($invoice->invoice_type === 'cash')
@@ -78,7 +78,7 @@
                     <div class="mb-2">
                         <label class="form-label">رصيد افتتاحي</label>
                         <input type="hidden" class="form-control" name="opening_balance_old" value="{{ $invoice->total_amount_invoice }}">
-                        <input type="number" class="form-control" name="opening_balance" value="{{ $invoice->total_amount_invoice }}">
+                        <input type="number" class="form-control opening_balance" name="opening_balance" value="{{ $invoice->total_amount_invoice }}">
                     </div>
                 @else   
                     <div class="mb-2">
@@ -543,10 +543,10 @@ $(function () {
         let isValid = true;
         let message = "";
 
-        let invoice_type = $(this).find('option:selected').val();
+        let invoice_type = $('.invoice_type').val();
 
         if (invoice_type === 'opening_balance') {
-            let opening_balance_value = $(".opening_balance_value").val();
+            let opening_balance_value = $(".opening_balance").val();
             if (!opening_balance_value) {
                 toastr.info('يجب ملئ حقل الرصيد الإفتتاحي');
                 return; // وقف مباشرة

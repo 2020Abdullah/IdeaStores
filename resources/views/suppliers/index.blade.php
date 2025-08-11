@@ -61,7 +61,7 @@
                         </div>
                     </th>
                     <th>اسم المورد</th>
-                    <th>الرصيد المستحق</th>
+                    <th>الرصيد</th>
                     <th>إجراء</th>
                 </tr>
                 @forelse ($suppliers_list as $s)
@@ -76,7 +76,7 @@
                                 {{ $s->name }}
                             </a>
                         </td>
-                        <td>{{ number_format($s->account->current_balance ) }}</td>
+                        <td>{{ number_format(-$s->account->current_balance ) }}</td>
                         <td>
                             <a href="{{ route('supplier.edit', $s->id) }}" class="btn btn-success waves-effect">
                                 <i data-feather='edit'></i>

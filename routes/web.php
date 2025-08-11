@@ -141,8 +141,8 @@ Route::middleware('auth')->group(function(){
 
     // backup
     Route::get('/backup', fn() => view('backup'))->name('backup.view');
-    Route::post('/backup/create', [BackupController::class, 'createBackup'])->name('backup.create');
-    Route::post('/backup/restore', [BackupController::class, 'restoreBackup'])->name('backup.restore');
+    Route::post('/backup/create', [BackupController::class, 'downloadBackup'])->name('backup.create');
+    Route::post('/backup/restore', [BackupController::class, 'restoreBackupFlexible'])->name('backup.restore');
 
 });
 

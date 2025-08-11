@@ -5,93 +5,92 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
 
 class BackupController extends Controller
 {
   // إنشاء نسخة احتياطية وتحميلها
-  public function createBackup()
-  {
-      // بيانات الاتصال بقاعدة البيانات من config
-      $dbHost = config('database.connections.mysql.host');
-      $dbPort = config('database.connections.mysql.port') ?? 3306;
-      $dbName = config('database.connections.mysql.database');
-      $dbUser = config('database.connections.mysql.username');
-      $dbPass = config('database.connections.mysql.password');
+    public function downloadBackup()
+    {
+        try {
+            $db = config('database.connections.mysql');
 
-      // مسار حفظ النسخة مع اسم ملف يحتوي التاريخ والوقت
-      $fileName = 'backup-' . date('Y-m-d_H-i-s') . '.sql';
-      $filePath = storage_path('app/' . $fileName);
+            // مسار ملف النسخة الاحتياطية
+            $backupFile = storage_path('app/backup_' . date('Y-m-d_H-i-s') . '.sql');
 
-      // مسار mysqldump.exe في ويندوز (تعديل حسب جهازك)
-      $mysqldumpPath = 'C:\\laragon\\bin\\mysql\\mysql-8.0.30-winx64\\bin\\mysqldump.exe';
+            // مسار mysqldump (عدله حسب جهازك)
+            $mysqldumpPath = 'C:\\laragon\\bin\\mysql\\mysql-8.0.30-winx64\\bin\\mysqldump.exe';
 
-      // أمر النسخ الاحتياطي
-      $command = "\"$mysqldumpPath\" --user=$dbUser --password=$dbPass --host=$dbHost --port=$dbPort $dbName > \"$filePath\"";
+            // أمر النسخ الاحتياطي
+            $command = "\"$mysqldumpPath\" --user={$db['username']} --password=\"{$db['password']}\" --host={$db['host']} {$db['database']} > \"$backupFile\"";
 
-      // تنفيذ الأمر
-      exec($command, $output, $returnVar);
+            exec($command, $output, $returnVar);
 
-      if ($returnVar !== 0) {
-          return back()->with('error', 'فشل عمل النسخة الاحتياطية.');
-      }
+            if ($returnVar !== 0) {
+                return back()->with('error', '❌ فشل إنشاء النسخة الاحتياطية.');
+            }
 
-      // تحميل الملف للمستخدم بعد إنشائه
-      response()->download($filePath);
+            // إرجاع الملف للتحميل
+            return response()->download($backupFile)->deleteFileAfterSend(true);
 
-      return back()->with('success', 'تم إنشاء نسخة احتياطية بنجاح.');
-  }
+        } catch (\Exception $e) {
+            return back()->with('error', 'خطأ: ' . $e->getMessage());
+        }
+    }
 
-  // استعادة نسخة احتياطية مع حذف كل البيانات القديمة
-  public function restoreBackup(Request $request)
-  {
-      $request->validate([
-        'backup_file' => 'required|file',
-      ]);
+    // استعادة نسخة احتياطية
+    public function restoreBackupFlexible(Request $request)
+    {
+        $request->validate([
+            'backup_file' => 'required|file',
+        ]);
 
-      try {
-          $file = $request->file('backup_file');
+        try {
+            $file = $request->file('backup_file');
+            $sqlContent = file_get_contents($file->getRealPath());
 
-          // حفظ الملف مؤقتًا في storage/app
-          $path = $file->storeAs('', 'restore_temp.sql');
+            // تقسيم أوامر SQL
+            $statements = array_filter(array_map('trim', explode(";", $sqlContent)));
 
-          $dbName = config('database.connections.mysql.database');
+            foreach ($statements as $stmt) {
+                if (stripos($stmt, 'CREATE TABLE') === 0) {
+                    // استخراج اسم الجدول
+                    preg_match('/CREATE TABLE `?(\w+)`?/i', $stmt, $matches);
+                    $tableName = $matches[1] ?? null;
 
-          // جلب أسماء الجداول في قاعدة البيانات
-          $tables = DB::select('SHOW TABLES');
+                    if ($tableName) {
+                        // إذا الجدول موجود → أضف الحقول الجديدة فقط
+                        if (Schema::hasTable($tableName)) {
+                            // جلب الأعمدة فقط من CREATE TABLE (استثناء أول سطر لأنه اسم الجدول)
+                            preg_match_all('/^\s*`([^`]+)`\s+([^,]+)/m', $stmt, $matches, PREG_SET_ORDER);
+                        
+                            foreach ($matches as $match) {
+                                $col = $match[1]; // اسم العمود
+                                $colType = trim($match[2]); // نوع العمود
+                        
+                                if (!Schema::hasColumn($tableName, $col)) {
+                                    DB::statement("ALTER TABLE `$tableName` ADD `$col` $colType");
+                                }
+                            }
+                        }
+                        else {
+                            // الجدول غير موجود → أنشئه
+                            DB::statement($stmt);
+                        }
+                    }
+                }
+                elseif (stripos($stmt, 'INSERT INTO') === 0) {
+                    // تعديل INSERT ليصبح مرنًا
+                    $stmt = preg_replace('/INSERT INTO/i', 'INSERT IGNORE INTO', $stmt);
+                    DB::statement($stmt);
+                }
+            }
 
-          $key = 'Tables_in_' . $dbName;
+            return back()->with('success',  'تمت الاستعادة بنجاح.');
 
-          // تعطيل الفحص المفاتيح الأجنبية لتجنب مشاكل الحذف
-          DB::statement('SET FOREIGN_KEY_CHECKS=0;');
-
-          foreach ($tables as $table) {
-              DB::statement('DROP TABLE IF EXISTS `' . $table->$key . '`');
-          }
-
-          DB::statement('SET FOREIGN_KEY_CHECKS=1;');
-
-          // إعداد أمر استعادة النسخة (تعديل مسار mysql.exe حسب جهازك)
-          $db = config('database.connections.mysql');
-
-          $mysqlPath = 'C:\\laragon\\bin\\mysql\\mysql-8.0.30-winx64\\bin\\mysql.exe';
-
-          $restoreCommand = "\"$mysqlPath\" --user={$db['username']} --password=\"{$db['password']}\" --host={$db['host']} {$dbName} < " . storage_path("app/restore_temp.sql");
-
-          // تنفيذ الأمر
-          exec($restoreCommand, $output, $return_var);
-
-          // حذف الملف المؤقت بعد الاستعادة
-          Storage::delete('restore_temp.sql');
-
-          if ($return_var !== 0) {
-              return back()->with('error', 'فشل في استعادة النسخة الاحتياطية.');
-          }
-
-          return back()->with('success', 'تمت استعادة النسخة بنجاح.');
-
-      } catch (\Exception $e) {
-          return back()->with('error', 'خطأ أثناء الاستعادة: ' . $e->getMessage());
-      }
-  }
+        } catch (\Exception $e) {
+            return $e->getMessage();
+        }
+    }
 }
