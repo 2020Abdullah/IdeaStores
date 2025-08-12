@@ -137,7 +137,7 @@
                             @endif
                         </td>
                         <td>{{ number_format($invoice->total_amount_invoice) }} EGP</td>
-                        <td>{{ number_format(-$invoice->paid_amount) }} EGP</td>
+                        <td>{{ number_format($invoice->paid_amount) }} EGP</td>
                         <td>
                             @if ($invoice->invoice_staute == 0)
                                 <span class="badge badge-glow bg-danger">غير مدفوع</span>

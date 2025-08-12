@@ -257,71 +257,83 @@ class InvoicePurchaseController extends Controller
             $fullyPaidInvoicesSum = Supplier_invoice::where('supplier_id', $supplier->id)
                 ->where('invoice_staute', 1)
                 ->sum('total_amount_invoice');
-
-            $remainingPayments = $totalPayments - $fullyPaidInvoicesSum;
-            if ($remainingPayments < 0) $remainingPayments = 0;
-
-            $unpaidInvoices = Supplier_invoice::where('supplier_id', $supplier->id)
-                ->where('invoice_staute', '!=', 1)
-                ->orderBy('invoice_date')
-                ->orderBy('id')
-                ->get();
-
-            foreach ($unpaidInvoices as $invoice) {
-                $remainingInvoice = $invoice->total_amount_invoice - $invoice->paid_amount;
-            
-                if ($remainingPayments >= $remainingInvoice) {
-                    // دفع كامل الفاتورة
-                    $invoice->update([
-                        'paid_amount' => $invoice->total_amount_invoice,
-                        'invoice_staute' => 1,
-                    ]);
-                    // حذف أي دين مرتبط
-                    if ($invoice->debts) {
-                        $invoice->debts->delete();
-                    }
-                    $remainingPayments -= $remainingInvoice;
-                } elseif ($remainingPayments > 0) {
-                    // دفع جزئي
-                    $newPaidAmount = $invoice->paid_amount + $remainingPayments;
-                    $invoice->update([
-                        'paid_amount' => $newPaidAmount,
-                        'invoice_staute' => 2,
-                    ]);
-                    // تحديث أو إنشاء الدين
-                    if ($invoice->debts) {
-                        $invoice->debts->update([
-                            'paid' => $newPaidAmount,
-                            'remaining' => $invoice->total_amount_invoice - $newPaidAmount,
-                            'is_paid' => 0,
+            if($supplier->account->current_balance < 0){
+    
+                $remainingPayments = $totalPayments - $fullyPaidInvoicesSum;
+                if ($remainingPayments < 0) $remainingPayments = 0;
+    
+                $unpaidInvoices = Supplier_invoice::where('supplier_id', $supplier->id)
+                    ->where('invoice_staute', '!=', 1)
+                    ->orderBy('invoice_date')
+                    ->orderBy('id')
+                    ->get();
+    
+                foreach ($unpaidInvoices as $invoice) {
+                    $remainingInvoice = $invoice->total_amount_invoice - $invoice->paid_amount;
+                
+                    if ($remainingPayments >= $remainingInvoice) {
+                        // دفع كامل الفاتورة
+                        $invoice->update([
+                            'paid_amount' => $invoice->total_amount_invoice,
+                            'invoice_staute' => 1,
                         ]);
+                        // حذف أي دين مرتبط
+                        if ($invoice->debts) {
+                            $invoice->debts->delete();
+                        }
+                        $remainingPayments -= $remainingInvoice;
+                    } elseif ($remainingPayments > 0) {
+                        // دفع جزئي
+                        $newPaidAmount = $invoice->paid_amount + $remainingPayments;
+                        $invoice->update([
+                            'paid_amount' => $newPaidAmount,
+                            'invoice_staute' => 2,
+                        ]);
+                        // تحديث أو إنشاء الدين
+                        if ($invoice->debts) {
+                            $invoice->debts->update([
+                                'paid' => $newPaidAmount,
+                                'remaining' => $invoice->total_amount_invoice - $newPaidAmount,
+                                'is_paid' => 0,
+                            ]);
+                        } else {
+                            $invoice->debts()->create([
+                                'description' => 'دين جزئي على الفاتورة',
+                                'amount' => $invoice->total_amount_invoice,
+                                'paid' => $newPaidAmount,
+                                'remaining' => $invoice->total_amount_invoice - $newPaidAmount,
+                                'is_paid' => 0,
+                                'date' => $invoice->invoice_date,
+                            ]);
+                        }
+                
+                        $remainingPayments = 0;
+                        break;
                     } else {
-                        $invoice->debts()->create([
-                            'description' => 'دين جزئي على الفاتورة',
-                            'amount' => $invoice->total_amount_invoice,
-                            'paid' => $newPaidAmount,
-                            'remaining' => $invoice->total_amount_invoice - $newPaidAmount,
-                            'is_paid' => 0,
-                            'date' => $invoice->invoice_date,
-                        ]);
+                        // لم يتم دفع أي مبلغ على هذه الفاتورة
+                        if (!$invoice->debts) {
+                            $invoice->debts()->create([
+                                'description' => 'دين كامل على الفاتورة',
+                                'amount' => $invoice->total_amount_invoice,
+                                'paid' => 0,
+                                'remaining' => $invoice->total_amount_invoice,
+                                'is_paid' => 0,
+                                'date' => $invoice->invoice_date,
+                            ]);
+                        }
+                        break;
                     }
-            
-                    $remainingPayments = 0;
-                    break;
-                } else {
-                    // لم يتم دفع أي مبلغ على هذه الفاتورة
-                    if (!$invoice->debts) {
-                        $invoice->debts()->create([
-                            'description' => 'دين كامل على الفاتورة',
-                            'amount' => $invoice->total_amount_invoice,
-                            'paid' => 0,
-                            'remaining' => $invoice->total_amount_invoice,
-                            'is_paid' => 0,
-                            'date' => $invoice->invoice_date,
-                        ]);
-                    }
-                    break;
                 }
+            }
+            else {
+                $invoice->debts()->create([
+                    'description' => 'دين كامل على الفاتورة',
+                    'amount' => $invoice->total_amount_invoice,
+                    'paid' => 0,
+                    'remaining' => $invoice->total_amount_invoice,
+                    'is_paid' => 0,
+                    'date' => $invoice->invoice_date,
+                ]);
             }
                 
 
