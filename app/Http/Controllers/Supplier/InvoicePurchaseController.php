@@ -405,15 +405,21 @@ class InvoicePurchaseController extends Controller
         //     return back()->with('info', 'رصيد المحفظة غير كافي لإجراء هذه العملية .');
         // }
 
-        // الخزنة الفرعية
-        $warehouse->account()->decrement('current_balance', $total_amount);
-        
-        // المحفظة
-        $wallet->decrement('current_balance', $total_amount);
 
-        // المورد
-        $supplier->account()->increment('current_balance', $total_amount_invoice);
-        $supplier->account()->decrement('current_balance', $total_amount_invoice);
+        $totalPaid = $supplier->paymentTransactions()
+        ->get()
+        ->sum(function ($payment) {
+            return abs($payment->amount);
+        });
+
+        // تحديث رصيد المورد
+        $totalInvoicesSum = Supplier_invoice::where('supplier_id', $supplier->id)->sum('total_amount_invoice');
+
+        $newBalance = $totalInvoicesSum - $totalPaid;
+
+        $supplier->account()->update([
+            'current_balance' => $newBalance,
+        ]);
 
         // 2. إنشاء الفاتورة 
         $invoice = Supplier_invoice::create([
@@ -874,6 +880,22 @@ class InvoicePurchaseController extends Controller
     
             Wallet_movement::where('source_code', $invoice->invoice_code)->update([
                 'amount' => -$newAmount
+            ]);
+
+            // تحديث رصيد المورد
+            $supplier = Supplier::findOrFail($request->supplier_id);
+            $totalPaid = $supplier->paymentTransactions()
+            ->get()
+            ->sum(function ($payment) {
+                return abs($payment->amount);
+            });
+
+            $totalInvoicesSum = Supplier_invoice::where('supplier_id', $supplier->id)->sum('total_amount_invoice');
+
+            $newBalance = $totalInvoicesSum - $totalPaid;
+
+            $supplier->account()->update([
+                'current_balance' => $newBalance,
             ]);
     
             // ضبط المخزون بعد التعديل
