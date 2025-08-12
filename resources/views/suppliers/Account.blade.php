@@ -95,6 +95,52 @@
     <!-- الفواتير -->
     <div class="card">
         <div class="card-header">
+            <h3 class="card-title">بحث متقدم</h3>
+        </div>
+        <div class="card-body">
+            <form action="{{ route('supplier.invoice.filter') }}" id="searchForm" method="POST">
+                @csrf
+                <input type="hidden" name="supplier_id" value="{{ $supplier->id }}" class="supplier_id">
+                <div class="row">
+                    <div class="col-md-4 mb-1">
+                        <label class="form-label">من</label>
+                        <input type="date" class="form-control start_date" name="start_date" placeholder="YYY-MMM-DDD">
+                    </div>
+                    <div class="col-md-4 mb-1">
+                        <label class="form-label">إلي</label>
+                        <input type="date" class="form-control end_date" name="end_date" placeholder="YYY-MMM-DDD">
+                    </div>
+                    <div class="col-md-4 mb-1">
+                        <label class="form-label">نوع الفاتورة</label>
+                        <select name="invoice_type" class="form-select">
+                            <option value="">اختر ...</option>
+                            <option value="cash">كاش</option>
+                            <option value="credit">آجل</option>
+                        </select>
+                    </div>
+                    <div class="col-md-4 mb-1">
+                        <label class="form-label">حالة الفاتورة</label>
+                        <select name="invoice_staute" class="form-select">
+                            <option value="">اختر ...</option>
+                            <option value="1">مدفوعة</option>
+                            <option value="0">غير مدفوعة</option>
+                            <option value="2">دفع جزئي</option>
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">بحث بكود الفاتورة ...</label>
+                        <input type="text" class="form-control searchCode" name="searchCode" placeholder="بحث بكود الفاتورة ...">
+                    </div>
+                    <div class="col-md-4">
+                        <button type="submit" class="btn btn-outline-success waves-effect mt-2">بحث</button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-header">
             <h3 class="card-title">فواتير المورد</h3>
             <div class="card-action">
                 <a href="{{ route('supplier.target.invoice.add', $supplier->id) }}" class="btn btn-success waves-effect waves-float waves-light">
@@ -113,74 +159,11 @@
         </div>
         <div class="card-body">
             <div class="table-responsive">
-                <table class="table table-bordered">
-                    <tr>
-                        <th>كود الفاتورة</th>
-                        <th>تاريخ الفاتورة</th>
-                        <th>اسم المورد</th>
-                        <th>نوع الفاتورة</th>
-                        <th>إجمالي الفاتورة</th>
-                        <th>المبلغ المدفوع</th>
-                        <th>حالة الفاتورة</th>
-                        <th>إجراء</th>
-                    </tr>
-                    @foreach ($supplier_invoices as $inv)
-                        <tr>
-                            <td>{{ $inv->invoice_code }}</td>
-                            <td>{{ $inv->invoice_date }}</td>
-                            <td>{{ $inv->supplier->name }}</td>
-                            <td>
-                                @if ($inv->invoice_type === 'cash')
-                                    <span>كاش</span>
-                                @elseif($inv->invoice_type === 'credit')
-                                    <span>آجل</span>
-                                @else
-                                    <span>رصيد افتتاحي</span>
-                                @endif
-                            </td>
-                            <td>{{ number_format($inv->total_amount_invoice) }} EGP</td>
-                            <td>{{ number_format($inv->paid_amount) }} EGP</td>
-                            <td>
-                                @if ($inv->invoice_staute == 0)
-                                    <span class="badge badge-glow bg-danger">غير مدفوع</span>
-                                @elseif($inv->invoice_staute == 2)
-                                    <span class="badge badge-glow bg-warning">لم يتم التصفية</span>
-                                @else
-                                    <span class="badge badge-glow bg-success">مدفوعة</span>
-                                @endif
-                            </td>
-                            <td>
-                                @if ($inv->invoice_type !== 'opening_balance')
-                                    <a href="{{ route('supplier.invoice.show', $inv->invoice_code) }}"
-                                    class="btn btn-icon btn-info waves-effect waves-float waves-light editBtn"
-                                    title="عرض">
-                                        <i data-feather='eye'></i>
-                                    </a>                                
-                                @endif
-    
-                                <a href="{{ route('supplier.invoice.edit', $inv->id) }}"
-                                   class="btn btn-icon btn-success waves-effect waves-float waves-light editBtn"
-                                   title="تعديل">
-                                    <i data-feather='edit'></i>
-                                </a>
-                
-                                {{-- <a href="#" data-bs-toggle="modal" data-bs-target="#delInvoice"
-                                    data-id="{{ $inv->id }}"
-                                    data-total_amount="{{ $inv->total_amount }}"
-                                    data-supplier_id="{{ $inv->supplier_id }}"
-                                   class="btn btn-icon btn-danger waves-effect waves-float waves-light delBtn"
-                                   title="حذف">
-                                    <i data-feather='trash-2'></i>
-                                </a> --}}
-
-                            </td>
-                        </tr>
-                    @endforeach
-                </table>
+               @include('suppliers.invoices.invoice_table')
             </div>
         </div>
         <div class="card-footer">
-            {{ $supplier_invoices->links() }}
+            {{ $invoices_list->links() }}
         </div>
     </div>
 
@@ -251,15 +234,29 @@
 @section('js')
     <script>
         $(document).ready(function(){
-            // delete action
-            // $(".delBtn").on('click', function(){
-            //     let id = $(this).data('id');
-            //     let total_amount = $(this).data('total_amount');
-            //     let supplier_id = $(this).data('supplier_id');
-            //     $("#delInvoice .id").val(id);
-            //     $("#delInvoice .supplier_id").val(supplier_id);
-            //     $("#delInvoice .total_amount").val(total_amount);
-            // })
+            // filter search 
+            $(document).on('submit', '#searchForm', function(e){
+                e.preventDefault();
+                let formData = $(this).serialize();
+                $.ajax({
+                    url: "{{ route('filterBySupplier') }}",
+                    method: 'POST',
+                    data: formData,
+                    beforeSend: function () {
+                        $('#loading-excute').fadeIn(500);
+                    },
+                    success: function (response) {
+                        $('.table-responsive').html(response);
+                    },
+                    error: function(xhr){
+                        console.log(xhr);
+                    },
+                    complete: function(){
+                        $('#loading-excute').fadeOut(500);
+                        feather.replace();
+                    }
+                });
+            })
 
             // payment Balance
             $(".paymentBtn").on('click', function(){

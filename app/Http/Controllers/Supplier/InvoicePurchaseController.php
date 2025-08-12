@@ -1123,4 +1123,36 @@ class InvoicePurchaseController extends Controller
         return view('suppliers.invoices.invoice_table', ['invoices_list' => $invoices_list])->render();
     }
 
+    public function filterBySupplier(Request $request)
+    {
+        $query = Supplier_invoice::where('supplier_id', $request->supplier_id);
+    
+        if ($request->filled('searchCode')) {
+            $query->where('invoice_code', $request->searchCode);
+        }
+    
+        if ($request->filled('invoice_type')) {
+            $query->where('invoice_type', $request->invoice_type);
+        }
+
+        if ($request->filled('invoice_staute')) {
+            $query->where('invoice_staute', $request->invoice_staute);
+        }
+        
+        if ($request->filled('start_date')) {
+            $query->whereDate('invoice_date', '>=', $request->start_date);
+        }
+    
+        if ($request->filled('end_date')) {
+            $query->whereDate('invoice_date', '<=', $request->end_date);
+        }
+    
+        $invoices_list = $query->orderBy('invoice_date', 'desc')->paginate(100);
+    
+        return view('suppliers.invoices.invoice_table', [
+            'invoices_list' => $invoices_list
+        ])->render();
+    }
+    
+
 }

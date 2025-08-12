@@ -155,9 +155,9 @@
                         </a>
                     </li>
                     <li>
-                        <a class="d-flex align-items-center" href="{{ route('storesHouse.index') }}">
+                        <a class="d-flex align-items-center" href="{{ route('stock.index') }}">
                             <i data-feather='circle'></i>
-                            <span class="menu-item text-truncate">المخزن</span>
+                            <span class="menu-item text-truncate">المخزون</span>
                         </a>
                     </li>
                 </ul>

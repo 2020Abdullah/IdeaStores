@@ -120,7 +120,7 @@ class SupplierController extends Controller
         $data['warehouse_list'] = Warehouse::where('is_main', 0)->get();
         $data['supplier'] = Supplier::findOrFail($id);
         $data['payments'] = $data['supplier']->paymentTransactions()->paginate(100);
-        $data['supplier_invoices'] = Supplier_invoice::where('supplier_id' , $id)->paginate(100);
+        $data['invoices_list'] = Supplier_invoice::where('supplier_id' , $id)->paginate(100);
         return view('suppliers.Account', $data);
     }
 

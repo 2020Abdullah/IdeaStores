@@ -10,6 +10,7 @@ use App\Http\Controllers\BackupController;
 use App\Http\Controllers\ExponseItemController;
 use App\Http\Controllers\ExternalDebtsController;
 use App\Http\Controllers\SizeController;
+use App\Http\Controllers\StockController;
 use App\Http\Controllers\StoreHouseController;
 use App\Http\Controllers\Supplier\InvoicePurchaseController;
 use App\Http\Controllers\Supplier\SupplierController;
@@ -55,10 +56,14 @@ Route::middleware('auth')->group(function(){
 
     // stores 
     Route::get('storesHouse/index', [StoreHouseController::class, 'index'])->name('storesHouse.index');
-    Route::get('storesHouse/product/{id}/show', [StoreHouseController::class, 'show'])->name('storesHouse.product.show');
     Route::get('storesHouse/add', [StoreHouseController::class, 'add'])->name('storesHouse.add');
     Route::post('storesHouse/store', [StoreHouseController::class, 'store'])->name('storesHouse.store');
-
+    
+    // stocks
+    Route::get('mainStore/stocks/index', [StockController::class, 'index'])->name('stock.index');
+    Route::get('mainStore/stock/{id}', [StockController::class, 'show'])->name('stock.show');
+    Route::post('stock/transction/filter', [StockController::class, 'transctionFilter'])->name('transction.filter');
+    
     // add product to stores
     Route::post('stock/store', [StoreHouseController::class, 'addProduct'])->name('addProduct');
 
@@ -113,9 +118,7 @@ Route::middleware('auth')->group(function(){
     Route::get('supplier/invoice/{id}/download', [InvoicePurchaseController::class, 'download'])->name('supplier.invoice.download');
     Route::post('supplier/invoice/payment', [InvoicePurchaseController::class, 'payment'])->name('supplier.invoice.payment');
     Route::post('supplier/invoice/filter', [InvoicePurchaseController::class, 'filter'])->name('supplier.invoice.filter');
-
-    // products prices
-    // Route::get('products/prices', []);
+    Route::post('supplier/invoices/filterBy', [InvoicePurchaseController::class, 'filterBySupplier'])->name('filterBySupplier');
 
     // setting 
     Route::get('setting', [SettingController::class, 'setting'])->name('setting.show');
