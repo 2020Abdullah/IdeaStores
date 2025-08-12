@@ -327,7 +327,7 @@ class InvoicePurchaseController extends Controller
             }
             else {
                 $invoice->debts()->create([
-                    'description' => 'دين كامل على الفاتورة',
+                    'description' => 'دين على الفاتورة',
                     'amount' => $invoice->total_amount_invoice,
                     'paid' => 0,
                     'remaining' => $invoice->total_amount_invoice,
@@ -345,8 +345,7 @@ class InvoicePurchaseController extends Controller
             $supplier->account()->update([
                 'current_balance' => $newBalance,
             ]);
-                        
-
+                    
     
             // 7) تحديث المخزون
             $this->updateStock($request, $invoice);
@@ -802,7 +801,7 @@ class InvoicePurchaseController extends Controller
                         'invoice_staute' => 0,
                     ]);
                     $inv->debts()->create([
-                        'description' => 'دين كامل على الفاتورة للمورد ' . $supplier->name,
+                        'description' => 'دين على الفاتورة للمورد ' . $supplier->name,
                         'amount' => $invoiceAmount,
                         'paid' => 0,
                         'remaining' => $invoiceAmount,
@@ -1049,7 +1048,7 @@ class InvoicePurchaseController extends Controller
             'description' => $request->description ?? 'دفعة مقدمة'
         ]);
     
-        $totalInvoices = Supplier_invoice::where('supplier_id', $supplier->id)->sum('total_amount_invoice');
+        $totalInvoices = Supplier_invoice::where('supplier_id', $supplier->id)->where('invoice_type', '!=', 'cash')->sum('total_amount_invoice');
         $totalPayments = $supplier->paymentTransactions()->sum('amount'); // جميع الدفعات موجبة
         
         $supplierBalance = $totalInvoices - $totalPayments; // الفواتير ناقص الدفعات

@@ -79,15 +79,15 @@
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a class="d-flex align-items-center" href="#">
-                            <i data-feather='credit-card'></i>
-                            <span class="menu-title text-truncate">الموقف المالي</span>
-                        </a>
-                    </li>
-                    <li class="nav-item">
                         <a class="d-flex align-items-center" href="{{ route('warehouse.index') }}">
                             <i data-feather='credit-card'></i>
                             <span class="menu-title text-truncate">الخزن</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="d-flex align-items-center" href="#">
+                            <i data-feather='credit-card'></i>
+                            <span class="menu-title text-truncate">الموقف المالي</span>
                         </a>
                     </li>
                     <li class="nav-item">
