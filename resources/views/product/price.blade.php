@@ -52,7 +52,6 @@
                         <td>{{ $stock->category->full_path }}</td>
                         <td>{{ $stock->product->name }}</td>
                         <td>{{ number_format($stock->cost->base_cost) }}</td>
-                        <td>{{ number_format($stock->cost->cost_share) }}</td>
                         <td>{{ $stock->cost->rate }} %</td>
                         <td>{{ number_format($stock->cost->suggested_price) ?? 0 }}</td>
                         <td>

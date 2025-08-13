@@ -341,7 +341,7 @@ $(function () {
         });
 
         // جمع التكلفة الإضافية
-        let additionalCost = parseInt($('.additional_cost').val().replace(/,/g, '')) || 0;
+        let additionalCost = parseInt($('.additional_cost').val()) || 0;
         total_amount += additionalCost;
 
         // عرض النتيجة

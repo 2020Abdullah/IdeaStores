@@ -151,7 +151,7 @@ class InvoicePurchaseController extends Controller
                         'supplier_id' => $request->supplier_id,
                         'type' => 'in',
                         'quantity' => $quantity_to_add,
-                        'note' => 'شراء (تعديل)',
+                        'note' => 'شراء',
                         'date' => $invoice->invoice_date,
                     ]);
                 } else {
@@ -168,9 +168,9 @@ class InvoicePurchaseController extends Controller
 
             // حساب نصيب الصنف من التكاليف الإضافية
             if ($costs && is_array($costs) && $request->additional_cost > 0) {
-                $total_invoice_amount = $request->total_amount_invoice;
-                $general_cost = $request->additional_cost;
-                $item_total_price = $item['total_price'];
+                $total_invoice_amount = $this->normalizeNumber($request->total_amount_invoice);
+                $general_cost = $this->normalizeNumber($request->additional_cost);
+                $item_total_price = $this->normalizeNumber($item['total_price']);
 
                 $item_percentage = $item_total_price / $total_invoice_amount;
 
@@ -225,7 +225,7 @@ class InvoicePurchaseController extends Controller
                     $invoice->costs()->create([
                         'expense_item_id' => $cost['exponse_id'],
                         'account_id' => $toridat_warehouse->account->id,
-                        'amount' => $cost['amount'],
+                        'amount' => $this->normalizeNumber($cost['amount']),
                         'note' => 'تكاليف إضافية',
                         'date' => $invoice->invoice_date,
                     ]);
@@ -343,9 +343,8 @@ class InvoicePurchaseController extends Controller
             $newBalance = $totalInvoicesSum - $totalPayments;
 
             $supplier->account()->update([
-                'current_balance' => $newBalance,
-            ]);
-                    
+                'current_balance' => $this->normalizeNumber($newBalance),
+            ]);                    
     
             // 7) تحديث المخزون
             $this->updateStock($request, $invoice);
@@ -357,7 +356,7 @@ class InvoicePurchaseController extends Controller
     
         } catch (\Exception $e) {
             DB::rollBack();
-            return redirect()->back()->with('error', 'حدث خطأ: ' . $e->getMessage());
+            return $e->getMessage();
         }
     }
     
@@ -386,11 +385,16 @@ class InvoicePurchaseController extends Controller
 
     protected function normalizeNumber($number)
     {
-        // احذف كل الفواصل فقط
-        $number = str_replace(',', '', $number);
+        if (is_null($number) || $number === '') {
+            return 0;
+        }
     
-        return floatval($number);
-    }    
+        // احذف الفواصل والمسافات
+        $number = preg_replace('/[^\d.\-]/', '', $number);
+    
+        return is_numeric($number) ? floatval($number) : 0;
+    }
+      
 
     protected function cash($request){
         $wallet = Wallet::findOrFail($request->wallet_id);
