@@ -851,7 +851,6 @@ class InvoicePurchaseController extends Controller
     
             $total_amount = $this->normalizeNumber($request->total_amount);
             $newAmount    = $this->normalizeNumber($request->total_amount_invoice);
-            $oldAmount    = $invoice->total_amount_invoice;
             $cost_total   = $this->normalizeNumber($request->additional_cost);
     
             // تحديث بيانات الفاتورة
@@ -860,7 +859,7 @@ class InvoicePurchaseController extends Controller
                 'total_amount'         => $total_amount,
                 'total_amount_invoice' => $newAmount,
                 'paid_amount'          => $newAmount, // كاش → مدفوع بالكامل
-                'cost_price'           => $request->additional_cost,
+                'cost_price'           => $cost_total,
                 'notes'                => $request->notes,
             ]);
     
@@ -879,29 +878,13 @@ class InvoicePurchaseController extends Controller
     
             // تعديل حركة المعاملات (الخزنة) حسب المبلغ الجديد
             Account_transactions::where('source_code', $invoice->invoice_code)->update([
-                'amount' => -$newAmount
+                'amount' => -$total_amount
             ]);
     
             Wallet_movement::where('source_code', $invoice->invoice_code)->update([
-                'amount' => -$newAmount
+                'amount' => -$total_amount
             ]);
 
-            // تحديث رصيد المورد
-            $supplier = Supplier::findOrFail($request->supplier_id);
-            $totalPaid = $supplier->paymentTransactions()
-            ->get()
-            ->sum(function ($payment) {
-                return abs($payment->amount);
-            });
-
-            $totalInvoicesSum = Supplier_invoice::where('supplier_id', $supplier->id)->sum('total_amount_invoice');
-
-            $newBalance = $totalInvoicesSum - $totalPaid;
-
-            $supplier->account()->update([
-                'current_balance' => $newBalance,
-            ]);
-    
             // ضبط المخزون بعد التعديل
             $this->updateStock($request, $invoice);
     
@@ -1163,46 +1146,60 @@ class InvoicePurchaseController extends Controller
         ])->render();
     }
 
-    public function deleteInv(Request $request){
-        /*
-            1- تجميع البيانات
-            2- البحث لو كانت الفاتورة لها دين أم لا لو لها يتم حذف الدين
-            3- نقص الكمية من المخزن
-            4- خصم من الخزنة قيمة الفاتورة بدون تكاليف
-            5- خصم من المورد قيمة الفاتورة
-        */
-        $invoice = Supplier_invoice::where('id' ,$request->id)->first();
-        $supplier = Supplier::where('id' ,$request->supplier_id)->first();
-
-        if($invoice->debts){
-            $invoice->debts()->delete();
-        }
-
-        $stock_movement = Stock_movement::where('source_code', $invoice->invoice_code)->first();
-        $stock_id = $stock_movement->stock_id;
-        
-        $stock = Stock::where('id', $stock_id)->first();
-        $stock->initial_quantity -= $stock_movement->amount;
-        $stock->remaining -= $stock_movement->amount;
-        $stock->save();
-
-        if($stock->initial_quantity <= 0 && $stock->remaining <= 0){
-            $stock->delete();
-        }
-
-        $stock_movement->delete();
-        $transaction = Account_transactions::where('source_code', $invoice->invoice_code)->exists();
-        if($transaction == 1){
-            Account_transactions::where('source_code', $invoice->invoice_code)->delete();
-        }
-
-        $supplier->account()->decrement('current_balance', $invoice->total_amount_invoice);
-
-        $invoice->delete();
-
-        return redirect()->route('supplier.account.show', $supplier->id)->with('success', 'تم عمل مرتجع بنجاح');
-
-    }
+    public function deleteInv(Request $request)
+    {
+        DB::beginTransaction();
+        try {
+            $invoice = Supplier_invoice::findOrFail($request->id);
+            $supplier = Supplier::findOrFail($request->supplier_id);
     
+            // حذف الدين أو المعاملة المالية حسب حالة الفاتورة
+            if ($invoice->debts) {
+                $invoice->debts()->delete();
+            } else {
+                $invoice->transaction()->delete();
+                $invoice->payments()->delete();
+            }
+    
+            // تحديث كل أصناف الفاتورة في الستوك
+            foreach ($invoice->items as $item) {
+                $stock = Stock::where('category_id', $item->category_id)
+                              ->where('product_id', $item->product_id)
+                              ->first();
+    
+                if ($stock) {
+                    $stock->initial_quantity -= $item->quantity;
+                    $stock->remaining_quantity -= $item->quantity;
+    
+                    if ($stock->initial_quantity <= 0 || $stock->remaining_quantity <= 0) {
+                        $stock->delete(); // لو انتهت الكمية نحذف الإستوك
+                    } else {
+                        $stock->save(); // لو فضلت كمية نحفظ التحديث
+                    }
+                }
+            }
+    
+            // حذف حركة الستوك المتعلقة بالفاتورة
+            Stock_movement::where('source_code', $invoice->invoice_code)->delete();
+    
+            // حذف أي معاملات مرتبطة بالفاتورة
+            Account_transactions::where('source_code', $invoice->invoice_code)->delete();
+    
+            // خصم قيمة الفاتورة من رصيد المورد
+            $supplier->account()->decrement('current_balance', $invoice->total_amount_invoice);
+    
+            // حذف الفاتورة نفسها
+            $invoice->delete();
+    
+            DB::commit();
+    
+            return redirect()->route('supplier.account.show', $supplier->id)
+                             ->with('success', 'تم حذف الفاتورة وتحديث الإستوك بنجاح');
+    
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return $e->getMessage();
+        }
+    }
 
 }
