@@ -170,7 +170,7 @@
                 </a>
                 <ul class="menu-content">
                     <li>
-                        <a class="d-flex align-items-center" href="{{ route('supplier.returned_invoices') }}">
+                        <a class="d-flex align-items-center" href="{{ route('supplier.returned.invoices') }}">
                             <i data-feather='circle'></i>
                             <span class="menu-item text-truncate">مرتجعات الموردين</span>
                         </a>

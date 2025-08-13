@@ -121,7 +121,7 @@ Route::middleware('auth')->group(function(){
     Route::post('supplier/invoices/filterBy', [InvoicePurchaseController::class, 'filterBySupplier'])->name('filterBySupplier');
 
     // Invoices Return 
-    Route::get('supplier/returned-invoices', [InvoicePurchaseController::class, 'returnedInvoices'])->name('supplier.returned_invoices');
+    Route::get('supplier/returned-invoices', [InvoicePurchaseController::class, 'returnedInvoices'])->name('supplier.returned.invoices');
     Route::post('supplier/returned-invoices/filter', [InvoicePurchaseController::class, 'filterReturn'])->name('supplier.returned_invoices.filter');
 
 
