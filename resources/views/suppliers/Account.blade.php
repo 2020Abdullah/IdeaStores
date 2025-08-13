@@ -123,8 +123,7 @@
                         <select name="invoice_staute" class="form-select">
                             <option value="">اختر ...</option>
                             <option value="1">مدفوعة</option>
-                            <option value="0">غير مدفوعة</option>
-                            <option value="2">دفع جزئي</option>
+                            <option value="unpaid">غير مدفوعة</option>
                         </select>
                     </div>
                     <div class="col-md-4">
@@ -229,6 +228,29 @@
         </div>
     </div>
 </div>
+
+<!-- model delete invoice -->
+<div class="modal fade text-start modal-danger" id="delInvoice" tabindex="-1" aria-modal="true" role="dialog">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">تحذير !</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form action="{{ route('supplier.invoice.delete') }}" method="POST">
+                @csrf
+                <input type="hidden" name="id" class="id">
+                <input type="hidden" name="supplier_id" class="supplier_id">
+                <div class="modal-body">
+                    <label class="form-label">هل أنت متأكد من عمل مرتجع لهذه الفاتورة لا يمكن التراجع عن هذه العملية ؟</label>
+                </div>
+                <div class="modal-footer">
+                    <button type="submit" class="btn btn-danger waves-effect waves-float waves-light">تأكيد الحذف</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
 @endsection
 
 @section('js')
@@ -256,6 +278,16 @@
                         feather.replace();
                     }
                 });
+            });
+
+            // delete invoice
+            $(document).on('click', '.delBtn', function(e){
+                let id = $(this).data('id');
+                let supplier_id = $(this).data('supplier_id');
+
+                $("#delInvoice .id").val(id);
+                $("#delInvoice .supplier_id").val(supplier_id);
+
             })
 
             // payment Balance

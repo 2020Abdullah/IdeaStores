@@ -167,10 +167,10 @@ class InvoicePurchaseController extends Controller
                 }
 
             // حساب نصيب الصنف من التكاليف الإضافية
-            if ($costs && is_array($costs) && floatval($request->additional_cost) > 0) {
-                $total_invoice_amount = floatval($request->total_amount_invoice) ?: 1;
-                $general_cost = floatval($request->additional_cost);
-                $item_total_price = floatval($item['total_price']);
+            if ($costs && is_array($costs) && $request->additional_cost > 0) {
+                $total_invoice_amount = $request->total_amount_invoice;
+                $general_cost = $request->additional_cost;
+                $item_total_price = $item['total_price'];
 
                 $item_percentage = $item_total_price / $total_invoice_amount;
 
@@ -179,7 +179,7 @@ class InvoicePurchaseController extends Controller
                 InvoiceProductCost::updateOrCreate([
                     'stock_id' => $stock->id,
                 ], [
-                    'base_cost' => floatval($item['purchase_price']),
+                    'base_cost' => $this->normalizeNumber($item['total_price']),
                     'cost_share' => $this->normalizeNumber($cost_share),
                 ]);
             } else {
@@ -1128,7 +1128,7 @@ class InvoicePurchaseController extends Controller
         $query = Supplier_invoice::where('supplier_id', $request->supplier_id);
     
         if ($request->filled('searchCode')) {
-            $query->where('invoice_code', $request->searchCode);
+            $query->where('invoice_code',$request->searchCode);
         }
     
         if ($request->filled('invoice_type')) {
@@ -1136,7 +1136,12 @@ class InvoicePurchaseController extends Controller
         }
 
         if ($request->filled('invoice_staute')) {
-            $query->where('invoice_staute', $request->invoice_staute);
+            if($request->invoice_staute === 'unpaid'){
+                $query->where('invoice_staute', 0)->orWhere('invoice_staute', 2);
+            }
+            else {
+                $query->where('invoice_staute', $request->invoice_staute);
+            }
         }
         
         if ($request->filled('start_date')) {
@@ -1152,6 +1157,42 @@ class InvoicePurchaseController extends Controller
         return view('suppliers.invoices.invoice_table', [
             'invoices_list' => $invoices_list
         ])->render();
+    }
+
+    public function deleteInv(Request $request){
+        $invoice = Supplier_invoice::where('id' ,$request->id)->first();
+        $supplier = Supplier::where('id' ,$request->supplier_id)->first();
+
+        if($invoice->debts){
+            $invoice->debts()->delete();
+        }
+
+        $invoice->items()->delete();
+
+        $stock_movement = Stock_movement::where('source_code', $invoice->invoice_code)->first();
+        $stock_id = $stock_movement->stock_id;
+        
+        $stock = Stock::where('id', $stock_id)->first();
+        $stock->initial_quantity -= $stock_movement->amount;
+        $stock->remaining -= $stock_movement->amount;
+        $stock->save();
+
+        if($stock->initial_quantity == 0 && $stock->remaining == 0){
+            $stock->delete();
+        }
+
+        $stock_movement->delete();
+        $transaction = Account_transactions::where('source_code', $invoice->invoice_code)->exists();
+        if($transaction == 1){
+            Account_transactions::where('source_code', $invoice->invoice_code)->delete();
+        }
+
+        $supplier->account()->decrement('current_balance', $invoice->total_amount_invoice);
+
+        $invoice->delete();
+
+        return redirect()->route('supplier.account.show', $supplier->id)->with('success', 'تم عمل مرتجع بنجاح');
+
     }
     
 

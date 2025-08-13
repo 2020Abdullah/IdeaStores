@@ -27,7 +27,7 @@
             <div class="col">
                 <div class="card-balance">
                     <h3>الديون الخارجية</h3>
-                    <h4>{{ number_format($debts->sum('remaining')) }} EGP</h4>
+                    <h4>{{ number_format(-$debts->sum('remaining')) }} EGP</h4>
                 </div>
             </div>
         </div>
@@ -64,9 +64,9 @@
                                 {{ $typeName == 'Customer_invoice' ? 'فاتورة عميل' : ($typeName == 'Supplier_invoice' ? 'فاتورة مورد' : 'أخرى') }}
                             </td>
                             <td>{{ $debt->description ?? '-' }}</td>
-                            <td>{{ number_format($debt->amount, 2) }} EGP</td>
-                            <td>{{ number_format($debt->paid, 2) }} EGP</td>
-                            <td>{{ number_format($debt->remaining, 2) }} EGP</td>
+                            <td>{{ number_format(-$debt->amount, 2) }} EGP</td>
+                            <td>{{ number_format(-$debt->paid, 2) }} EGP</td>
+                            <td>{{ number_format(-$debt->remaining, 2) }} EGP</td>
                             <td>
                                 @if($debt->is_paid)
                                     <span class="badge bg-success">مدفوع</span>

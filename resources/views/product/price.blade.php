@@ -51,10 +51,10 @@
                     <tr>
                         <td>{{ $stock->category->full_path }}</td>
                         <td>{{ $stock->product->name }}</td>
-                        <td>{{ $stock->cost->base_cost }}</td>
-                        <td>{{ $stock->cost->cost_share }}</td>
+                        <td>{{ number_format($stock->cost->base_cost) }}</td>
+                        <td>{{ number_format($stock->cost->cost_share) }}</td>
                         <td>{{ $stock->cost->rate }} %</td>
-                        <td>{{ $stock->cost->suggested_price ?? 0 }}</td>
+                        <td>{{ number_format($stock->cost->suggested_price) ?? 0 }}</td>
                         <td>
                             <a href="#" data-bs-toggle="modal" data-cost_price="{{ $stock->cost->cost_share }}" data-stock_id="{{ $stock->id }}" data-bs-target="#editPrice" data-id="{{ $stock->id }}" class="btn btn-icon btn-success waves-effect waves-float waves-light editPriceBtn">
                                 <i data-feather='edit'></i>

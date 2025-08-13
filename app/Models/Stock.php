@@ -26,4 +26,8 @@ class Stock extends Model
     public function cost(){
         return $this->hasOne(InvoiceProductCost::class, 'stock_id');
     }
+
+    public function movements(){
+        return $this->hasMany(Stock_movement::class, 'stock_id');
+    }
 }
