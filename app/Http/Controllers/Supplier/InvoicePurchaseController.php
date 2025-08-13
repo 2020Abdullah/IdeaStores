@@ -1164,14 +1164,19 @@ class InvoicePurchaseController extends Controller
     }
 
     public function deleteInv(Request $request){
+        /*
+            1- تجميع البيانات
+            2- البحث لو كانت الفاتورة لها دين أم لا لو لها يتم حذف الدين
+            3- نقص الكمية من المخزن
+            4- خصم من الخزنة قيمة الفاتورة بدون تكاليف
+            5- خصم من المورد قيمة الفاتورة
+        */
         $invoice = Supplier_invoice::where('id' ,$request->id)->first();
         $supplier = Supplier::where('id' ,$request->supplier_id)->first();
 
         if($invoice->debts){
             $invoice->debts()->delete();
         }
-
-        $invoice->items()->delete();
 
         $stock_movement = Stock_movement::where('source_code', $invoice->invoice_code)->first();
         $stock_id = $stock_movement->stock_id;
@@ -1181,7 +1186,7 @@ class InvoicePurchaseController extends Controller
         $stock->remaining -= $stock_movement->amount;
         $stock->save();
 
-        if($stock->initial_quantity == 0 && $stock->remaining == 0){
+        if($stock->initial_quantity <= 0 && $stock->remaining <= 0){
             $stock->delete();
         }
 

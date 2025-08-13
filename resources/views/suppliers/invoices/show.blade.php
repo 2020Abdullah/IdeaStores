@@ -85,7 +85,7 @@
                                 <th class="py-1">المنتج</th>
                                 <th class="py-1">العدد / الكمية</th>
                                 <th class="py-1">العرض</th>
-                                <th class="py-1">الطول</th>
+                                <th class="py-1">الطول / القطر</th>
                                 <th class="py-1">سعر الشراء</th>
                                 <th class="py-1">الإجمالي</th>
                             </tr>
