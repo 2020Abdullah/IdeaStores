@@ -245,7 +245,7 @@
                     <label class="form-label">هل أنت متأكد من عمل مرتجع لهذه الفاتورة لا يمكن التراجع عن هذه العملية ؟</label>
                 </div>
                 <div class="modal-footer">
-                    <button type="submit" class="btn btn-danger waves-effect waves-float waves-light">تأكيد الحذف</button>
+                    <button type="submit" class="btn btn-danger waves-effect waves-float waves-light">تأكيد</button>
                 </div>
             </form>
         </div>

@@ -922,27 +922,6 @@ class InvoicePurchaseController extends Controller
         return back()->with('error', 'حدث خطأ ما برجاء التواصل مع الدعم للمساعدة');
     }    
 
-    public function delete(Request $request){
-        $invoice = Supplier_invoice::findOrFail($request->id);
-        
-        // stock delete 
-        $stock = Stock::where('code', $invoice->invoice_code)->first();
-        $stock->delete();
-
-        // تحديث الحساب المالي 
-
-        // أولاً: المورد
-        $supplier = Supplier::where('id', $request->supplier_id)->first();
-
-        // ثانياً:  خزنة التوريدات
-        $toridat_warehouse = Warehouse::where('type', 'toridat')->first();
-
-
-        // invoice delete 
-        $invoice->delete();
-        return back()->with('success', 'تم حذف فاتورة المورد بنجاح');
-    }
-
     public function show($code){
         $invoice = Supplier_invoice::with('supplier')->where('invoice_code', $code)->first();
         $app = App::latest()->first();
@@ -1080,9 +1059,7 @@ class InvoicePurchaseController extends Controller
         ]);
     
         return back()->with('success', 'تم دفع الدفعة بنجاح');
-    }
-    
-    
+    }  
 
     public function filter(Request $request){
         $query = Supplier_invoice::query();
@@ -1190,6 +1167,20 @@ class InvoicePurchaseController extends Controller
     
             // حذف الفاتورة نفسها
             $invoice->delete();
+
+            // إعادة حساب رصيد المورد
+            $totalInvoicesSum = Supplier_invoice::where('supplier_id', $supplier->id)
+            ->sum('total_amount_invoice');
+
+            $totalPayments = $supplier->paymentTransactions()->sum(DB::raw('ABS(amount)'));
+
+            // الرصيد الجديد = مجموع الفواتير - مجموع المدفوعات
+            $newBalance = $totalInvoicesSum - $totalPayments;
+
+            // تحديث حساب المورد
+            $supplier->account()->update([
+                'current_balance' => $newBalance,
+            ]);
     
             DB::commit();
     
@@ -1200,6 +1191,37 @@ class InvoicePurchaseController extends Controller
             DB::rollBack();
             return $e->getMessage();
         }
+    }
+
+    public function returnedInvoices(){
+        $invoices_list = Supplier_invoice::onlyTrashed()->orderBy('deleted_at', 'desc')->paginate(100);
+        return view('suppliers.invoices.returned', compact('invoices_list'));
+    }
+
+    public function filterReturn(Request $request){
+        $query = Supplier_invoice::onlyTrashed();
+
+        if ($request->filled('searchText')) {
+            $searchText = $request->searchText;
+    
+            $query->where(function ($q) use ($searchText) {
+                $q->where('invoice_code', 'like', '%' . $searchText . '%')
+                  ->orWhereHas('supplier', function($q2) use ($searchText) {
+                      $q2->where('name', 'like', '%' . $searchText . '%');
+                  });
+            });
+        }
+        
+        if ($request->filled('start_date')) {
+            $query->whereDate('invoice_date', '>=', $request->start_date);
+        }
+        if ($request->filled('end_date')) {
+            $query->whereDate('invoice_date', '<=', $request->end_date);
+        }
+
+        $invoices_list = $query->orderBy('deleted_at', 'desc')->paginate(100);
+
+        return view('suppliers.invoices.invoice_table', ['invoices_list' => $invoices_list])->render();
     }
 
 }

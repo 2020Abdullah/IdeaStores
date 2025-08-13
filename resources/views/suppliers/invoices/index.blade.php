@@ -88,13 +88,12 @@
             <form action="{{ route('supplier.invoice.delete') }}" method="POST">
                 @csrf
                 <input type="hidden" name="id" class="id">
-                <input type="hidden" name="total_amount" class="total_amount">
                 <input type="hidden" name="supplier_id" class="supplier_id">
                 <div class="modal-body">
-                    <label class="form-label">هل أنت متأكد من حذف هذه الفاتورة لا يمكن التراجع عن هذه العملية ؟</label>
+                    <label class="form-label">هل أنت متأكد من عمل مرتجع لهذه الفاتورة لا يمكن التراجع عن هذه العملية ؟</label>
                 </div>
                 <div class="modal-footer">
-                    <button type="submit" class="btn btn-danger waves-effect waves-float waves-light">تأكيد الحذف</button>
+                    <button type="submit" class="btn btn-danger waves-effect waves-float waves-light">تأكيد</button>
                 </div>
             </form>
         </div>
@@ -159,15 +158,15 @@
 @section('js')
     <script>
         $(document).ready(function(){
-            // delete action
-            // $(".delBtn").on('click', function(){
-            //     let id = $(this).data('id');
-            //     let total_amount = $(this).data('total_amount');
-            //     let supplier_id = $(this).data('supplier_id');
-            //     $("#delInvoice .id").val(id);
-            //     $("#delInvoice .supplier_id").val(supplier_id);
-            //     $("#delInvoice .total_amount").val(total_amount);
-            // })
+            // delete invoice
+            $(document).on('click', '.delBtn', function(e){
+                let id = $(this).data('id');
+                let supplier_id = $(this).data('supplier_id');
+
+                $("#delInvoice .id").val(id);
+                $("#delInvoice .supplier_id").val(supplier_id);
+
+            })
 
             // credit action
             $(".creditBtn").on('click', function(){

@@ -120,6 +120,11 @@ Route::middleware('auth')->group(function(){
     Route::post('supplier/invoice/filter', [InvoicePurchaseController::class, 'filter'])->name('supplier.invoice.filter');
     Route::post('supplier/invoices/filterBy', [InvoicePurchaseController::class, 'filterBySupplier'])->name('filterBySupplier');
 
+    // Invoices Return 
+    Route::get('supplier/returned-invoices', [InvoicePurchaseController::class, 'returnedInvoices'])->name('supplier.returned_invoices');
+    Route::post('supplier/returned-invoices/filter', [InvoicePurchaseController::class, 'filterReturn'])->name('supplier.returned_invoices.filter');
+
+
     // setting 
     Route::get('setting', [SettingController::class, 'setting'])->name('setting.show');
     Route::post('Profile/update', [SettingController::class, 'updateProfile'])->name('setting.update');

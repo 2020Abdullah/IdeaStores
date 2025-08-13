@@ -163,6 +163,21 @@
                 </ul>
             </li>
 
+            <li class="nav-item has-sub">
+                <a class="d-flex align-items-center" href="#">
+                    <i data-feather='trash-2'></i>
+                    <span class="menu-title text-truncate">المرتجعات</span>
+                </a>
+                <ul class="menu-content">
+                    <li>
+                        <a class="d-flex align-items-center" href="{{ route('supplier.returned_invoices') }}">
+                            <i data-feather='circle'></i>
+                            <span class="menu-item text-truncate">مرتجعات الموردين</span>
+                        </a>
+                    </li>
+                </ul>
+            </li>
+
                  
             <li class="nav-item has-sub">
                 <a class="d-flex align-items-center" href="#">

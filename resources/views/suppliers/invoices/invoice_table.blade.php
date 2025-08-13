@@ -7,7 +7,7 @@
         <th>إجمالي الفاتورة</th>
         <th>المبلغ المدفوع</th>
         <th>حالة الفاتورة</th>
-        <th>إجراء</th>
+        {{-- <th>إجراء</th> --}}
     </tr>
     @foreach ($invoices_list as $inv)
         <tr>
@@ -38,7 +38,7 @@
                     <span class="badge badge-glow bg-success">مدفوعة</span>
                 @endif
             </td>
-            <td>
+            {{-- <td>
                 @if ($inv->invoice_type !== 'opening_balance')
                     <a href="{{ route('supplier.invoice.show', $inv->invoice_code) }}"
                     class="btn btn-icon btn-info waves-effect waves-float waves-light editBtn"
@@ -61,7 +61,7 @@
                     <i data-feather='trash-2'></i>
                 </a>
 
-            </td>
+            </td> --}}
         </tr>
     @endforeach
 </table>
