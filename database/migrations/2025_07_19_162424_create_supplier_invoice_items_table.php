@@ -23,6 +23,7 @@ return new class extends Migration
             $table->decimal('length', 15, 2)->default(0)->comment('الطول');
             $table->decimal('purchase_price', 15, 2)->default(0)->comment('سعر الشراء');
             $table->decimal('total_price', 15, 2)->default(0)->comment('سعر الإجمالي');
+            $table->softDeletes();
             $table->timestamps();
         });
     }

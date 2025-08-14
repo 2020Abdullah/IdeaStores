@@ -80,6 +80,7 @@ class InvoicePurchaseController extends Controller
                 $stock = Stock::where([
                     'category_id' => $old_item->category_id,
                     'product_id' => $old_item->product_id,
+                    'size_id' => $old_item->size_id,
                 ])->first();
 
                 if ($stock) {
@@ -120,6 +121,7 @@ class InvoicePurchaseController extends Controller
                 $stock = Stock::where([
                     'category_id' => $item['category_id'],
                     'product_id' => $item['product_id'],
+                    'size_id' => $item['size_id'],
                 ])->first();
 
                 $unit = Unit::findOrFail($item['unit_id']);
@@ -128,6 +130,8 @@ class InvoicePurchaseController extends Controller
                 if ($stock) {
                     $stock->initial_quantity += $quantity_to_add;
                     $stock->remaining_quantity += $quantity_to_add;
+                    $stock->unit_id = $item['unit_id'];
+                    $stock->size_id = $item['size_id'];
                     $stock->save();
                 } else {
                     $stock = Stock::create([
@@ -135,6 +139,7 @@ class InvoicePurchaseController extends Controller
                         'product_id' => $item['product_id'],
                         'store_house_id' => $main_store->id,
                         'unit_id' => $item['unit_id'],
+                        'size_id' => $item['size_id'],
                         'initial_quantity' => $quantity_to_add,
                         'remaining_quantity' => $quantity_to_add,
                         'date' => $invoice->invoice_date,
@@ -166,31 +171,31 @@ class InvoicePurchaseController extends Controller
                     ]);
                 }
 
-            // حساب نصيب الصنف من التكاليف الإضافية
-            if ($costs && is_array($costs) && $request->additional_cost > 0) {
-                $total_invoice_amount = $this->normalizeNumber($request->total_amount_invoice);
-                $general_cost = $this->normalizeNumber($request->additional_cost);
-                $item_total_price = $this->normalizeNumber($item['total_price']);
+                // حساب نصيب الصنف من التكاليف الإضافية
+                if ($request->additional_cost > 0) {
+                    $total_invoice_amount = $this->normalizeNumber($request->total_amount_invoice);
+                    $general_cost = $this->normalizeNumber($request->additional_cost);
+                    $item_total_price = $this->normalizeNumber($item['total_price']);
 
-                $item_percentage = $item_total_price / $total_invoice_amount;
+                    $item_percentage = $item_total_price / $total_invoice_amount;
 
-                $cost_share = ($item_percentage * $general_cost) + $item_total_price;
+                    $cost_share = ($item_percentage * $general_cost) + $item_total_price;
 
-                InvoiceProductCost::updateOrCreate([
-                    'stock_id' => $stock->id,
-                ], [
-                    'base_cost' => $this->normalizeNumber($item['total_price']),
-                    'cost_share' => $this->normalizeNumber($cost_share),
-                ]);
-            } else {
-                // إذا لا يوجد تكاليف إضافية، نعتمد سعر الشراء كسعر التكلفة
-                InvoiceProductCost::updateOrCreate([
-                    'stock_id' => $stock->id,
-                ], [
-                    'base_cost' => floatval($item['purchase_price']),
-                    'cost_share' => floatval($item['purchase_price']),
-                ]);
-            }
+                    InvoiceProductCost::updateOrCreate([
+                        'stock_id' => $stock->id,
+                    ], [
+                        'base_cost' => $this->normalizeNumber($item['total_price']),
+                        'cost_share' => $this->normalizeNumber($cost_share),
+                    ]);
+                } else {
+                    // إذا لا يوجد تكاليف إضافية، نعتمد سعر الشراء كسعر التكلفة
+                    InvoiceProductCost::updateOrCreate([
+                        'stock_id' => $stock->id,
+                    ], [
+                        'base_cost' => floatval($item['purchase_price']),
+                        'cost_share' => floatval($item['purchase_price']),
+                    ]);
+                }
 
             }
         }
@@ -385,15 +390,9 @@ class InvoicePurchaseController extends Controller
 
     protected function normalizeNumber($number)
     {
-        if (is_null($number) || $number === '') {
-            return 0;
-        }
-    
-        // احذف الفواصل والمسافات
-        $number = preg_replace('/[^\d.\-]/', '', $number);
-    
-        return is_numeric($number) ? floatval($number) : 0;
+        return (float) str_replace(',', '', trim($number));
     }
+    
       
 
     protected function cash($request){
@@ -1027,8 +1026,6 @@ class InvoicePurchaseController extends Controller
         paymentTransaction::create([
             'related_type' => Supplier::class,
             'related_id' => $supplier->id,
-            'source_type' => null, 
-            'source_id' => null,   
             'direction' => 'in',
             'amount' => $amount,
             'payment_date' => now()->toDateString(),
@@ -1221,7 +1218,7 @@ class InvoicePurchaseController extends Controller
 
         $invoices_list = $query->orderBy('deleted_at', 'desc')->paginate(100);
 
-        return view('suppliers.invoices.invoice_table', ['invoices_list' => $invoices_list])->render();
+        return view('suppliers.invoices.invoice_return_table', ['invoices_list' => $invoices_list])->render();
     }
 
 }

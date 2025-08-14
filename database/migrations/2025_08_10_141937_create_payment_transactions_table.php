@@ -13,13 +13,8 @@ return new class extends Migration
     {
         Schema::create('payment_transactions', function (Blueprint $table) {
             $table->id();
-            // الجهة التي تم دفع المبلغ لها: عميل أو مورد
-            $table->nullableMorphs('related'); // related_type: Customer / Supplier
-
-            // مصدر الدفع: فاتورة بيع أو شراء
-            $table->nullableMorphs('source'); // source_type: SaleInvoice / SupplierInvoice
-
-            $table->enum('direction', ['in', 'out']); // in = دخل (من عميل) / out = خرج (إلى مورد)
+            $table->nullableMorphs('related'); 
+            $table->enum('direction', ['in', 'out']);
             $table->decimal('amount', 15, 2);
             $table->date('payment_date');
             $table->enum('method', ['cash', 'bank', 'vodafone_cash', 'instapay'])->nullable();

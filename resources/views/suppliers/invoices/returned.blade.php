@@ -64,7 +64,7 @@
     </div>
     <div class="card-body">
         <div class="table-responsive">
-            @include('suppliers.invoices.invoice_table')
+            @include('suppliers.invoices.invoice_return_table')
         </div>
     </div>
     <div class="card-footer">

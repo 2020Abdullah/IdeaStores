@@ -45,52 +45,71 @@ class BackupController extends Controller
         $request->validate([
             'backup_file' => 'required|file',
         ]);
-
+    
         try {
             $file = $request->file('backup_file');
             $sqlContent = file_get_contents($file->getRealPath());
-
-            // تقسيم أوامر SQL
+    
+            // تقسيم أوامر SQL حسب الفاصلة المنقوطة
             $statements = array_filter(array_map('trim', explode(";", $sqlContent)));
-
+    
+            // المرحلة 1: إنشاء الجداول وإضافة الأعمدة الجديدة
             foreach ($statements as $stmt) {
                 if (stripos($stmt, 'CREATE TABLE') === 0) {
-                    // استخراج اسم الجدول
                     preg_match('/CREATE TABLE `?(\w+)`?/i', $stmt, $matches);
                     $tableName = $matches[1] ?? null;
-
+    
                     if ($tableName) {
-                        // إذا الجدول موجود → أضف الحقول الجديدة فقط
                         if (Schema::hasTable($tableName)) {
-                            // جلب الأعمدة فقط من CREATE TABLE (استثناء أول سطر لأنه اسم الجدول)
+                            // الجدول موجود → إضافة الأعمدة الجديدة فقط
                             preg_match_all('/^\s*`([^`]+)`\s+([^,]+)/m', $stmt, $matches, PREG_SET_ORDER);
-                        
                             foreach ($matches as $match) {
-                                $col = $match[1]; // اسم العمود
-                                $colType = trim($match[2]); // نوع العمود
-                        
+                                $col = $match[1];
+                                $colType = trim($match[2]);
+    
                                 if (!Schema::hasColumn($tableName, $col)) {
-                                    DB::statement("ALTER TABLE `$tableName` ADD `$col` $colType");
+                                    if (preg_match('/^([a-z]+(\(\d+(,\d+)?\))?)/i', $colType, $typeMatch)) {
+                                        $cleanType = $typeMatch[1];
+                                        DB::statement("ALTER TABLE `$tableName` ADD `$col` $cleanType");
+                                    }
                                 }
                             }
-                        }
-                        else {
-                            // الجدول غير موجود → أنشئه
+                        } else {
+                            // الجدول غير موجود → إنشاء كامل
                             DB::statement($stmt);
                         }
                     }
                 }
-                elseif (stripos($stmt, 'INSERT INTO') === 0) {
-                    // تعديل INSERT ليصبح مرنًا
-                    $stmt = preg_replace('/INSERT INTO/i', 'INSERT IGNORE INTO', $stmt);
-                    DB::statement($stmt);
+            }
+    
+            // المرحلة 2: استيراد البيانات بشكل مرن
+            foreach ($statements as $stmt) {
+                if (stripos($stmt, 'INSERT INTO') === 0) {
+                    preg_match('/INSERT INTO `?(\w+)`?/i', $stmt, $matches);
+                    $tableName = $matches[1] ?? null;
+    
+                    if ($tableName && Schema::hasTable($tableName)) {
+                        // جلب الأعمدة الحالية للجدول
+                        $columns = Schema::getColumnListing($tableName);
+                        $columnsList = implode(',', array_map(fn($c) => "`$c`", $columns));
+    
+                        // تعديل INSERT ليشمل فقط الأعمدة الموجودة
+                        $stmt = preg_replace('/INSERT INTO `?\w+`?/i', "INSERT IGNORE INTO `$tableName` ($columnsList)", $stmt);
+    
+                        DB::statement($stmt);
+                    }
                 }
             }
-
-            return back()->with('success',  'تمت الاستعادة بنجاح.');
-
+    
+            return back()->with('success', 'تمت الاستعادة بنجاح.');
+    
         } catch (\Exception $e) {
-            return $e->getMessage();
+            return back()->with('error', $e->getMessage());
         }
     }
+    
+    
+    
+    
+
 }

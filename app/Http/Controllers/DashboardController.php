@@ -40,6 +40,10 @@ class DashboardController extends Controller
         // مسار mysqldump
         $mysqldumpPath = 'C:\\laragon\\bin\\mysql\\mysql-8.0.30-winx64\\bin\\mysqldump.exe';
 
+        if(!file_exists($mysqldumpPath)){
+            $mysqldumpPath = 'D:\\laragon\\bin\\mysql\\mysql-8.4.3-winx64\\bin\\mysqldump.exe';
+        }
+
         $command = "\"$mysqldumpPath\" --user={$db['username']} --password=\"{$db['password']}\" --host={$db['host']} {$db['database']} > \"$backupFile\"";
 
         exec($command);

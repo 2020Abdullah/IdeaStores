@@ -51,6 +51,7 @@
                             <th>التاريخ</th>
                             <th>التصنيف</th>
                             <th>المنتج</th>
+                            <th>العرض</th>
                             <th>الكمية الواردة</th>
                             <th>الكمية المتبقية</th>
                             <th>عرض الحركات</th>
@@ -60,6 +61,7 @@
                                 <td>{{ $stock->date }}</td>
                                 <td>{{ $stock->category->fullPath() }}</td>
                                 <td>{{ $stock->product->name }}</td>
+                                <td>{{ $stock->size->width }}</td>
                                 <td>{{ $stock->initial_quantity }} {{ $stock->unit->name }}</td>
                                 <td>{{ $stock->remaining_quantity }} {{ $stock->unit->name }}</td>
                                 <td>

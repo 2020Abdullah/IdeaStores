@@ -11,11 +11,11 @@
     </tr>
     @foreach ($invoices_list as $inv)
         <tr>
-            <td>{{ $inv->invoice_code }}</td>
-            <td>{{ $inv->invoice_date }}</td>
+            <td>{{ $inv->code }}</td>
+            <td>{{ $inv->date }}</td>
             <td>
-                <a href="{{ route('supplier.account.show', $inv->supplier->id) }}">
-                    {{ $inv->supplier->name }}
+                <a href="{{ route('supplier.account.show', $inv->customer->id) }}">
+                    {{ $inv->customer->name }}
                 </a>
             </td>
             <td>
@@ -40,14 +40,14 @@
             </td>
             <td>
                 @if ($inv->invoice_type !== 'opening_balance')
-                    <a href="{{ route('supplier.invoice.show', $inv->invoice_code) }}"
+                    <a href="{{ route('customer.sale.show', $inv->code) }}"
                     class="btn btn-icon btn-info waves-effect waves-float waves-light editBtn"
                     title="عرض">
                         <i data-feather='eye'></i>
                     </a>                                
                 @endif
 
-                <a href="{{ route('supplier.invoice.edit', $inv->id) }}"
+                <a href="{{ route('customer.sale.edit', $inv->id) }}"
                 class="btn btn-icon btn-success waves-effect waves-float waves-light editBtn"
                 title="تعديل">
                     <i data-feather='edit'></i>
@@ -55,7 +55,7 @@
 
                 <a href="#" data-bs-toggle="modal" data-bs-target="#delInvoice"
                     data-id="{{ $inv->id }}"
-                    data-supplier_id="{{ $inv->supplier_id }}"
+                    data-customer_id="{{ $inv->customer_id }}"
                 class="btn btn-icon btn-danger waves-effect waves-float waves-light delBtn"
                 title="حذف">
                     <i data-feather='trash-2'></i>

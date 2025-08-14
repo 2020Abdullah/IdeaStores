@@ -48,7 +48,6 @@ class SupplierController extends Controller
                 'name'     => 'حساب المورد: ' . $Supplier->name,
                 'type' => 'supplier',
                 'total_capital_balance' => 0,
-                'total_profit_balance' => 0,
             ]);
 
         }
