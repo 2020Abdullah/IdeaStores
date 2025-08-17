@@ -1,11 +1,11 @@
 <?php
 
-namespace App\Http\Requests\Units;
+namespace App\Http\Requests\exponseItem;
 
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
-class UnitsRequest extends FormRequest
+class ExponseItemRequest extends FormRequest
 {
     /**
      * Determine if the user is authorized to make this request.
@@ -25,11 +25,8 @@ class UnitsRequest extends FormRequest
         return [
             'name' => [
                 'required',
-                Rule::unique('units')->ignore($this->id)
-            ],
-            'symbol' => [
-                'required',
-                Rule::unique('units')->ignore($this->id)
+                'string',
+                Rule::unique('exponse_items')->ignore($this->id)
             ],
         ];
     }
@@ -37,10 +34,8 @@ class UnitsRequest extends FormRequest
     public function messages()
     {
         return [
-            'name.required' => 'يجب إدخال اسم الوحدة',
-            'name.unique' => 'هذه الوحدة مستخدمة بالفعل',
-            'symbol.required' => 'يجب إدخال رمز الوحدة',
-            'symbol.unique' => 'رمز الوحدة مستخدم بالفعل',
+            'name.required' => 'يجب كتابة بند المصروف !',
+            'name.unique' => 'هذا البند مسجل من قبل !',
         ];
     }
 }

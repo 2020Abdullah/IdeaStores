@@ -28,9 +28,8 @@
     <div class="card-header">
         <h3 class="card-title">إضافة منتج جديد</h3>
     </div>
-    <form action="{{ route('product.store') }}" id="formProduct" method="POST">
+    <form action="{{ route('product.store') }}" id="formSubmit" method="POST">
         @csrf
-        {{-- <input type="hidden" name="final_category_id" id="final_category_id"> --}}
         <div class="card-body">
                 <div class="mb-1">
                     <div id="category_selectors">
@@ -44,22 +43,8 @@
                     @enderror
                 </div>
                 <div class="mb-1">
-                    <label class="form-label">وحدة القياس</label>
-                    <select name="unit_id" class="form-select @error('unit_id') is-invalid @enderror" id="unit_id" required>
-                        <option value="" selected>اختر الوحدة ...</option>                        
-                        @foreach ($units as $u)
-                            <option value="{{ $u->id }}">{{ $u->name }} - {{ $u->symbol }}</option>                        
-                        @endforeach
-                    </select>
-                    @error('unit_id')
-                        <div class="alert alert-danger">
-                            <p>{{ @$message }}</p>
-                        </div>
-                    @enderror
-                </div>
-                <div class="mb-1">
                     <label class="form-label">اسم المنتج</label>
-                    <input type="text" class="form-control @error('name') is-invalid @enderror" name="name" required>
+                    <input type="text" class="form-control name @error('name') is-invalid @enderror" name="name" required>
                     @error('name')
                         <div class="alert alert-danger">
                             <p>{{ @$message }}</p>
@@ -68,7 +53,7 @@
                 </div>
         </div>
         <div class="card-footer">
-            <button type="submit" class="btn btn-relief-success">حفظ المنتج</button>
+            <button type="submit" class="btn btn-relief-success btnSubmit">حفظ المنتج</button>
         </div>
     </form>
 </div>
@@ -92,7 +77,21 @@
             });
         }
         getCategory();
+
+        $(document).on('submit', '#formSubmit', function(e){
+            e.preventDefault();
+            if($(this).find('.name').val() == '' && !$(this).find('.categorySelect').val() == ''){
+                e.preventDefault();
+                toastr.info('يرجي ملئ بيانات الحقول !');
+            }
+            else {
+                $(this).find('.btnSubmit').prop('disabled', true).addClass('disabled');
+                e.currentTarget.submit();
+            }
+        })
+
     })
+
 </script>
 <script>
     $('.select2').select2({

@@ -23,8 +23,8 @@ class paymentTransaction extends Model
     /**
      * مصدر الدفع (فاتورة بيع أو شراء)
      */
-    public function source()
+    public function wallet()
     {
-        return $this->morphTo();
+        return $this->belongsTo(Wallet::class, 'wallet_id');
     }
 }

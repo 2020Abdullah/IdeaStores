@@ -15,9 +15,9 @@ return new class extends Migration
             $table->id();
             $table->nullableMorphs('related'); 
             $table->enum('direction', ['in', 'out']);
+            $table->foreignId('wallet_id')->constrained('wallets')->cascadeOnDelete()->cascadeOnUpdate();
             $table->decimal('amount', 15, 2);
             $table->date('payment_date');
-            $table->enum('method', ['cash', 'bank', 'vodafone_cash', 'instapay'])->nullable();
             $table->string('description')->nullable();
             $table->timestamps();
         });

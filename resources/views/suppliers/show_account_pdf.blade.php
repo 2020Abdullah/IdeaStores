@@ -183,7 +183,7 @@
             </tbody>
         </table>
     
-        <p class="total">إجمالي الرصيد : {{ number_format(-$supplier->account->current_balance) }} EGP</p>
+        <p class="total">إجمالي الرصيد : {{ number_format($supplier->balance, 2) }} EGP</p>
     
         <!-- Note -->
         <div class="note">

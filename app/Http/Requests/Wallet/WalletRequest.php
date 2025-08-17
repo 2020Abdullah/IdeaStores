@@ -3,6 +3,7 @@
 namespace App\Http\Requests\Wallet;
 
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 class WalletRequest extends FormRequest
 {
@@ -18,7 +19,7 @@ class WalletRequest extends FormRequest
     {
         return [
             'name' => 'required',
-            'method' => 'required',
+            Rule::unique('wallets')->ignore($this->id)
         ];
     }
 
@@ -26,7 +27,7 @@ class WalletRequest extends FormRequest
     {
         return [
             'name.required' => 'يجب إدخال اسم المحفظة !',
-            'method.required' => 'يجب إدخال نوع المحفظة !',
+            'name.unique' => 'هذه المحفظة مسجلة بالفعل !',
         ];
     }
 }

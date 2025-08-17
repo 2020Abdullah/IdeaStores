@@ -108,8 +108,8 @@
                     </select>
                 </div>
                 <div class="mb-1 balance_container" style="display: none;">
-                    <label class="form-label current_balance_label"></label>
-                    <input type="hidden" class="form-control current_balance" name="current_balance" readonly>
+                    <label class="form-label current_balance_label">رصيد المحفظة الحالي</label>
+                    <input type="text" class="form-control current_balance" name="current_balance" readonly>
                 </div>
                 <div class="mb-1 opening_balance_container" style="display: none;">
                     <label class="form-label">قيمة الرصيد الإفتتاحي</label>
@@ -121,7 +121,7 @@
                             يوجد خطأ
                         </h4>
                         <div class="alert-body">
-                            <p></p>
+                            <p>رصيد المحفظة غير كافي لسداد الفاتورة</p>
                         </div>
                     </div>
                 </div>
@@ -509,17 +509,6 @@ $(function () {
         let invoice_type = $(this).find('option:selected').val();
         let balance = parseInt($(this).find('option:selected').attr('data-balance')) || 0;
         let total_amount = parseFloat($('.total_amount').val()) || 0;
-        
-        if(invoice_type === 'cash'){
-            if(balance <= 0 || balance < total_amount){
-                $(".alert_container").show(500);
-                $(".alert_container p").text('رصيد المحفظة غير كافي الخزنة سيصبح رصيد كل من المحفظة والخزنة بالسالب')
-            }
-        }
-        else {
-            $(".alert_container").hide(500);
-            $(".alert_container p").text('')
-        }
 
         if(invoice_type === 'cash'){
             $(".addItems").attr('disabled', false);
@@ -546,41 +535,72 @@ $(function () {
     })
 
     // change warehouse_id action
-    $(document).on('change', '.warehouse_id', function(){
-        $.ajaxSetup({
-            headers: {
-                'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
-            }
-        });
+    $(document).on('change', '.warehouse_id', function () {
+        let warehouseId = $(this).val();
+
         $.ajax({
             url: "{{ route('getWallets') }}",
             method: 'POST',
             data: {
-                warehouse_id: $(this).val() 
+                warehouse_id: warehouseId,
+                _token: $('meta[name="csrf-token"]').attr('content')
             },
             success: function (response) {
-                $('.wallet_id').empty();
-                $('.wallet_id').append(`<option value="">اختر محفظة ...</option>`)
-                $.each(response.data, function(index, item){
-                    $('.wallet_id').append(`<option value="${item.id}" data-balance="${item.current_balance}" data-method="${item.method}">${item.name}</option>`)
-                })
-            },
-            error: function(xhr){
-                console.log(xhr);
-            },
-        });
-    })
+                let $walletSelect = $('.wallet_id');
 
-    // get balance wallet
-    $(document).on('change', '.wallet_id', function(){
-        let balance = parseInt($(this).find('option:selected').attr('data-balance')) || 0;
-        let method = $(this).find('option:selected').attr('data-method');
-        $(".current_balance").val(balance)
-        $(".method").val(method)
-        $(".balance_container").show(500);
-        $(".current_balance_label").text('الرصيد المتوفر');
-        $(".current_balance").attr('type', 'text');
-    })
+                $walletSelect.empty().append('<option value="">اختر محفظة ...</option>');
+
+                if (response.status && response.data.length > 0) {
+                    $('.wallet_container').show(500);
+
+                    $.each(response.data, function (index, wallet) {
+                        $walletSelect.append(`<option value="${wallet.id}">${wallet.name}</option>`);
+                    });
+                } else {
+                    $('.wallet_container').hide(500);
+                }
+            }
+        });
+    });
+
+
+    // عند اختيار محفظة
+    $(document).on('change', '.wallet_id', function () {
+        let walletId = $(this).val();
+
+        if (walletId) {
+            $.ajax({
+                url: "{{ route('getWalletBalance') }}", // لازم يكون Route بيرجع balance
+                method: 'POST',
+                data: {
+                    wallet_id: walletId,
+                    _token: $('meta[name="csrf-token"]').attr('content')
+                },
+                success: function (response) {
+                    if (response.status) {
+                        let balance = parseFloat(response.balance);
+                        let totalAmount = parseFloat($('.total_amount').val()); // اجمالي الفاتورة/المبلغ المطلوب
+
+                        $('.balance_container').show();
+                        $('.current_balance').val(balance);
+
+                        if (balance <= 0 || balance < totalAmount) {
+                            $('.alert_container').show(500);
+                            $('.alert_container .alert-body p').text(
+                                'الرصيد الحالي غير كافي! '
+                            );
+                        } else {
+                            $('.alert_container').hide(500);
+                        }
+                    }
+                }
+            });
+        } else {
+            $('.balance_container').hide();
+            $('.alert_container').hide();
+        }
+    });
+
 
     $('#invoiceForm').on('submit', function(e) {
         e.preventDefault();

@@ -4,14 +4,11 @@
 <div class="content-header-left col-md-9 col-12 mb-2">
     <div class="row breadcrumbs-top">
         <div class="col-12">
-            <h2 class="content-header-title float-start mb-0">{{ $warehouse->name }}</h2>
+            <h2 class="content-header-title float-start mb-0">الحسابات البنكية</h2>
             <div class="breadcrumb-wrapper">
                 <ol class="breadcrumb">
-                    <li class="breadcrumb-item">
-                        <a href="{{ route('warehouse.index') }}">الرئيسية</a>
-                    </li>
                     <li class="breadcrumb-item active">
-                        <a href="#">عرض المحافظ</a>
+                        <a href="#">عرض الحسابات البنكية</a>
                     </li>
                 </ol>
             </div>
@@ -21,28 +18,11 @@
 @endsection
 
 @section('content')
-<section class="warehouse_wallets">     
-    <div class="card">
-        <div class="card-header">
-            <h3 class="card-title">{{ $warehouse->name }}</h3>
-        </div>
-        <hr />
-        <div class="card-body">
-            <div class="row">
-                <div class="col">
-                    <div class="card-balance">
-                        <h3>رصيد الخزنة</h3>
-                        <h4>{{ number_format($warehouse->account->transactions->sum('amount') ) }}</h4>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
+<section class="wallets">     
     <!-- show wallets -->
     <div class="card">
         <div class="card-header">
-            <h3 class="card-title">المحافظ المرتبطة بالخزنة</h3>
+            <h3 class="card-title">الحسابات البنكية</h3>
             <div class="card-action">
                 <button type="button" class="btn btn-success waves-effect waves-float waves-light" data-bs-toggle="modal" data-bs-target="#addWallet">
                     إضافة محفظة 
@@ -54,19 +34,17 @@
                 <table class="table table-bordered">
                     <tr>
                         <th>اسم المحفظة</th>
-                        <th>نوع المحفظة</th>
                         <th>الوصف</th>
                         <th>الرصيد الحالي</th>
                         <th>إجراء</th>
                     </tr>
-                    @foreach ($warehouse->account->wallets as $wallet)
+                    @foreach ($wallets as $wallet)
                         <tr>
                             <td>{{ $wallet->name }}</td>
-                            <td>{{ $wallet->method }}</td>
                             <td>{{ $wallet->details }}</td>
-                            <td>{{ number_format($wallet->movements->sum('amount')) }}</td>
+                            <td>{{ number_format($wallet->balance) }}</td>
                             <td>
-                                <a href="{{ route('wallet.show', $wallet->id) }}"
+                                <a href="{{ route('wallet.transactions.show', $wallet->id) }}"
                                     class="btn btn-icon btn-info waves-effect waves-float waves-light"
                                     >
                                      <i data-feather='eye'></i>
@@ -77,7 +55,6 @@
                                  data-bs-toggle="modal" data-bs-target="#editWallet"
                                  data-wallet_id="{{ $wallet->id }}" 
                                  data-name="{{ $wallet->name }}"
-                                 data-method="{{ $wallet->method }}"
                                  data-details="{{ $wallet->details }}"
                                  >
                                     <i data-feather='edit'></i>
@@ -107,35 +84,20 @@
                 <h5 class="modal-title">إضافة محفظة جديدة</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
-            <form action="{{ route('wallet.store') }}" method="POST">
+            <form action="{{ route('wallet.store') }}" class="formSubmit" method="POST">
                 @csrf
-                <input type="hidden" value="{{ $warehouse->account->id }}" name="account_id">
                 <div class="modal-body">
                     <div class="mb-2">
                         <label class="form-label">اسم المحفظة *</label>
-                        <input type="text" class="form-control" name="name" placeholder="مثال: فوادفون كاش">
-                    </div>
-                    <div class="mb-2">
-                        <label class="form-label">نوع المحفظة *</label>
-                        <select name="method" class="form-select method">
-                            <option value="">اختر ...</option>
-                            <option value="cash">كاش</option>
-                            <option value="vodafone_cash">فوادفون كاش</option>
-                            <option value="bank">الحساب البنكي</option>
-                            <option value="instapay">انستا باى</option>
-                        </select>
+                        <input type="text" class="form-control name" name="name" placeholder="مثال: فوادفون كاش">
                     </div>
                     <div class="mb-2">
                         <label class="form-label">رقم المحفظة أو الحساب البنكي (اختيارى)</label>
                         <input type="text" class="form-control" name="details" placeholder="تفاصيل الحساب">
                     </div>
-                    <div class="mb-2">
-                        <label class="form-label">الرصيد الحالي (اختيارى)</label>
-                        <input type="text" class="form-control" name="current_balance">
-                    </div>
                 </div>
                 <div class="modal-footer">
-                    <button type="submit" class="btn btn-success waves-effect waves-float waves-light">حفظ البيانات</button>
+                    <button type="submit" class="btnSubmit btn btn-success waves-effect waves-float waves-light">حفظ البيانات</button>
                 </div>
             </form>
         </div>
@@ -150,7 +112,7 @@
                 <h5 class="modal-title">تعديل بيانات المحفظة</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
-            <form action="{{ route('wallet.update') }}" method="POST">
+            <form action="{{ route('wallet.update') }}" class="formSubmit" method="POST">
                 @csrf
                 <input type="hidden" value="" class="wallet_id" name="wallet_id">
                 <div class="modal-body">
@@ -159,22 +121,12 @@
                         <input type="text" class="form-control name" name="name" placeholder="مثال: فوادفون كاش">
                     </div>
                     <div class="mb-2">
-                        <label class="form-label">نوع المحفظة *</label>
-                        <select name="method" class="form-select method">
-                            <option value="">اختر ...</option>
-                            <option value="cash">كاش</option>
-                            <option value="vodafone_cash">فوادفون كاش</option>
-                            <option value="bank">الحساب البنكي</option>
-                            <option value="instapay">انستا باى</option>
-                        </select>
-                    </div>
-                    <div class="mb-2">
                         <label class="form-label">رقم المحفظة أو الحساب البنكي (اختيارى)</label>
                         <input type="text" class="form-control details" name="details" placeholder="تفاصيل الحساب">
                     </div>
                 </div>
                 <div class="modal-footer">
-                    <button type="submit" class="btn btn-success waves-effect waves-float waves-light">حفظ البيانات</button>
+                    <button type="submit" class="btnSubmit btn btn-success waves-effect waves-float waves-light">حفظ البيانات</button>
                 </div>
             </form>
         </div>
@@ -189,42 +141,91 @@
                 <h5 class="modal-title">إضافة رصيد إلي المحفظة</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
-            <form action="{{ route('wallet.balance.add') }}" method="POST">
+            <form action="{{ route('wallet.balance.store') }}" class="formAmount" method="POST">
                 @csrf
-                <input type="hidden" value="{{ $warehouse->id }}" name="warehouse_id">
                 <input type="hidden" value="" class="wallet_id" name="wallet_id">
                 <div class="modal-body">
+                    
+                    <!-- اختيار الخزنة -->
+                    <div class="mb-2">
+                        <label class="form-label">اختر الخزنة</label>
+                        <select name="warehouse_id" class="form-control select2">
+                            <option value="">-- اختر الخزنة --</option>
+                            @foreach ($warehouses as $warehouse)
+                                <option value="{{ $warehouse->id }}">{{ $warehouse->name }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+
+                    <!-- المبلغ -->
                     <div class="mb-2">
                         <label class="form-label">المبلغ</label>
-                        <input type="text" class="form-control balance" name="balance">
+                        <input type="number" class="form-control amount" value="0" name="amount" required>
                     </div>
                 </div>
                 <div class="modal-footer">
-                    <button type="submit" class="btn btn-success waves-effect waves-float waves-light">حفظ البيانات</button>
+                    <button type="submit" class="btnSubmit btn btn-success waves-effect waves-float waves-light">
+                        حفظ البيانات
+                    </button>
                 </div>
             </form>
         </div>
     </div>
 </div>
+
 @endsection
 
 @section('js')
     <script>
-        $(document).on('click', '.editBtn', function(){
-            let wallet_id = $(this).data('wallet_id');
-            let name = $(this).data('name');
-            let method = $(this).data('method');
-            let details = $(this).data('details');
+        $(document).ready(function(){
+            $(document).on('click', '.editBtn', function(e){
+                let wallet_id = $(this).data('wallet_id');
+                let name = $(this).data('name');
+                let details = $(this).data('details');
 
-            $('#editWallet .wallet_id').val(wallet_id);
-            $('#editWallet .name').val(name);
-            $('#editWallet .method').val(method);
-            $('#editWallet .details').val(details);
+                $("#editWallet .wallet_id").val(wallet_id);
+                $("#editWallet .name").val(name);
+                $("#editWallet .details").val(details);
+            });
+
+            $(document).on('click', '.addBalanceBtn', function(e){
+                let wallet_id = $(this).data('wallet_id');
+                $("#addBalance .wallet_id").val(wallet_id);
+            });
+
+            $(document).on('submit', '.formSubmit', function(e){
+                e.preventDefault();
+                if(!$(this).find('.name').val()){
+                    e.preventDefault();
+                    toastr.info('يرجي ملئ بيانات الحقول !');
+                }
+                else {
+                    $(this).find('.btnSubmit').prop('disabled', true).addClass('disabled');
+                    e.currentTarget.submit();
+                }
+            });
+
+        $(document).on('submit', '.formAmount', function(e){
+            e.preventDefault();
+
+            let amount = parseFloat($(this).find('.amount').val());
+            let warehouse = $(this).find('select[name="warehouse_id"]').val();
+
+            if(!warehouse){
+                toastr.info('يرجي اختيار الخزنة أولاً!');
+                return;
+            }
+
+            if(!amount || amount <= 0){
+                toastr.info('يرجي إدخال مبلغ أكبر من صفر!');
+                return;
+            }
+
+            // لو التحقق سليم
+            $(this).find('.btnSubmit').prop('disabled', true).addClass('disabled');
+            e.currentTarget.submit();
         });
 
-        $(document).on('click', '.addBalanceBtn', function(){
-            let wallet_id = $(this).data('wallet_id');
-            $('#addBalance .wallet_id').val(wallet_id);
-        })
+        });
     </script>
 @endsection

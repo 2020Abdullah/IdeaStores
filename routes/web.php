@@ -17,6 +17,7 @@ use App\Http\Controllers\StoreHouseController;
 use App\Http\Controllers\Supplier\InvoicePurchaseController;
 use App\Http\Controllers\Supplier\SupplierController;
 use App\Http\Controllers\UnitController;
+use App\Http\Controllers\WalletsController;
 use App\Http\Controllers\WarehouseController;
 use App\Http\Controllers\WelcomeController;
 
@@ -40,22 +41,20 @@ Route::middleware('auth')->group(function(){
     Route::get('warehouse/index', [WarehouseController::class, 'index'])->name('warehouse.index');
     Route::get('warehouse/add', [WarehouseController::class, 'add'])->name('warehouse.add');
     Route::post('warehouse/store', [WarehouseController::class, 'store'])->name('warehouse.store');
-    Route::get('warehouse/{id}/show/transactions', [WarehouseController::class, 'showTransactions'])->name('warehouse.transactions');
+    Route::post('warehouse/sync', [WarehouseController::class, 'walltetsSync'])->name('wallets.sync');
+    Route::get('warehouse/{id}/transactions/show', [WarehouseController::class, 'showTransactions'])->name('warehouse.transactions');
     Route::post('getWallets', [WarehouseController::class, 'getWalletByWarhouse'])->name('getWallets');
     
     // wallets
-    Route::get('warehouse/{id}/wallets/show', [WarehouseController::class, 'walletsIndex'])->name('wallets.index');
-    Route::post('warehouse/wallet/store', [WarehouseController::class, 'walletStore'])->name('wallet.store');
-    Route::post('warehouse/wallet/update', [WarehouseController::class, 'walletUpdate'])->name('wallet.update');
-    Route::get('warehouse/wallet/{id}', [WarehouseController::class, 'walletShow'])->name('wallet.show');
-    Route::post('wallet/balance/add', [WarehouseController::class, 'addBalance'])->name('wallet.balance.add');
+    Route::get('wallets/index', [WalletsController::class, 'index'])->name('wallets.index');
+    Route::post('wallet/store', [WalletsController::class, 'store'])->name('wallet.store');
+    Route::post('wallet/update', [WalletsController::class, 'update'])->name('wallet.update');
+    Route::get('warehouse/wallets/sync', [WalletsController::class, 'sync'])->name('wallet.sync');
+    Route::post('warehouse/wallets/sync', [WalletsController::class, 'syncStore'])->name('wallet.sync.store');
+    Route::post('wallet/balance/add', [WalletsController::class, 'addBalance'])->name('wallet.balance.store');
+    Route::get('wallet/{id}/trnsactions/show', [WalletsController::class, 'transactions'])->name('wallet.transactions.show');
+    Route::post('getWalletBalance', [WalletsController::class, 'getWalletBalance'])->name('getWalletBalance');
     
-    // Accounts
-    Route::get('accounts/index', [AccountController::class, 'index'])->name('account.index');
-    Route::get('account/add', [AccountController::class, 'add'])->name('account.add');
-    Route::get('account/store', [AccountController::class, 'store'])->name('account.store');
-    Route::get('account/{id}/show', [AccountController::class, 'show'])->name('account.show');
-
     // stores 
     Route::get('storesHouse/index', [StoreHouseController::class, 'index'])->name('storesHouse.index');
     Route::get('storesHouse/add', [StoreHouseController::class, 'add'])->name('storesHouse.add');

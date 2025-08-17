@@ -20,4 +20,10 @@ class Account_transactions extends Model
         return $this->belongsTo(Account::class, 'account_id');
     }
 
+    // علاقة الحركة بالمحفظة
+    public function wallet()
+    {
+        return $this->belongsTo(Wallet::class);
+    }
+
 }

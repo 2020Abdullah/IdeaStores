@@ -76,7 +76,7 @@
                                 {{ $s->name }}
                             </a>
                         </td>
-                        <td>{{ number_format(-$s->account->current_balance ) }}</td>
+                        <td>{{ number_format($s->balance, 2) }}</td>
                         <td>
                             <a href="{{ route('supplier.edit', $s->id) }}" class="btn btn-success waves-effect">
                                 <i data-feather='edit'></i>

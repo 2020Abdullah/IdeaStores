@@ -106,15 +106,15 @@
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a class="d-flex align-items-center" href="#">
+                        <a class="d-flex align-items-center" href="{{ route('wallets.index') }}">
                             <i data-feather='credit-card'></i>
-                            <span class="menu-title text-truncate">الموقف المالي</span>
+                            <span class="menu-title text-truncate">الحسابات البنكية</span>
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a class="d-flex align-items-center" href="#">
+                        <a class="d-flex align-items-center" href="{{ route('wallet.sync') }}">
                             <i data-feather='credit-card'></i>
-                            <span class="menu-title text-truncate">الجرود</span>
+                            <span class="menu-title text-truncate">ربط الخزن بالحسابات</span>
                         </a>
                     </li>
                 </ul>
@@ -210,12 +210,6 @@
                         <a class="d-flex align-items-center" href="{{ route('expenses.items') }}">
                             <i data-feather='circle'></i>
                             <span class="menu-item text-truncate">بنود المصروفات</span>
-                        </a>
-                    </li>
-                    <li>
-                        <a class="d-flex align-items-center" href="#">
-                            <i data-feather='circle'></i>
-                            <span class="menu-item text-truncate">المصروفات</span>
                         </a>
                     </li>
                 </ul>

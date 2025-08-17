@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\size\SizeRequest;
 use App\Models\Size;
 use Illuminate\Http\Request;
 
@@ -11,14 +12,14 @@ class SizeController extends Controller
         $sizes = Size::all();
         return view('sizes.index', compact('sizes'));
     }
-    public function store(Request $request){
+    public function store(SizeRequest $request){
         $size = new Size();
         $size->width = $request->width;
         $size->save();
         return back()->with('success', 'تم إضافة المقاس بنجاح');
     }
 
-    public function update(Request $request){
+    public function update(SizeRequest $request){
         $size = Size::findOrFail($request->id);
         $size->width = $request->width;
         $size->save();

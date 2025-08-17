@@ -13,33 +13,44 @@ return new class extends Migration
     {
         Schema::create('account_transactions', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('account_id')->constrained('accounts')->onDelete('cascade');
-            // نوع الحركة: دخلت فلوس ولا خرجت؟
-            $table->enum('direction', ['in', 'out']); // in = credit, out = debit
+            $table->foreignId('account_id')->constrained('accounts')->cascadeOnDelete()->cascadeOnUpdate();
+            $table->foreignId('wallet_id')->nullable()->constrained('wallets')->onDelete('SET NULL')->cascadeOnUpdate();
+    
+            // حركة مالية دخل أو خرج
+            $table->enum('direction', ['in', 'out']); 
             
             // وسيلة الدفع
             $table->enum('method', ['cash', 'bank', 'vodafone_cash', 'instapay'])->nullable();
-
+        
             // المبلغ
             $table->decimal('amount', 15, 2);
-
+        
+            // الربحية من الحركة (لو مبيعات)
+            $table->decimal('profit_amount', 15, 2)->default(0)->comment('الربح من العملية إن وجد');
+        
             // نوع المعاملة (تفصيل نوعها لتقارير الربحية وغيرها)
             $table->enum('transaction_type', [
-                'payment',      // دفع
-                'expense',      // مصروف
-                'purchase',     // مشتريات (فاتورة مورد)
-                'sale',     // مبيعات (فاتورة بيع)
-                'added',   // تسوية يدوية
-                'transfer',     // تحويل بين حسابين
-                'open_balance',     // رصيد افتتاحي
+                'payment',        // دفع
+                'expense',        // مصروف
+                'purchase',       // مشتريات (فاتورة مورد)
+                'sale',           // مبيعات (فاتورة بيع)
+                'profit_adjust',  // إضافة ربحية بدون حركة رأس مال
+                'added',          // تسوية يدوية
+                'transfer',       // تحويل بين حسابين
+                'open_balance',   // رصيد افتتاحي
             ]);
-
+        
+            // كيان مرتبط بالحركة (فاتورة، عميل، مورد، الخ)
             $table->nullableMorphs('related'); 
-
-            // وصف أو ملاحظة اختيارية
+        
+            // وصف أو ملاحظة
             $table->string('description')->nullable();
+            
+            // كود مرجعي (مثلاً رقم الفاتورة)
             $table->string('source_code')->nullable();
-            $table->date('date')->nullable()->comment('تاريخ الإضافة بتاريخ الفاتورة');
+            
+            // تاريخ الحركة (ممكن يختلف عن تاريخ الإدخال)
+            $table->date('date')->nullable()->comment('تاريخ العملية الحقيقي'); 
             $table->timestamps();
         });
     }

@@ -127,6 +127,25 @@
             let id = $(this).data('id');
             $("#delcate input[name='id']").val(id);
         });
+
+        $(document).on('submit', '.formSubmit', function(e){
+            e.preventDefault();
+            if($(this).find('.name').val() == '' && !$(this).find('.parent_id').val() == ''){
+                e.preventDefault();
+                toastr.info('يرجي ملئ بيانات الحقول !');
+            }
+            else {
+                $(this).find('.btnSubmit').prop('disabled', true).addClass('disabled');
+                e.currentTarget.submit();
+            }
+        });
+
+        $(document).on('submit', '.submitDel', function(e){
+            e.preventDefault();
+            $(this).find('.btnSubmit').prop('disabled', true).addClass('disabled');
+            e.currentTarget.submit();
+        });
+
     })
 </script>
 @endsection

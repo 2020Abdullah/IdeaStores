@@ -40,7 +40,7 @@
                         <div class="card-body">
                             <div class="card-balance">
                                 <h3>الرصيد</h3>
-                                <h4>{{ number_format(-$supplier->account->current_balance) }}</h4>
+                                <h4>{{ number_format($supplier->balance, 2) }}</h4>
                             </div>
                         </div>
                     </div>
@@ -63,7 +63,7 @@
                             <th>رقم الدفعة</th>
                             <th>تاريخ الدفعة</th>
                             <th>مبلغ الدفعة</th>
-                            <th>طريقة الدفع</th>
+                            <th>المحفظة</th>
                             <th>البيان</th>
                         </tr>
                     </thead>
@@ -79,7 +79,7 @@
                                         <span class="text-danger">-{{ number_format($trans->amount, 2) }}</span>
                                     @endif
                                 </td>
-                                <td>{{ ucfirst($trans->method) }}</td>
+                                <td>{{ $trans->wallet->name }}</td>
                                 <td>{{ $trans->description }}</td>
                             </tr>
                         @endforeach
@@ -210,7 +210,7 @@
                     </div>
                     <div class="mb-1">
                         <label class="form-label">المديونية</label>
-                        <input type="number" class="form-control total_balance" name="total_balance" value="{{ $supplier->account->current_balance }}" readonly>
+                        <input type="number" class="form-control total_balance" name="total_balance" value="{{ $supplier->balance }}" readonly>
                     </div>
                     <div class="mb-1">
                         <label class="form-label">مبلغ الدفعة</label>
@@ -324,24 +324,42 @@
                 });
             })
 
-            // get balance wallet
-            $(document).on('change', '.wallet_id', function(){
-               let method = $(this).find('option:selected').attr('data-method');
-               let current_balance = parseFloat($(this).find('option:selected').attr('data-balance')) || 0;
-               let total_balance = parseFloat($(".total_balance").val()) || 0;
-               $(".method").val(method)
-               $(".balance_container .current_balance").val(current_balance)
-               $(".balance_container").show(500);
+            
+            // عند اختيار محفظة
+            $(document).on('change', '.wallet_id', function () {
+                let walletId = $(this).val();
 
-               if(current_balance <= 0){
-                    $(".alert_container").show(500);
-                    $(".alert_container p").text('رصيد المحفظة غير كافي الخزنة سيصبح رصيد كل من المحفظة والخزنة بالسالب')
-               }
-               else {
-                    $(".alert_container").hide(500);
-                    $(".alert_container p").text('');
-               }
-            })
+                if (walletId) {
+                    $.ajax({
+                        url: "{{ route('getWalletBalance') }}",
+                        method: 'POST',
+                        data: {
+                            wallet_id: walletId,
+                            _token: $('meta[name="csrf-token"]').attr('content')
+                        },
+                        success: function (response) {
+                            if (response.status) {
+                                let balance = parseFloat(response.balance);
+
+                                $('.balance_container').show();
+                                $('.current_balance').val(balance);
+
+                                if (balance <= 0) {
+                                    $('.alert_container').show(500);
+                                    $('.alert_container .alert-body p').text(
+                                        'الرصيد الحالي غير كافي! '
+                                    );
+                                } else {
+                                    $('.alert_container').hide(500);
+                                }
+                            }
+                        }
+                    });
+                } else {
+                    $('.balance_container').hide();
+                    $('.alert_container').hide();
+                }
+            });
 
             // item select only
 

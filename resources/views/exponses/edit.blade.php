@@ -28,13 +28,13 @@
     <div class="card-header">
         <h3 class="card-title">إضافة بند مصروف</h3>
     </div>
-    <form action="{{ route('expenses.item.update') }}" id="formProduct" method="POST">
+    <form action="{{ route('expenses.item.update') }}" class="formSubmit" method="POST">
         @csrf
         <input type="hidden" value="{{ $exponseItem->id }}" name="id">
         <div class="card-body">
                 <div class="mb-1">
                     <label class="form-label">اسم البند *</label>
-                    <input type="text" class="form-control" value="{{ $exponseItem->name }}" required name="name">
+                    <input type="text" class="form-control name" value="{{ $exponseItem->name }}" required name="name">
                 </div>
                 <div class="mb-1">
                     <label class="form-label">هل يؤثر علي الخزنة ؟ *</label>
@@ -52,7 +52,7 @@
                 </div>
         </div>
         <div class="card-footer">
-            <button type="submit" class="btn btn-relief-success">حفظ البيانات</button>
+            <button type="submit" class="btnSubmit btn btn-relief-success">حفظ البيانات</button>
         </div>
     </form>
 </div>
@@ -70,6 +70,18 @@
         $('#affect_debt').change(function() {
             if ($(this).val() == '1') {
                 $('#affect_wallet').val('0');
+            }
+        });
+
+        $(document).on('submit', '.formSubmit', function(e){
+            e.preventDefault();
+            if(!$(this).find('.name').val()){
+                e.preventDefault();
+                toastr.info('يرجي ملئ بيانات الحقول !');
+            }
+            else {
+                $(this).find('.btnSubmit').prop('disabled', true).addClass('disabled');
+                e.currentTarget.submit();
             }
         });
     });

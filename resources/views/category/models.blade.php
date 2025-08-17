@@ -6,7 +6,7 @@
                 <h5 class="modal-title">إضافة تصنيف جديد</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
-            <form action="{{ route('category.store') }}" method="POST">
+            <form action="{{ route('category.store') }}" class="formSubmit" method="POST">
                 @csrf
                 <div class="modal-body">
                     <div class="mb-2">
@@ -15,7 +15,7 @@
                     </div>
                     <div class="mb-2">
                         <label class="form-label">نوع التصنيف</label>
-                        <select name="parent_id" class="form-select">
+                        <select name="parent_id" class="form-select parent_id">
                             <option value="">تصنيف رئيسي</option>
                             @foreach ($category_list as $cat)
                                 <option value="{{ $cat->id }}">{{ $cat->name }}</option>
@@ -24,7 +24,7 @@
                     </div>
                 </div>
                 <div class="modal-footer">
-                    <button type="submit" class="btn btn-success waves-effect waves-float waves-light">حفظ البيانات</button>
+                    <button type="submit" class="btnSubmit btn btn-success waves-effect waves-float waves-light">حفظ البيانات</button>
                 </div>
             </form>
         </div>
@@ -39,7 +39,7 @@
                 <h5 class="modal-title">تعديل التصنيف</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
-            <form action="{{ route('category.update') }}" method="POST">
+            <form action="{{ route('category.update') }}" class="formSubmit" method="POST">
                 @csrf
                 <input type="hidden" name="id" class="id">
                 <div class="modal-body">
@@ -58,7 +58,7 @@
                     </div>
                 </div>
                 <div class="modal-footer">
-                    <button type="submit" class="btn btn-success waves-effect waves-float waves-light">حفظ البيانات</button>
+                    <button type="submit" class="btnSubmit btn btn-success waves-effect waves-float waves-light">حفظ البيانات</button>
                 </div>
             </form>
         </div>
@@ -73,7 +73,7 @@
                 <h5 class="modal-title">تحذير !</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
-            <form action="{{ route('category.delete') }}" method="POST">
+            <form action="{{ route('category.delete') }}" class="submitDel" method="POST">
                 @csrf
                 <input type="hidden" name="id" class="id">
                 <div class="modal-body">

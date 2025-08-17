@@ -1,11 +1,11 @@
 <?php
 
-namespace App\Http\Requests\Units;
+namespace App\Http\Requests\size;
 
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
-class UnitsRequest extends FormRequest
+class SizeRequest extends FormRequest
 {
     /**
      * Determine if the user is authorized to make this request.
@@ -23,13 +23,10 @@ class UnitsRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'name' => [
+            'width' => [
                 'required',
-                Rule::unique('units')->ignore($this->id)
-            ],
-            'symbol' => [
-                'required',
-                Rule::unique('units')->ignore($this->id)
+                'string',
+                Rule::unique('sizes')->ignore($this->id)
             ],
         ];
     }
@@ -37,10 +34,8 @@ class UnitsRequest extends FormRequest
     public function messages()
     {
         return [
-            'name.required' => 'يجب إدخال اسم الوحدة',
-            'name.unique' => 'هذه الوحدة مستخدمة بالفعل',
-            'symbol.required' => 'يجب إدخال رمز الوحدة',
-            'symbol.unique' => 'رمز الوحدة مستخدم بالفعل',
+            'width.required' => 'يجب كتابة المقاس !',
+            'width.unique' => 'هذا المقاس مسجل بالفعل !',
         ];
     }
 }

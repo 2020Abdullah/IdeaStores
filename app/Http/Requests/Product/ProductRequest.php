@@ -26,9 +26,6 @@ class ProductRequest extends FormRequest
             'final_category_id' => [
                 'required'
             ],
-            'unit_id' => [
-                'required'
-            ],
             'name' => [
                 'required',
                 'string',
@@ -45,7 +42,6 @@ class ProductRequest extends FormRequest
     {
         return [
             'final_category_id.required' => 'يجب اختيار التصنيف !',
-            'unit_id.required' => 'يجب اختيار وحدة القياس !',
             'name.required' => 'يجب كتابة اسم المنتج !',
             'name.unique' => 'هذا المنتج مسجل بالفعل في نفس التصنيف !',
         ];

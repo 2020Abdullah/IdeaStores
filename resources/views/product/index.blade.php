@@ -44,15 +44,12 @@
         <div class="table-responsive">
             <table class="table table-bordered">
                 <tr>
-                    <th>المنتج</th>
                     <th>التصنيف</th>
-                    <th>اسم الوحدة</th>
-                    <th>الوحدة</th>
+                    <th>المنتج</th>
                     <th>إجراء</th>
                 </tr>
                 @forelse ($products as $p)
                     <tr>
-                        <td>{{ $p->name }}</td>
                         <td>
                             {{ $p->category?->parent?->name ?? $p->category?->name ?? 'لا يوجد' }}
                             / 
@@ -62,8 +59,7 @@
                                لا يوجد
                            @endif
                         </td>
-                        <td>{{ $p->unit->name }}</td>
-                        <td>{{ $p->unit->symbol }}</td>
+                        <td>{{ $p->name }}</td>
                         <td>
                             <a href="{{ route('product.edit', $p->id) }}" class="btn btn-icon btn-success waves-effect waves-float waves-light editBtn">
                                 <i data-feather='edit'></i>

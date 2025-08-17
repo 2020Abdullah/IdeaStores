@@ -4,14 +4,14 @@
 <div class="content-header-left col-md-9 col-12 mb-2">
     <div class="row breadcrumbs-top">
         <div class="col-12">
-            <h2 class="content-header-title float-start mb-0">{{ $warehouse->name }}</h2>
+            <h2 class="content-header-title float-start mb-0">{{ $wallet->name }}</h2>
             <div class="breadcrumb-wrapper">
                 <ol class="breadcrumb">
                     <li class="breadcrumb-item">
-                        <a href="{{ route('dashboard') }}">الرئيسية</a>
+                        <a href="{{ route('wallets.index') }}">الرئيسية</a>
                     </li>
                     <li class="breadcrumb-item active">
-                        <a href="#">عرض سجل حركات الخزنة</a>
+                        <a href="#">عرض سجل حركات المحفظة</a>
                     </li>
                 </ol>
             </div>
@@ -26,14 +26,8 @@
         <div class="row">
             <div class="col">
                 <div class="card-balance">
-                    <h3>الرصيد الكلي</h3>
-                    <h4>{{ number_format($warehouse->account->transactions->sum('amount') + $warehouse->account->transactions->sum('profit_amount')) }} EGP</h4>
-                </div>
-            </div>
-            <div class="col">
-                <div class="card-balance">
-                    <h3>رصيد الربحية</h3>
-                    <h4>{{ number_format($warehouse->account->transactions->sum('profit_amount')) }} EGP</h4>
+                    <h3>رصيد المحفظة</h3>
+                    <h4>{{ number_format($wallet->balance, 2) }} EGP</h4>
                 </div>
             </div>
         </div>
@@ -41,34 +35,37 @@
 </div>
 <div class="card">
     <div class="card-header">
-        <h3 class="card-title">عرض سجل حركات الخزنة</h3>
+        <h3 class="card-title">عرض سجل حركات المحفظة</h3>
     </div>
     <div class="card-body">
         <div class="table-responsive">
             <table class="table table-bordered">
                 <thead>
                     <tr>
-                        <th>المحفظة</th>
-                        <th>تاريخ الحركة</th>
+                        <th>التاريخ</th>
+                        <th>الحساب</th>
                         <th>نوع المعاملة</th>
                         <th>الاتجاه</th>
                         <th>المبلغ</th>
                         <th>البيان</th>
-                        <th>الكود المرجعي</th>
                     </tr>
                 </thead>
                 <tbody>
                     @forelse($transactions as $t)
                         <tr>
-                            <td>{{ $t->wallet->name }}</td>
-                            <td>{{ $t->date ?? $t->created_at->format('Y-m-d') }}</td>
+                            <td>{{ \Carbon\Carbon::parse($t->date)->format('Y-m-d') }}</td>
+                            <td>{{ $t->account->name }}</td>
                             <td>
                                 @if ($t->transaction_type === 'added')
                                     <span>إضافة يدوية</span> 
                                 @elseif($t->transaction_type === 'payment')
                                     <span>مدفوعات</span>  
                                 @elseif($t->transaction_type === 'expense')   
-                                    <span>مصروفات</span>            
+                                    <span>مصروفات</span> 
+                                @elseif($t->transaction_type === 'expense')  
+                                    <span>فاتورة مشتريات</span>    
+                                @else  
+                                    <span>فاتورة مبيعات</span>    
                                 @endif
                             </td>
                             <td>
@@ -86,11 +83,10 @@
                                 @endif
                             </td>
                             <td>{{ $t->description ?? '-' }}</td>
-                            <td>{{ $t->source_code ?? '-' }}</td>
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="8" class="text-center">لا توجد حركات مالية لهذا الحساب.</td>
+                            <td colspan="5" class="text-center">لا توجد حركات مالية لهذه المحفظة.</td>
                         </tr>
                     @endforelse
                 </tbody>

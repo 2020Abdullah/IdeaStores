@@ -43,13 +43,6 @@ class SupplierController extends Controller
             $Supplier->place = $request->place;
             $Supplier->notes = $request->notes;
             $Supplier->save();
-
-            $Supplier->account()->create([
-                'name'     => 'حساب المورد: ' . $Supplier->name,
-                'type' => 'supplier',
-                'total_capital_balance' => 0,
-            ]);
-
         }
         catch(Exception $e){
             return $e->getMessage();

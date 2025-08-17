@@ -56,13 +56,8 @@
                                     @endif
                                 </td>
                                 <td>
-                                    <a href="{{ route('wallets.index', $w->id) }}" class="btn btn-primary waves-effect">
+                                    <a href="{{ route('warehouse.transactions', $w->id) }}" class="btn btn-info waves-effect">
                                         <i data-feather='eye'></i>
-                                        <span>المحافظ</span>
-                                    </a>
-                                    <a href="{{ route('warehouse.transactions', $w->id) }}" class="btn btn-danger waves-effect">
-                                        <i data-feather='eye'></i>
-                                        <span>سجل الحركات</span>
                                     </a>
                                 </td>
                             </tr>   
