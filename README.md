@@ -44,7 +44,7 @@
 ### 1. نسخ المشروع
 
 ```
-git clone [رابط المستودع]
+git clone https://github.com/2020Abdullah/elfateh_system
 ```
 
 ### 2. الانتقال إلى المجلد
