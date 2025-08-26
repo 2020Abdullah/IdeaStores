@@ -68,7 +68,7 @@
                     </tr>
                 @empty
                     <tr class="text-center">
-                        <td colspan="6">لا يوجد بضاعة مضافة بعد</td>
+                        <td colspan="9">لا يوجد بضاعة مضافة بعد</td>
                     </tr>
                 @endforelse
             </table>

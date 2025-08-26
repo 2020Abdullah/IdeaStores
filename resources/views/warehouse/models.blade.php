@@ -29,32 +29,60 @@
     </div>
 </div>
 
-<!-- model Add balance-->
-<div class="modal fade text-start modal-success" id="addBalance" tabindex="-1" aria-modal="true" role="dialog">
+<!-- model transfer balance-->
+<div class="modal fade text-start modal-success" id="transfer" tabindex="-1" aria-modal="true" role="dialog">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title">إضافة خزنة فرعية</h5>
+                <h5 class="modal-title">تحويل رصيد إلي حساب آخر</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
-            <form action="{{ route('warehouse.store') }}" method="POST">
+            <form action="{{ route('warehouse.transfer') }}" method="POST">
                 @csrf
-                <input type="hidden" name="method" class="method">
                 <div class="modal-body">
                     <div class="mb-2">
-                        <label class="form-label" for="name">اسم الخزنة</label>
-                        <input type="text" class="form-control" name="name">
-                    </div>
-                    <div class="mb-2">
-                        <label class="form-label" for="name">نوع الخزنة</label>
-                        <select name="type" class="form-select">
-                            <option value="toridat">خزنة توريدات</option>
-                            <option value="la7amat">خزنة لحامات</option>
+                        <label class="form-label">من حساب الخزنة</label>
+                        <select name="warehouse_id_from" class="form-select">
+                            <option value="" selected>اختر خزنة ...</option>
+                            @foreach ($warehouse_list as $warehouse)
+                                <option value="{{ $warehouse->id }}">{{ $warehouse->name }}</option>
+                            @endforeach
                         </select>
                     </div>
                     <div class="mb-2">
-                        <label class="form-label" for="balance_start">رصيد أول المدة</label>
-                        <input type="number" class="form-control" name="balance_start" value="0">
+                        <label class="form-label">من حساب المحفظة</label>
+                        <select name="wallet_id_from" class="form-select">
+                            <option value="" selected>اختر محفظة ...</option>
+                            @foreach ($wallets_list as $w)
+                                <option value="{{ $w->id }}">{{ $w->name }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label">إلي حساب الخزنة</label>
+                        <select name="warehouse_id_to" class="form-select">
+                            <option value="" selected>اختر خزنة ...</option>
+                            @foreach ($warehouse_list as $warehouse)
+                                <option value="{{ $warehouse->id }}">{{ $warehouse->name }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label">إلي حساب المحفظة</label>
+                        <select name="wallet_id_to" class="form-select">
+                            <option value="" selected>اختر محفظة ...</option>
+                            @foreach ($wallets_list as $w)
+                                <option value="{{ $w->id }}">{{ $w->name }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label">المبلغ</label>
+                        <input type="text" class="form-control" name="balance">
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label">البيان</label>
+                        <textarea name="notes" class="form-control" cols="5" rows="5"></textarea>
                     </div>
                 </div>
                 <div class="modal-footer">

@@ -14,10 +14,14 @@ return new class extends Migration
         Schema::create('customer_invoices_items', function (Blueprint $table) {
             $table->id();
             $table->foreignId('customer_invoice_id')->constrained('customer_invoices')->cascadeOnDelete()->cascadeOnUpdate();
-            $table->foreignId('stock_id')->nullable()->constrained('stocks')->nullOnDelete()->cascadeOnUpdate();
-            $table->integer('quantity')->default(1)->comment('الكمية');
-            $table->decimal('price', 15, 2)->default(0)->comment('سعر البيع');
+            $table->foreignId('category_id')->nullable()->constrained('categories')->onDelete('SET NULL')->cascadeOnUpdate();
+            $table->foreignId('product_id')->nullable()->constrained('products')->onDelete('SET NULL')->cascadeOnUpdate();          
+            $table->string('unit_name')->nullable();
+            $table->foreignId('size_id')->nullable()->constrained('sizes')->nullOnDelete();
+            $table->integer('quantity')->comment('الكمية');
+            $table->decimal('sale_price', 15, 2)->default(0)->comment('سعر بيع الوحدة');
             $table->decimal('total_price', 15, 2)->default(0)->comment('سعر الإجمالي');
+            $table->decimal('total_profit', 15, 2)->default(0)->comment('سعر الإجمالي');
             $table->softDeletes();
             $table->timestamps();
         });

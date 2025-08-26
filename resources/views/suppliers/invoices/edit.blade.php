@@ -77,8 +77,8 @@
                 @if ($invoice->invoice_type === 'opening_balance')
                     <div class="mb-2">
                         <label class="form-label">رصيد افتتاحي</label>
-                        <input type="hidden" class="form-control" name="opening_balance_old" value="{{ $invoice->total_amount_invoice }}">
-                        <input type="number" class="form-control opening_balance" name="opening_balance" value="{{ $invoice->total_amount_invoice }}">
+                        <input type="hidden" class="form-control" name="opening_balance_old" value="{{ number_format($invoice->total_amount_invoice, 2) }}">
+                        <input type="number" class="form-control opening_balance" name="opening_balance" value="{{ number_format($invoice->total_amount_invoice, 2) }}">
                     </div>
                 @else   
                     <div class="mb-2">
@@ -179,10 +179,10 @@
                         </div>
                         <div class="all_total">
                             <span>إجمالي الفاتورة :</span>
-                            <strong>{{ $invoice->total_amount - $invoice->cost_price }}</strong> 
+                            <strong>{{ number_format($invoice->total_amount - $invoice->cost_prices) }}</strong> 
                             <span>EGP</span>
-                            <input type="hidden" name="total_amount_invoice_old" value="{{ $invoice->total_amount_invoice }}">
-                            <input type="hidden" class="total_amount_invoice" value="{{ $invoice->total_amount_invoice }}" name="total_amount_invoice">
+                            <input type="hidden" name="total_amount_invoice_old" value="{{ number_format($invoice->total_amount_invoice, 2) }}">
+                            <input type="hidden" class="total_amount_invoice" value="{{ number_format($invoice->total_amount_invoice, 2) }}" name="total_amount_invoice">
                         </div>
                     </div>
                     <div id="costs-wrapper">
@@ -214,8 +214,8 @@
                     </div>
                     <div class="mb-2">
                         <label class="form-label">إجمالي الفاتورة شامل سعر التكلفة</label>
-                        <input type="hidden" class="form-control" name="total_amount_old" value="{{ $invoice->total_amount }}">
-                        <input type="text" class="form-control total_amount"  name="total_amount" value="{{ $invoice->total_amount }}" readonly>
+                        <input type="hidden" class="form-control" name="total_amount_old" value="{{ number_format($invoice->total_amount, 2) }}">
+                        <input type="text" class="form-control total_amount"  name="total_amount" value="{{ number_format($invoice->total_amount, 2) }}" readonly>
                     </div>
                 @endif
                 <div class="mb-2">
@@ -285,7 +285,7 @@ $(function () {
 
         $('#costs-wrapper').append(newCost);
         costIndex++;
-        $('.select2').select2({
+        $('.cost-select').select2({
             dir: "rtl",
             width: '100%'
         });
@@ -304,17 +304,25 @@ $(function () {
     });
 
     function formatNumberValue(value) {
-        // إزالة الفواصل إذا كانت القيمة نصًا
+        // إزالة الفواصل
         if (typeof value === 'string') {
             value = value.replace(/,/g, '');
         }
 
-        // التحقق أن القيمة رقمية
-        if (!isNaN(value) && value !== '') {
-            return Number(value).toLocaleString('en-US'); // يعطي 1,000,000
+        // تحويل لرقم
+        let num = parseFloat(value) || 0;
+
+        // لو الرقم كبير جدًا، نخليه ضمن حد معين (مثلاً 9999999999999.99)
+        const max = 9999999999999.99;
+        if (num > max) {
+            num = max;
         }
 
-        return '0';
+        // إعادة الرقم منسق بخانتين عشريتين
+        return num.toLocaleString('en-US', {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2
+        });
     }
 
     function calculateTotalCost(){

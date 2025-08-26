@@ -13,7 +13,7 @@ return new class extends Migration
     {
         Schema::create('stock_movements', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('supplier_id')->nullable()->constrained('suppliers')->onDelete('SET Null');
+            $table->nullableMorphs('related');
             $table->foreignId('stock_id')->constrained('stocks')->onDelete('cascade');
             $table->enum('type', ['in','out'])->comment('in => إضافة / out => خصم'); 
             $table->integer('quantity')->comment('الكمية المحركة');   

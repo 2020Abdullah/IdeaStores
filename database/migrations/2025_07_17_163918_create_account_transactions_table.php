@@ -19,9 +19,6 @@ return new class extends Migration
             // حركة مالية دخل أو خرج
             $table->enum('direction', ['in', 'out']); 
             
-            // وسيلة الدفع
-            $table->enum('method', ['cash', 'bank', 'vodafone_cash', 'instapay'])->nullable();
-        
             // المبلغ
             $table->decimal('amount', 15, 2);
         

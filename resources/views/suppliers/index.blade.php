@@ -44,33 +44,33 @@
             <a href="#" data-bs-toggle="modal" data-bs-target="#importFile" class="btn btn-warning waves-effect waves-float waves-light">
                 استيراد بيانات
             </a>
-            <form action="{{ route('supplier.data.export') }}" method="POST" style="display: inline-block;">
+            {{-- <form action="{{ route('supplier.data.export') }}" method="POST" style="display: inline-block;">
                 @csrf
                 <input type="hidden" name="recardsIds[]" class="recardsIds">
                 <button type="submit" class="exportData btn btn-danger waves-effect waves-float waves-light disabled" disabled>تصدير اكسل</button>
-            </form>
+            </form> --}}
         </div>
     </div>
     <div class="card-body">
         <div class="table-responsive">
             <table class="table table-bordered">
                 <tr>
-                    <th>
+                    {{-- <th>
                         <div class="form-check form-check-inline">
                             <input class="form-check-input" type="checkbox" id="selectAll">
                         </div>
-                    </th>
+                    </th> --}}
                     <th>اسم المورد</th>
                     <th>الرصيد</th>
                     <th>إجراء</th>
                 </tr>
                 @forelse ($suppliers_list as $s)
                     <tr>
-                        <td>
+                        {{-- <td>
                             <div class="form-check form-check-inline">
                                 <input class="form-check-input selectItem" type="checkbox" value="{{ $s->id }}" id="select{{$s->id}}">
                             </div>
-                        </td>
+                        </td> --}}
                         <td>
                             <a href="{{ route('supplier.account.show', $s->id) }}">
                                 {{ $s->name }}
@@ -138,37 +138,37 @@
     
     // item select only
 
-    $(document).on('change', '.selectItem', function(){
-        getRecoards();
-    });
+    // $(document).on('change', '.selectItem', function(){
+    //     getRecoards();
+    // });
 
-    // item select All
-    $(document).on('change', '#selectAll' ,function(){
+    // // item select All
+    // $(document).on('change', '#selectAll' ,function(){
 
-        $('.selectItem').prop('checked', this.checked);
+    //     $('.selectItem').prop('checked', this.checked);
 
-        getRecoards();
+    //     getRecoards();
 
-    });
+    // });
 
-    function getRecoards(){
-        let recardsIds = [];
+    // function getRecoards(){
+    //     let recardsIds = [];
 
-        $.each($('.selectItem:checked'), function(){
-            recardsIds.push($(this).val());
-        })
+    //     $.each($('.selectItem:checked'), function(){
+    //         recardsIds.push($(this).val());
+    //     })
 
-        $('.recardsIds').val(JSON.stringify(recardsIds));
+    //     $('.recardsIds').val(JSON.stringify(recardsIds));
 
-        if(recardsIds.length > 0){
-            $(".exportData").attr('disabled', false);
-            $(".exportData").removeClass('disabled');
-        }
-        else {
-            $(".exportData").attr('disabled', true);
-            $(".exportData").addClass('disabled');
-        }
-    }
+    //     if(recardsIds.length > 0){
+    //         $(".exportData").attr('disabled', false);
+    //         $(".exportData").removeClass('disabled');
+    //     }
+    //     else {
+    //         $(".exportData").attr('disabled', true);
+    //         $(".exportData").addClass('disabled');
+    //     }
+    // }
 
 </script>
 @endsection

@@ -9,6 +9,7 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\BackupController;
 use App\Http\Controllers\Customer\CustomerController;
 use App\Http\Controllers\customer\SalesController;
+use App\Http\Controllers\DueController;
 use App\Http\Controllers\ExponseItemController;
 use App\Http\Controllers\ExternalDebtsController;
 use App\Http\Controllers\SizeController;
@@ -36,13 +37,15 @@ Route::get('/', [WelcomeController::class, 'index'])->name('home');
 
 Route::middleware('auth')->group(function(){
     Route::get('dashboard', [DashboardController::class, 'index'])->name('dashboard');
-    
+    Route::get('/dashboard/sales-chart', [DashboardController::class, 'salesChart'])->name('dashboard.sales.chart');
+     
     // warehouse 
     Route::get('warehouse/index', [WarehouseController::class, 'index'])->name('warehouse.index');
     Route::get('warehouse/add', [WarehouseController::class, 'add'])->name('warehouse.add');
     Route::post('warehouse/store', [WarehouseController::class, 'store'])->name('warehouse.store');
     Route::post('warehouse/sync', [WarehouseController::class, 'walltetsSync'])->name('wallets.sync');
     Route::get('warehouse/{id}/transactions/show', [WarehouseController::class, 'showTransactions'])->name('warehouse.transactions');
+    Route::post('warehouse/transfer', [WarehouseController::class, 'transfer'])->name('warehouse.transfer');
     Route::post('getWallets', [WarehouseController::class, 'getWalletByWarhouse'])->name('getWallets');
     
     // wallets
@@ -54,6 +57,7 @@ Route::middleware('auth')->group(function(){
     Route::post('wallet/balance/add', [WalletsController::class, 'addBalance'])->name('wallet.balance.store');
     Route::get('wallet/{id}/trnsactions/show', [WalletsController::class, 'transactions'])->name('wallet.transactions.show');
     Route::post('getWalletBalance', [WalletsController::class, 'getWalletBalance'])->name('getWalletBalance');
+    Route::post('wallets/transfer', [WalletsController::class, 'transfer'])->name('wallet.transfer');
     
     // stores 
     Route::get('storesHouse/index', [StoreHouseController::class, 'index'])->name('storesHouse.index');
@@ -64,7 +68,9 @@ Route::middleware('auth')->group(function(){
     Route::get('mainStore/stocks/index', [StockController::class, 'index'])->name('stock.index');
     Route::get('mainStore/stock/{id}', [StockController::class, 'show'])->name('stock.show');
     Route::post('stock/transction/filter', [StockController::class, 'transctionFilter'])->name('transction.filter');
-    
+    Route::get('getStockProducts', [StockController::class, 'getStockProducts'])->name('getStockProducts');
+    Route::post('getStocks', [StockController::class, 'getStocks'])->name('getStocks');
+
     // add product to stores
     Route::post('stock/store', [StoreHouseController::class, 'addProduct'])->name('addProduct');
 
@@ -144,9 +150,13 @@ Route::middleware('auth')->group(function(){
     Route::post('Expenses/item/store', [ExponseItemController::class, 'store'])->name('expenses.item.store');
     Route::post('Expenses/item/update', [ExponseItemController::class, 'update'])->name('expenses.item.update');
     Route::get('Expenses/item/{id}/show', [ExponseItemController::class, 'show'])->name('expenses.item.show');
+    Route::post('Expenses/item/payment', [ExponseItemController::class, 'payment'])->name('expenses.item.payment');
 
     // external debts
     Route::get('external/debts/show', [ExternalDebtsController::class, 'index'])->name('external.debts');
+    
+    // dues
+    Route::get('dues/show', [DueController::class, 'index'])->name('dues.debts');
 
     // customers
     Route::get('customers/index', [CustomerController::class, 'index'])->name('customer.index');
@@ -156,18 +166,24 @@ Route::middleware('auth')->group(function(){
     Route::post('customer/update', [CustomerController::class, 'update'])->name('customer.update');
     Route::get('customer/account/show/{id}', [CustomerController::class, 'showAccount'])->name('customer.account.show');
     Route::post('customer/account/export', [CustomerController::class, 'exportAccount'])->name('customer.account.export');
-
+    Route::get('customer/template', [CustomerController::class, 'downloadTemplate'])->name('download.customer.Template');
+    Route::post('customer/import', [CustomerController::class, 'importData'])->name('import.customer');
+   
     // customer invoices
-    Route::get('customer/invoice/{id}', [SalesController::class, 'show'])->name('customer.sale.show');
-    Route::get('customer/invoice/edit/{id}', [SalesController::class, 'edit'])->name('customer.sale.edit');
+    Route::post('customer/payment', [SalesController::class, 'payment'])->name('customer.payment');
+    Route::get('customer/invoices', [SalesController::class, 'index'])->name('customer.invoice.index');
     Route::get('customer/{id}/invoice/add', [SalesController::class, 'add'])->name('customer.target.invoice.add');
     Route::get('customer/invoice/add', [SalesController::class, 'add'])->name('customer.invoice.add');
-    Route::get('customer/invoice/{code}/show', [SalesController::class, 'show'])->name('customer.invoice.show');
-    Route::post('customer/invoice/delete', [SalesController::class, 'deleteInv'])->name('customer.invoice.delete');
-    Route::get('customer/invoice/{id}/download', [SalesController::class, 'download'])->name('customer.invoice.download');
-    Route::post('customer/invoice/payment', [SalesController::class, 'payment'])->name('customer.invoice.payment');
+    Route::post('customer/invoice/store', [SalesController::class, 'store'])->name('customer.invoice.store');
+    Route::get('customer/invoice/edit/{id}', [SalesController::class, 'edit'])->name('customer.invoice.edit');
+    Route::post('customer/invoice/update', [SalesController::class, 'update'])->name('customer.invoice.update');
     Route::post('customer/invoice/filter', [SalesController::class, 'filter'])->name('customer.invoice.filter');
     Route::post('customer/invoices/filterBy', [SalesController::class, 'filterByCustomer'])->name('filterByCustomer');
+    Route::get('customer/invoice/{code}/show', [SalesController::class, 'show'])->name('customer.invoice.show');
+    Route::post('customer/invoice/delete', [SalesController::class, 'deleteInv'])->name('customer.invoice.delete');
+    Route::get('customer/returned-invoices', [SalesController::class, 'returnedInvoices'])->name('customer.returned.invoices');
+    Route::post('customer/returned-invoices/filter', [SalesController::class, 'filterReturn'])->name('customer.returned_invoices.filter');
+    Route::get('customer/invoice/{id}/download', [SalesController::class, 'download'])->name('customer.invoice.download');
 
     // backup
     Route::get('/backup', fn() => view('backup'))->name('backup.view');

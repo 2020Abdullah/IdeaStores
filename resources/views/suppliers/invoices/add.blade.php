@@ -47,7 +47,7 @@
                         <input type="hidden" class="form-control" name="supplier_id" value="{{ $supplier->id }}" required>
                         <input type="text" class="form-control" value="{{ $supplier->name }}" readonly>
                     @else
-                        <select name="supplier_id" class="form-select">
+                        <select name="supplier_id" class="form-select SupplierSelect">
                             <option value="">أختر المورد ...</option>
                             @foreach ($suppliers_list as $supplier)
                                 <option value="{{ $supplier->id }}">{{ $supplier->name }}</option>
@@ -188,6 +188,11 @@
 <script>
 $(function () {
 
+    $('.SupplierSelect').select2({
+        dir: "rtl",
+        width: '100%'
+    });
+
     $.ajaxSetup({
         headers: {
             'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
@@ -252,27 +257,25 @@ $(function () {
     });
 
     function formatNumberValue(value) {
-        // إزالة الفواصل إذا كانت القيمة نصًا
+        // إزالة الفواصل
         if (typeof value === 'string') {
             value = value.replace(/,/g, '');
         }
 
-        // التحقق أن القيمة رقمية
-        if (!isNaN(value) && value !== '') {
-            return Number(value).toLocaleString('en-US'); // يعطي 1,000,000
+        // تحويل لرقم
+        let num = parseFloat(value) || 0;
+
+        // لو الرقم كبير جدًا، نخليه ضمن حد معين (مثلاً 9999999999999.99)
+        const max = 9999999999999.99;
+        if (num > max) {
+            num = max;
         }
 
-        return '0';
-    }
-
-    function calculateTotalCost(){
-        let costtotal = 0;
-        $('.costValue').each(function() {
-            let costValue = parseInt($(this).val());
-            costtotal += costValue;
+        // إعادة الرقم منسق بخانتين عشريتين
+        return num.toLocaleString('en-US', {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2
         });
-        $('#total-cost').val(costtotal);
-        calculateTotalInvoice();
     }
 
 

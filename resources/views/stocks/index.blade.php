@@ -63,7 +63,7 @@
                                 <td>{{ $stock->product->name }}</td>
                                 <td>{{ $stock->size->width }}</td>
                                 <td>{{ $stock->initial_quantity }} {{ $stock->unit->name }}</td>
-                                <td>{{ $stock->remaining_quantity }} {{ $stock->unit->name }}</td>
+                                <td>{{ $stock->movements->sum('quantity') }} {{ $stock->unit->name }}</td>
                                 <td>
                                     <a href="{{ route('stock.show', $stock->id) }}" class="btn btn-info waves-effect">
                                         <i data-feather='eye'></i>

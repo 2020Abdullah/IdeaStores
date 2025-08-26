@@ -23,13 +23,16 @@
         <div class="card">
             <div class="card-header">
                 <h3>كل الخزن</h3>
-                @if ($warehouse_list->count() < 2)
-                    <div class="card-action">
+                <div class="card-action">
+                    @if ($warehouse_list->count() < 2)
                         <button type="button" class="btn btn-outline-success round waves-effect" data-bs-toggle="modal" data-bs-target="#addWarehouse">
                             إنشاء خزنة
                         </button>
-                    </div>                  
-                @endif
+                    @endif
+                    <button type="button" class="btn btn-primary waves-effect" data-bs-toggle="modal" data-bs-target="#transfer">
+                        تسوية رصيد
+                    </button>
+                </div>                  
             </div>
             <div class="card-body">
                 <div class="table-responsive">
@@ -46,7 +49,7 @@
                             <tr>
                                 <td>{{ $w->name }}</td>
                                 <td>خزنة فرعية</td>
-                                <td>{{ number_format($w->account->transactions->where('transaction_type', 'profit')->sum('amount')) }}</td>
+                                <td>{{ number_format($w->account->transactions->sum('profit_amount')) }}</td>
                                 <td>{{ number_format($w->account->transactions->sum('amount')) }}</td>
                                 <td>
                                     @if ($w->statue == 1)

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\Wallet\WalletRequest;
+use App\Models\Account_transactions;
 use App\Models\Wallet;
 use App\Models\Warehouse;
 use Illuminate\Http\Request;
@@ -33,7 +34,7 @@ class WalletsController extends Controller
     }
 
     public function sync(){
-        $data['warehouse_list'] = Warehouse::where('is_main', 0)->get();
+        $data['warehouse_list'] = Warehouse::all();
         $data['wallets_list'] = Wallet::all();
         return view('wallets.sync', $data);
     }
@@ -105,6 +106,42 @@ class WalletsController extends Controller
             'status' => true,
             'balance' => $wallet->balance,
         ]);
+    }
+
+    public function transfer(Request $request)
+    {
+        $request->validate([
+            'wallet_id_from'    => 'required|exists:wallets,id',
+            'wallet_id_to'      => 'required|exists:wallets,id',
+            'balance'           => 'required|numeric|min:0.01',
+            'notes'             => 'nullable|string',
+        ]);
+    
+        DB::transaction(function () use ($request) {
+            $amount = $request->balance;
+    
+            //  تسجيل الحركة للخروج من الحساب المصدر
+            Account_transactions::create([
+                'wallet_id'        => $request->wallet_id_from,
+                'direction'        => 'out',
+                'amount'           => -$amount,
+                'transaction_type' => 'transfer',
+                'description'      => $request->notes,
+                'date'             => now(),
+            ]);
+    
+            // تسجيل الحركة للدخول في الحساب الهدف
+            Account_transactions::create([
+                'wallet_id'        => $request->wallet_id_to,
+                'direction'        => 'in',
+                'amount'           => $amount,
+                'transaction_type' => 'transfer',
+                'description'      => $request->notes,
+                'date'             => now(),
+            ]);
+        });
+    
+        return redirect()->back()->with('success', 'تم تحويل الرصيد بنجاح');
     }
 
 }

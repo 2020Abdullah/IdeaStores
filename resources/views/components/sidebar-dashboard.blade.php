@@ -45,7 +45,7 @@
                 </ul>
             </li>
 
-            {{-- <li class="nav-item has-sub">
+            <li class="nav-item has-sub">
                 <a class="d-flex align-items-center" href="#">
                     <i data-feather='users'></i>
                     <span class="menu-title text-truncate">العملاء</span>
@@ -64,7 +64,7 @@
                         </a>
                     </li>
                 </ul>
-            </li> --}}
+            </li>
 
             <li class="nav-item has-sub">
                 <a class="d-flex align-items-center" href="#">
@@ -73,15 +73,15 @@
                 </a>
                 <ul class="menu-content">
                     <li>
-                        <a class="d-flex align-items-center" href="{{ route('supplier.invoice.add') }}">
-                            <i data-feather='circle'></i>
-                            <span class="menu-item text-truncate">إضافة فاتورة</span>
-                        </a>
-                    </li>
-                    <li>
                         <a class="d-flex align-items-center" href="{{ route('supplier.invoice.index') }}">
                             <i data-feather='circle'></i>
                             <span class="menu-item text-truncate">فواتير الموردين</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a class="d-flex align-items-center" href="{{ route('customer.invoice.index') }}">
+                            <i data-feather='circle'></i>
+                            <span class="menu-item text-truncate">فواتير المبيعات</span>
                         </a>
                     </li>
                 </ul>
@@ -97,6 +97,12 @@
                         <a class="d-flex align-items-center" href="{{ route('external.debts') }}">
                             <i data-feather='credit-card'></i>
                             <span class="menu-title text-truncate">الديون الخارجية</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="d-flex align-items-center" href="{{ route('dues.debts') }}">
+                            <i data-feather='credit-card'></i>
+                            <span class="menu-title text-truncate">مستحقاتنا</span>
                         </a>
                     </li>
                     <li class="nav-item">
@@ -194,6 +200,12 @@
                         <a class="d-flex align-items-center" href="{{ route('supplier.returned.invoices') }}">
                             <i data-feather='circle'></i>
                             <span class="menu-item text-truncate">مرتجعات الموردين</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a class="d-flex align-items-center" href="{{ route('customer.returned.invoices') }}">
+                            <i data-feather='circle'></i>
+                            <span class="menu-item text-truncate">مرتجعات العملاء</span>
                         </a>
                     </li>
                 </ul>

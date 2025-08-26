@@ -38,23 +38,18 @@
             <a href="{{ route('customer.add') }}" class="btn btn-success waves-effect waves-float waves-light">
                 إضافة عميل جديد 
             </a>
-            {{-- <a href="{{ route('download.customer.Template') }}" class="btn btn-info waves-effect waves-float waves-light">
+            <a href="{{ route('download.customer.Template') }}" class="btn btn-info waves-effect waves-float waves-light">
                 تنزيل قالب 
             </a>
             <a href="#" data-bs-toggle="modal" data-bs-target="#importFile" class="btn btn-warning waves-effect waves-float waves-light">
                 استيراد بيانات
-            </a> --}}
+            </a>
         </div>
     </div>
     <div class="card-body">
         <div class="table-responsive">
             <table class="table table-bordered">
                 <tr>
-                    <th>
-                        <div class="form-check form-check-inline">
-                            <input class="form-check-input" type="checkbox" id="selectAll">
-                        </div>
-                    </th>
                     <th>اسم العميل</th>
                     <th>الرصيد</th>
                     <th>إجراء</th>
@@ -62,16 +57,11 @@
                 @forelse ($customer_list as $c)
                     <tr>
                         <td>
-                            <div class="form-check form-check-inline">
-                                <input class="form-check-input selectItem" type="checkbox" value="{{ $c->id }}" id="select{{$c->id}}">
-                            </div>
-                        </td>
-                        <td>
                             <a href="{{ route('customer.account.show', $c->id) }}">
                                 {{ $c->name }}
                             </a>
                         </td>
-                        <td>{{ number_format(-$c->account->current_balance ) }}</td>
+                        <td>{{ number_format($c->balance ) }}</td>
                         <td>
                             <a href="{{ route('customer.edit', $c->id) }}" class="btn btn-success waves-effect">
                                 <i data-feather='edit'></i>
@@ -81,7 +71,7 @@
                                 <i data-feather='eye'></i>
                                 <span>بيانات المورد</span>
                             </a>
-                            <a href="{{ route('supplier.target.invoice.add', $c->id) }}" class="btn btn-success waves-effect waves-float waves-light">
+                            <a href="{{ route('customer.target.invoice.add', $c->id) }}" class="btn btn-success waves-effect waves-float waves-light">
                                 <i data-feather='plus'></i>
                                 <span>إضافة فاتورة</span>
                             </a>
@@ -105,7 +95,7 @@
                 <h5 class="modal-title">استيراد شيت اكسيل</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
-            <form action="{{ route('import.supplier') }}" method="POST" enctype="multipart/form-data">
+            <form action="{{ route('import.customer') }}" method="POST" enctype="multipart/form-data">
                 @csrf
                 <div class="modal-body">
                     <div class="mb-2">

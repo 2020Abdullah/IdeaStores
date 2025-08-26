@@ -28,10 +28,10 @@ class Supplier extends Model
         return $this->morphMany(PaymentTransaction::class, 'related');
     }
 
-    public function getBalanceAttribute(): float
+    public function getBalanceAttribute()
     {
         // مجموع كل الفواتير (total_amount_invoice)
-        $totalInvoices = (float) $this->invoices()->where('invoice_type', '!=', 'cash')->sum('total_amount_invoice');
+        $totalInvoices = (float) $this->invoices()->where('invoice_type', '!=' , 'cash')->sum('total_amount_invoice');
 
         // مجموع كل المدفوعات (نجعل القيم موجبة)
         $totalPayments = (float) $this->paymentTransactions()->sum('amount');
@@ -40,13 +40,16 @@ class Supplier extends Model
         return $totalPayments - $totalInvoices;
     }
 
+    public function movements(){
+        return $this->morphMany(Stock_movement::class, 'related');
+    }
+
     protected static function booted()
     {
         static::created(function ($Supplier) {
             $Supplier->account()->create([
                 'name'     => 'حساب مورد: ' . $Supplier->name,
                 'type' => 'Supplier',
-                'current_balance' => 0,
             ]);
         });
     }

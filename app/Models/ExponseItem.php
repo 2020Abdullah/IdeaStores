@@ -15,7 +15,4 @@ class ExponseItem extends Model
         return $this->hasMany(Exponse::class, 'expense_item_id');
     }
 
-    public function account(){
-        return $this->belongsTo(Account::class, 'account_id');
-    }
 }

@@ -40,7 +40,7 @@
                         <div class="card-body">
                             <div class="card-balance">
                                 <h3>الرصيد</h3>
-                                <h4>{{ number_format(-$customer->account->current_balance) }}</h4>
+                                <h4>{{ number_format($customer->balance) }}</h4>
                             </div>
                         </div>
                     </div>
@@ -63,7 +63,6 @@
                             <th>رقم الدفعة</th>
                             <th>تاريخ الدفعة</th>
                             <th>مبلغ الدفعة</th>
-                            <th>طريقة الدفع</th>
                             <th>البيان</th>
                         </tr>
                     </thead>
@@ -73,13 +72,8 @@
                                 <td>{{ $loop->iteration }}</td>
                                 <td>{{ $trans->payment_date }}</td>
                                 <td>
-                                    @if($trans->direction === 'in')
-                                        <span class="text-success">+{{ number_format($trans->amount, 2) }}</span>
-                                    @else
-                                        <span class="text-danger">-{{ number_format($trans->amount, 2) }}</span>
-                                    @endif
+                                    <span class="text-danger">-{{ number_format($trans->amount, 2) }}</span>
                                 </td>
-                                <td>{{ ucfirst($trans->method) }}</td>
                                 <td>{{ $trans->description }}</td>
                             </tr>
                         @endforeach
@@ -92,7 +86,7 @@
         </div>
     </div>
 
-    <!-- الفواتير -->
+    <!-- بحث متقدم -->
     <div class="card">
         <div class="card-header">
             <h3 class="card-title">بحث متقدم</h3>
@@ -148,7 +142,7 @@
                 </a>
                 <a href="#" data-bs-toggle="modal" data-bs-target="#PaymentBalance"
                     data-customer_id="{{ $customer->id }}"
-                    class="paymentBtn btn btn-icon btn-primary waves-effect waves-float waves-light creditOpenBtn"
+                    class="paymentBtn btn btn-icon btn-primary waves-effect waves-float waves-light"
                     >
                     <i data-feather='credit-card'></i>
                     <span>دفع دفعة</span>
@@ -157,7 +151,9 @@
         </div>
         <div class="card-body">
             <div class="table-responsive">
-               @include('customer.sales.invoice_table')
+                <div class="table-invoices">
+                    @include('customer.sales.invoice_table')
+                </div>
             </div>
         </div>
         <div class="card-footer">
@@ -173,10 +169,9 @@
                 <h5 class="modal-title">إضافة دفعة</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
-            <form action="{{ route('customer.invoice.payment') }}" method="POST">
+            <form action="{{ route('customer.payment') }}" class="formSubmit" method="POST">
                 @csrf
                 <input type="hidden" name="customer_id" class="customer_id">
-                <input type="hidden" name="method" class="method">
                 <div class="modal-body">
                     <div class="mb-1">
                         <label class="form-label">من حساب</label>
@@ -193,24 +188,6 @@
                             <option value="">...</option>
                         </select>
                     </div>
-                    <div class="mb-1 balance_container" style="display: none;">
-                        <label class="form-label current_balance_label"></label>
-                        <input type="text" class="form-control current_balance" name="current_balance" readonly>
-                    </div>
-                    <div class="mb-1 alert_container" style="display: none;">
-                        <div class="alert alert-danger">
-                            <h4 class="alert-heading">
-                                يوجد خطأ
-                            </h4>
-                            <div class="alert-body">
-                                <p></p>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="mb-1">
-                        <label class="form-label">المديونية</label>
-                        <input type="number" class="form-control total_balance" name="total_balance" value="{{ $customer->account->current_balance }}" readonly>
-                    </div>
                     <div class="mb-1">
                         <label class="form-label">مبلغ الدفعة</label>
                         <input type="number" class="form-control" name="amount">
@@ -221,7 +198,7 @@
                     </div>
                 </div>
                 <div class="modal-footer">
-                    <button type="submit" class="btn btn-success waves-effect waves-float waves-light">تأكيد العملية</button>
+                    <button type="submit" class="btnSubmit btn btn-success waves-effect waves-float waves-light">تأكيد العملية</button>
                 </div>
             </form>
         </div>
@@ -255,19 +232,29 @@
 @section('js')
     <script>
         $(document).ready(function(){
+            // delete invoice
+            $(document).on('click', '.delBtn', function(e){
+                let id = $(this).data('id');
+                let customer_id = $(this).data('customer_id');
+
+                $("#delInvoice .id").val(id);
+                $("#delInvoice .customer_id").val(customer_id);
+
+            })
+
             // filter search 
             $(document).on('submit', '#searchForm', function(e){
                 e.preventDefault();
                 let formData = $(this).serialize();
                 $.ajax({
-                    url: "{{ route('filterBySupplier') }}",
+                    url: "{{ route('filterByCustomer') }}",
                     method: 'POST',
                     data: formData,
                     beforeSend: function () {
                         $('#loading-excute').fadeIn(500);
                     },
                     success: function (response) {
-                        $('.table-responsive').html(response);
+                        $('.table-invoices').html(response);
                     },
                     error: function(xhr){
                         console.log(xhr);
@@ -293,8 +280,7 @@
             $(".paymentBtn").on('click', function(){
                 let customer_id = $(this).data('customer_id');
                 let opening_balance = $(this).data('opening_balance');
-                $("#PaymentBalance .customer").val(customer_id);
-                $("#PaymentBalance .openingBalance").val(opening_balance);
+                $("#PaymentBalance .customer_id").val(customer_id);
             })
 
             // change warehouse_id action
@@ -321,25 +307,6 @@
                         console.log(xhr);
                     },
                 });
-            })
-
-            // get balance wallet
-            $(document).on('change', '.wallet_id', function(){
-               let method = $(this).find('option:selected').attr('data-method');
-               let current_balance = parseFloat($(this).find('option:selected').attr('data-balance')) || 0;
-               let total_balance = parseFloat($(".total_balance").val()) || 0;
-               $(".method").val(method)
-               $(".balance_container .current_balance").val(current_balance)
-               $(".balance_container").show(500);
-
-               if(current_balance <= 0){
-                    $(".alert_container").show(500);
-                    $(".alert_container p").text('رصيد المحفظة غير كافي الخزنة سيصبح رصيد كل من المحفظة والخزنة بالسالب')
-               }
-               else {
-                    $(".alert_container").hide(500);
-                    $(".alert_container p").text('');
-               }
             })
 
             // item select only
@@ -375,6 +342,19 @@
                     $(".exportData").addClass('disabled');
                 }
             }
+
+            
+            $(document).on('submit', '.formSubmit', function(e){
+                e.preventDefault();
+                if(!$(this).find('.warehouse_id').val() && !$(this).find('.wallet_id').val() && !$(this).find('.amount').val()){
+                    e.preventDefault();
+                    toastr.info('يرجي ملئ بيانات الحقول المطلوبة !');
+                }
+                else {
+                    $(this).find('.btnSubmit').prop('disabled', true).addClass('disabled');
+                    this.submit();
+                }
+            });
         })
     </script>
 @endsection

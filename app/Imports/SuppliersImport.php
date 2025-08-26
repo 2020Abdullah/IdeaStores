@@ -21,12 +21,5 @@ class SuppliersImport implements ToModel, WithHeadingRow, WithStartRow
         ]);
 
         $Supplier->save();
-         
-        $Supplier->account()->create([
-            'name' => 'حساب المورد ' . $row['اسم_المورد'],
-            'type' => 'supplier',
-            'total_capital_balance' => 0,
-            'total_profit_balance' => 0,
-        ]);
     }
 }

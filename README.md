@@ -1,66 +1,66 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# وصف البرنامج 
+[برنامج محاسبي شامل لإدارة الشركات والمخزن وعمل فواتير مبيعات ومشتريات ]
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+## المميزات الرئيسية
+1. لوحة تحكم سهلة الإستخدام 
+2. تصميم جميل ومريح للعين ومتجاوب مع جميع الأجهزة
+3. إدارة الخزن وعرض الحركات وإضافة رصيد يدوى وعمل تسوية رصيد 
+4. حساب الموقف المالي (الأرباح والخسائر).
+5. إدارة الفواتير (كاش وآجل ورصيد افتتاحي).
+6. إدارة المصروفات والتكاليف.
+7. دعم تقارير لحظية لعرض المستحقات والديون الخارجية.
+8. تسجيل المدفوعات لحسابات متعددة (خزائن + محافظ).
+9. إدارة الأصناف والمنتجات ودعم التصنيفات المتعددة لا نهائي
+10. إدارة العملاء والموردين ودعم إضافتهم من شيت اكسيل دفعة واحدة 
+11. إدارة المخزن الرئيسي وعرض الحركات والوارد والصادر
+12. دعم المرتجات لكل من الموردين والعملاء
+13. عرض تقرير للمستخدم بالمستحقات والديون الخارجية الخاصة بالشركة 
+14. عرض رصيد كل حساب بنكي وربط الحسابات بالخزن وعرض الحركات لكل خزنة ولكل محفظة
 
-## About Laravel
+## لوحة التحكم تعرض
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+1. إجمالي مستحقاتنا من العملاء.
+2. إجمالي الديون الخارجية (الموردين).
+3. إجمالي المصروفات والتكاليف.
+4. أرباح وخسائر لحظية.
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+## التقنيات المستخدمة
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+1. اللغة الأساسية: PHP (Laravel) 
+2. قاعدة البيانات: MySQL
+3. الواجهة الأمامية: Blade, Bootstrap
+4. الإضافات: jQuery, Ajax, Toastr, Excel
 
-## Learning Laravel
+## متطلبات التشغيل
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
+1. PHP >= 8.1
+2. Composer
+3. MySQL
+4. Web Server (Apache أو Nginx)
 
-You may also try the [Laravel Bootcamp](https://bootcamp.laravel.com), where you will be guided through building a modern Laravel application from scratch.
+## التثبيت والتشغيل 
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+# 1. نسخ المشروع
+git clone [رابط المستودع]
 
-## Laravel Sponsors
+# 2. الانتقال إلى المجلد
+cd [اسم المشروع]
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
+# 3. تثبيت الحزم
+composer install
+npm install && npm run dev
 
-### Premium Partners
+# 4. إعداد ملف البيئة
+cp .env.example .env
+php artisan key:generate
 
-- **[Vehikl](https://vehikl.com/)**
-- **[Tighten Co.](https://tighten.co)**
-- **[WebReinvent](https://webreinvent.com/)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel/)**
-- **[Cyber-Duck](https://cyber-duck.co.uk)**
-- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
-- **[Jump24](https://jump24.co.uk)**
-- **[Redberry](https://redberry.international/laravel/)**
-- **[Active Logic](https://activelogic.com)**
-- **[byte5](https://byte5.de)**
-- **[OP.GG](https://op.gg)**
+# 5. إعداد قاعدة البيانات
+php artisan migrate --seed
 
-## Contributing
+# 6. تشغيل السيرفر
+php artisan serve
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
-
-## Code of Conduct
-
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
-
-## Security Vulnerabilities
-
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
-
-## License
-
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+# الرخصة
+[ممنوع التعديل أو إعادة التوزيع أو الاستخدام التجاري بدون إذن صريح من المطور.
+يمكنك استخدام البرنامج للاستخدام الشخصي أو داخل شركتك فقط وفقًا لشروط المطور.
+أي محاولة للتعديل أو النسخ أو إعادة البيع تعتبر مخالفة قانونية.]

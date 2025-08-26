@@ -31,24 +31,17 @@
     <form action="{{ route('expenses.item.store') }}" class="formSubmit" method="POST">
         @csrf
         <div class="card-body">
-                <div class="mb-1">
-                    <label class="form-label">اسم البند *</label>
-                    <input type="text" class="form-control name" required name="name" value="{{ old('name') }}">
-                </div>
-                <div class="mb-1">
-                    <label class="form-label">هل يؤثر علي الخزنة ؟ *</label>
-                    <select name="affect_wallet" class="form-select" id="affect_wallet">
-                        <option value="1" selected>نعم</option>
-                        <option value="0">لا</option>
-                    </select>
-                </div>
-                <div class="mb-1">
-                    <label class="form-label">هل يؤثر علي المديونية ؟ *</label>
-                    <select name="affect_debt" class="form-select" id="affect_debt">
-                        <option value="1">نعم</option>
-                        <option value="0" selected>لا</option>
-                    </select>
-                </div>
+            <div class="mb-1">
+                <label class="form-label">اسم البند *</label>
+                <input type="text" class="form-control name" required name="name" placeholder="بند المصروف" value="{{ old('name') }}">
+            </div>
+            <div class="mb-1">
+                <label class="form-label">هل له نصيب في الربحية ؟ *</label>
+                <select name="is_profit" class="form-select" id="is_profit">
+                    <option value="0" selected>لا</option>
+                    <option value="1">نعم</option>
+                </select>
+            </div>
         </div>
         <div class="card-footer">
             <button type="submit" class="btnSubmit btn btn-relief-success">حفظ البيانات</button>
@@ -60,18 +53,6 @@
 @section('js')
 <script>
      $(document).ready(function() {
-        $('#affect_wallet').change(function() {
-            if ($(this).val() == '1') {
-                $('#affect_debt').val('0');
-            }
-        });
-
-        $('#affect_debt').change(function() {
-            if ($(this).val() == '1') {
-                $('#affect_wallet').val('0');
-            }
-        });
-
         $(document).on('submit', '.formSubmit', function(e){
             e.preventDefault();
             if(!$(this).find('.name').val()){

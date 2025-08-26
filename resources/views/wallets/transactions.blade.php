@@ -54,18 +54,22 @@
                     @forelse($transactions as $t)
                         <tr>
                             <td>{{ \Carbon\Carbon::parse($t->date)->format('Y-m-d') }}</td>
-                            <td>{{ $t->account->name }}</td>
+                            <td>{{ optional($t->account)->name ?? '-' }}</td>
                             <td>
                                 @if ($t->transaction_type === 'added')
                                     <span>إضافة يدوية</span> 
                                 @elseif($t->transaction_type === 'payment')
                                     <span>مدفوعات</span>  
                                 @elseif($t->transaction_type === 'expense')   
-                                    <span>مصروفات</span> 
-                                @elseif($t->transaction_type === 'expense')  
-                                    <span>فاتورة مشتريات</span>    
+                                    <span>مصروفات</span>     
+                                @elseif($t->transaction_type === 'purchase')    
+                                    <span>مشتريات</span> 
+                                @elseif($t->transaction_type === 'sale')   
+                                    <span>مبيعات</span> 
+                                @elseif($t->transaction_type === 'transfer')     
+                                    <span>تحويل رصيد</span>    
                                 @else  
-                                    <span>فاتورة مبيعات</span>    
+                                    <span>رد مدفوعات</span>         
                                 @endif
                             </td>
                             <td>

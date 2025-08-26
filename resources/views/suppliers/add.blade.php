@@ -28,12 +28,12 @@
     <div class="card-header">
         <h3 class="card-title">إضافة مورد جديد</h3>
     </div>
-    <form action="{{ route('supplier.store') }}" id="formSubmit" method="POST">
+    <form action="{{ route('supplier.store') }}" class="formSubmit" method="POST">
         @csrf
         <div class="card-body">
                 <div class="mb-1">
                     <label class="form-label">اسم المورد *</label>
-                    <input type="text" class="form-control @error('name') is-invalid @enderror" placeholder="اسم المورد" name="name">
+                    <input type="text" class="form-control name @error('name') is-invalid @enderror" placeholder="اسم المورد" name="name">
                     @error('name')
                         <div class="alert alert-danger mt-1">
                             <p>{{ @$message }}</p>
@@ -66,10 +66,28 @@
                 </div>
         </div>
         <div class="card-footer">
-            <button type="submit" class="btn btn-relief-success">حفظ البيانات</button>
+            <button type="submit" class="btnSubmit btn btn-relief-success">حفظ البيانات</button>
         </div>
     </form>
 </div>
 
 @endsection
 
+
+@section('js')
+    <script>
+        $(function(){
+            $(document).on('submit', '.formSubmit', function(e){
+                e.preventDefault();
+                if(!$(this).find('.name').val()){
+                    e.preventDefault();
+                    toastr.info('يرجي ملئ بيانات الحقول !');
+                }
+                else {
+                    $(this).find('.btnSubmit').prop('disabled', true).addClass('disabled');
+                    e.currentTarget.submit();
+                }
+            });
+        })
+    </script>
+@endsection

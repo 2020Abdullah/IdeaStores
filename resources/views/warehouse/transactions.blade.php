@@ -60,7 +60,7 @@
                 <tbody>
                     @forelse($transactions as $t)
                         <tr>
-                            <td>{{ $t->wallet->name }}</td>
+                            <td>{{ $t->wallet->name ?? '_'}}</td>
                             <td>{{ $t->date ?? $t->created_at->format('Y-m-d') }}</td>
                             <td>
                                 @if ($t->transaction_type === 'added')
@@ -68,7 +68,15 @@
                                 @elseif($t->transaction_type === 'payment')
                                     <span>مدفوعات</span>  
                                 @elseif($t->transaction_type === 'expense')   
-                                    <span>مصروفات</span>            
+                                    <span>مصروفات</span>     
+                                @elseif($t->transaction_type === 'purchase')    
+                                    <span>مشتريات</span> 
+                                @elseif($t->transaction_type === 'sale')   
+                                    <span>مبيعات</span> 
+                                @elseif($t->transaction_type === 'transfer')     
+                                    <span>تحويل رصيد</span>    
+                                @else  
+                                    <span>رد مدفوعات</span>         
                                 @endif
                             </td>
                             <td>

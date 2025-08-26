@@ -15,7 +15,8 @@ class Stock_movement extends Model
         return $this->belongsTo(Product::class);
     }
 
-    public function supplier(){
-        return $this->belongsTo(Supplier::class);
+    public function related()
+    {
+        return $this->morphTo();
     }
 }

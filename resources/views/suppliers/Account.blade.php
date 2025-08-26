@@ -158,7 +158,9 @@
         </div>
         <div class="card-body">
             <div class="table-responsive">
-               @include('suppliers.invoices.invoice_table')
+                <div class="table-invoices">
+                    @include('suppliers.invoices.invoice_table')
+                </div>
             </div>
         </div>
         <div class="card-footer">
@@ -174,13 +176,12 @@
                 <h5 class="modal-title">إضافة دفعة</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
-            <form action="{{ route('supplier.invoice.payment') }}" method="POST">
+            <form action="{{ route('supplier.invoice.payment') }}" class="formSubmit" method="POST">
                 @csrf
                 <input type="hidden" name="supplier_id" class="supplier_id">
-                <input type="hidden" name="method" class="method">
                 <div class="modal-body">
                     <div class="mb-1">
-                        <label class="form-label">من حساب</label>
+                        <label class="form-label">من حساب *</label>
                         <select name="warehouse_id" class="form-control warehouse_id">
                             <option value="">اختر الخزنة ...</option>
                             @foreach ($warehouse_list as $w)
@@ -189,7 +190,7 @@
                         </select>
                     </div>
                     <div class="mb-1">
-                        <label class="form-label">المحفظة</label>
+                        <label class="form-label">المحفظة *</label>
                         <select name="wallet_id" class="form-control wallet_id">
                             <option value="">...</option>
                         </select>
@@ -213,7 +214,7 @@
                         <input type="number" class="form-control total_balance" name="total_balance" value="{{ $supplier->balance }}" readonly>
                     </div>
                     <div class="mb-1">
-                        <label class="form-label">مبلغ الدفعة</label>
+                        <label class="form-label">مبلغ الدفعة *</label>
                         <input type="number" class="form-control" name="amount">
                     </div>
                     <div class="mb-1">
@@ -222,7 +223,7 @@
                     </div>
                 </div>
                 <div class="modal-footer">
-                    <button type="submit" class="btn btn-success waves-effect waves-float waves-light">تأكيد العملية</button>
+                    <button type="submit" class="btnSubmit btn btn-success waves-effect waves-float waves-light">تأكيد العملية</button>
                 </div>
             </form>
         </div>
@@ -268,7 +269,7 @@
                         $('#loading-excute').fadeIn(500);
                     },
                     success: function (response) {
-                        $('.table-responsive').html(response);
+                        $('.table-invoices').html(response);
                     },
                     error: function(xhr){
                         console.log(xhr);
@@ -394,6 +395,19 @@
                     $(".exportData").addClass('disabled');
                 }
             }
+
+            $(document).on('submit', '.formSubmit', function(e){
+                e.preventDefault();
+                if(!$(this).find('.warehouse_id').val() && !$(this).find('.wallet_id').val() && !$(this).find('.amount').val()){
+                    e.preventDefault();
+                    toastr.info('يرجي ملئ بيانات الحقول المطلوبة !');
+                }
+                else {
+                    $(this).find('.btnSubmit').prop('disabled', true).addClass('disabled');
+                    this.submit();
+                }
+            });
+
         })
     </script>
 @endsection

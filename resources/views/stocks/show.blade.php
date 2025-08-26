@@ -8,7 +8,7 @@
             <div class="breadcrumb-wrapper">
                 <ol class="breadcrumb">
                     <li class="breadcrumb-item">
-                        <a href="{{ route('dashboard') }}">الرئيسية</a>
+                        <a href="{{ route('stock.index') }}">الرئيسية</a>
                     </li>
                     <li class="breadcrumb-item">
                         <a href="#">حركات الصنف</a>
@@ -29,6 +29,7 @@
             <div class="card-body">
                 <form action="#" id="searchForm" method="POST">
                     @csrf
+                    <input type="hidden" name="stock_id" value="{{ $stock->id }}">
                     <div class="row">
                         <div class="col-md-3 mb-1">
                             <label class="form-label">من</label>

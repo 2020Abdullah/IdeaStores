@@ -25,12 +25,12 @@
     <div class="card-header">
         <h3 class="card-title">إضافة عميل جديد</h3>
     </div>
-    <form action="{{ route('customer.store') }}" id="formSubmit" method="POST">
+    <form action="{{ route('customer.store') }}" class="formSubmit" method="POST">
         @csrf
         <div class="card-body">
                 <div class="mb-1">
                     <label class="form-label">اسم العميل *</label>
-                    <input type="text" class="form-control @error('name') is-invalid @enderror" placeholder="اسم العميل" name="name" value="{{ old('name') }}" required>
+                    <input type="text" class="form-control name @error('name') is-invalid @enderror" placeholder="اسم العميل" name="name" value="{{ old('name') }}" required>
                     @error('name')
                         <div class="alert alert-danger mt-1">
                             <p>{{ @$message }}</p>
@@ -63,9 +63,26 @@
                 </div>
         </div>
         <div class="card-footer">
-            <button type="submit" class="btn btn-relief-success">حفظ البيانات</button>
+            <button type="submit" class="btnSubmit btn btn-relief-success">حفظ البيانات</button>
         </div>
     </form>
 </div>
 @endsection
 
+@section('js')
+<script>
+    $(document).ready(function(){
+        $(document).on('submit', '.formSubmit', function(e){
+            e.preventDefault();
+            if(!$(this).find('.name').val()){
+                e.preventDefault();
+                toastr.info('يرجي ملئ بيانات الحقول !');
+            }
+            else {
+                $(this).find('.btnSubmit').prop('disabled', true).addClass('disabled');
+                e.currentTarget.submit();
+            }
+        });
+    })
+</script>
+@endsection

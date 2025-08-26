@@ -48,6 +48,7 @@
                     <th>#</th>
                     <th>بند المصروف</th>
                     <th>الرصيد</th>
+                    <th>هل له نصيب في الربحية</th>
                     <th>إجراء</th>
                 </tr>
             </thead>
@@ -61,6 +62,13 @@
                             </a>
                         </td>
                         <td>{{ number_format($item->exponses->sum('amount') ?? 0, 2) }}</td>
+                        <td>
+                            @if ($item->is_profit == 0)
+                                <Span>لا</Span>
+                            @else
+                                <Span>نعم</Span>
+                            @endif
+                        </td>
                         <td>
                             <a href="{{ route('expenses.item.edit', $item->id) }}"class="btn btn-icon btn-success waves-effect waves-float waves-light">
                                 <i data-feather='edit'></i>

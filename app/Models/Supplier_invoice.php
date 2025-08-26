@@ -36,7 +36,7 @@ class Supplier_invoice extends Model
 
     public function payments()
     {
-        return $this->morphMany(PaymentTransaction::class, 'source');
+        return $this->morphMany(PaymentTransaction::class, 'related');
     }
 
 }
