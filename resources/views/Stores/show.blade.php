@@ -57,9 +57,16 @@
                                     @endif
                                 </td>
                                 <td>
-                                    <a href="{{ route('supplier.invoice.show', $move->source_code) }}">
-                                        {{ $move->source_code }}
-                                    </a>
+                                    @if ($move->type === 'in')
+                                        <a href="{{ route('supplier.invoice.show', $move->source_code) }}">
+                                            {{ $move->source_code }}
+                                        </a>
+                                    @else
+                                        <a href="{{ route('customer.invoice.show', $move->source_code) }}">
+                                            {{ $move->source_code }}
+                                        </a>
+                                    @endif
+                 
                                 </td>
                             </tr>
                         @endforeach

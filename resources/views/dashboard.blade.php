@@ -2,6 +2,19 @@
 
 @section('css')
 <link rel="stylesheet" href="{{ asset('assets/css-rtl/flatpickr.min.css') }}">
+<style>
+    @media (max-width: 768px) {
+        #salesChart {
+            height: 250px !important;
+        }
+    }
+
+    @media (min-width: 769px) {
+        #salesChart {
+            height: 400px !important;
+        }
+    }
+</style>
 @endsection
 
 @section('content')
@@ -189,6 +202,7 @@ $(function() {
                     },
                     options: {
                         responsive: true,
+                        maintainAspectRatio: false,
                         plugins: {
                             legend: { position: 'top' },
                             title: {
