@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: localhost:3306
--- Generation Time: Aug 09, 2025 at 03:33 PM
+-- Generation Time: Aug 26, 2025 at 01:28 PM
 -- Server version: 8.0.30
 -- PHP Version: 8.1.10
 
@@ -32,11 +32,9 @@ CREATE TABLE `accounts` (
   `name` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
   `accountable_type` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `accountable_id` bigint UNSIGNED DEFAULT NULL,
-  `type` enum('warehouse','supplier','customer','partner','expense') COLLATE utf8mb4_unicode_ci NOT NULL,
-  `total_capital_balance` decimal(15,2) NOT NULL DEFAULT '0.00',
-  `total_profit_balance` decimal(15,2) NOT NULL DEFAULT '0.00',
-  `current_balance` decimal(10,0) NOT NULL DEFAULT '0',
+  `type` enum('warehouse','wallet','supplier','customer') COLLATE utf8mb4_unicode_ci NOT NULL,
   `is_main` tinyint NOT NULL DEFAULT '0',
+  `current_balance` decimal(15,2) NOT NULL DEFAULT '0.00',
   `deleted_at` timestamp NULL DEFAULT NULL,
   `created_at` timestamp NULL DEFAULT NULL,
   `updated_at` timestamp NULL DEFAULT NULL
@@ -46,10 +44,9 @@ CREATE TABLE `accounts` (
 -- Dumping data for table `accounts`
 --
 
-INSERT INTO `accounts` (`id`, `name`, `accountable_type`, `accountable_id`, `type`, `total_capital_balance`, `total_profit_balance`, `current_balance`, `is_main`, `deleted_at`, `created_at`, `updated_at`) VALUES
-(1, 'حساب المورد: محمد', 'App\\Models\\Supplier', 1, 'supplier', '0.00', '0.00', '1000', 0, NULL, '2025-08-09 10:53:40', '2025-08-09 11:36:11'),
-(2, 'حساب خزنة التوريدات', 'App\\Models\\Warehouse', 1, 'warehouse', '1500.00', '0.00', '1500', 0, NULL, '2025-08-09 11:03:32', '2025-08-09 12:45:55'),
-(3, 'حساب خزنة اللحامات', 'App\\Models\\Warehouse', 2, 'warehouse', '0.00', '0.00', '0', 0, NULL, '2025-08-09 11:03:45', '2025-08-09 11:03:45');
+INSERT INTO `accounts` (`id`, `name`, `accountable_type`, `accountable_id`, `type`, `is_main`, `current_balance`, `deleted_at`, `created_at`, `updated_at`) VALUES
+(1, 'حساب خزنة التوريدات', 'App\\Models\\Warehouse', 2, 'warehouse', 0, '0.00', NULL, '2025-08-16 11:29:26', '2025-08-16 11:29:26'),
+(2, 'حساب خزنة اللحامات', 'App\\Models\\Warehouse', 3, 'warehouse', 0, '0.00', NULL, '2025-08-16 11:29:36', '2025-08-16 11:29:36');
 
 -- --------------------------------------------------------
 
@@ -59,16 +56,17 @@ INSERT INTO `accounts` (`id`, `name`, `accountable_type`, `accountable_id`, `typ
 
 CREATE TABLE `account_transactions` (
   `id` bigint UNSIGNED NOT NULL,
-  `account_id` bigint UNSIGNED NOT NULL,
+  `account_id` bigint UNSIGNED DEFAULT NULL,
+  `wallet_id` bigint UNSIGNED DEFAULT NULL,
   `direction` enum('in','out') COLLATE utf8mb4_unicode_ci NOT NULL,
-  `method` enum('cash','bank','vodafone_cash','instapay') COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `amount` decimal(15,2) NOT NULL,
-  `transaction_type` enum('payment','expense','purchase','sale','added','transfer','open_balance','profit') CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  `profit_amount` decimal(15,2) NOT NULL DEFAULT '0.00' COMMENT 'الربح من العملية إن وجد',
+  `transaction_type` enum('payment','expense','purchase','sale','profit_adjust','added','transfer','refund') CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
   `related_type` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `related_id` bigint UNSIGNED DEFAULT NULL,
   `description` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `source_code` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
-  `date` date DEFAULT NULL COMMENT 'تاريخ الإضافة بتاريخ الفاتورة',
+  `date` date DEFAULT NULL COMMENT 'تاريخ العملية الحقيقي',
   `created_at` timestamp NULL DEFAULT NULL,
   `updated_at` timestamp NULL DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
@@ -96,7 +94,7 @@ CREATE TABLE `apps` (
 --
 
 INSERT INTO `apps` (`id`, `logo`, `company_name`, `company_info`, `Tax_number`, `statue`, `user_id`, `created_at`, `updated_at`) VALUES
-(1, 'uploads/setting/1754739335.png', 'شركه الفتح للحام وتوريد السيور الناقلة', NULL, NULL, 1, 1, '2025-08-09 10:35:35', '2025-08-09 10:35:35');
+(1, 'uploads/setting/1755346235.png', 'شركه الفتح للحام وتوريد السيور الناقلة', NULL, NULL, 1, 1, '2025-08-16 11:10:35', '2025-08-16 11:10:35');
 
 -- --------------------------------------------------------
 
@@ -108,6 +106,7 @@ CREATE TABLE `categories` (
   `id` bigint UNSIGNED NOT NULL,
   `name` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
   `parent_id` bigint UNSIGNED DEFAULT NULL,
+  `deleted_at` timestamp NULL DEFAULT NULL,
   `created_at` timestamp NULL DEFAULT NULL,
   `updated_at` timestamp NULL DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
@@ -116,12 +115,17 @@ CREATE TABLE `categories` (
 -- Dumping data for table `categories`
 --
 
-INSERT INTO `categories` (`id`, `name`, `parent_id`, `created_at`, `updated_at`) VALUES
-(1, 'سيور', NULL, '2025-08-09 10:39:08', '2025-08-09 10:39:08'),
-(2, 'شيفرون', 1, '2025-08-09 10:39:20', '2025-08-09 10:39:20'),
-(3, 'شيفرون عالي', 2, '2025-08-09 10:41:37', '2025-08-09 10:41:37'),
-(4, 'شيفرون واطي', 2, '2025-08-09 10:41:55', '2025-08-09 10:41:55'),
-(5, 'بكر', NULL, '2025-08-09 10:48:20', '2025-08-09 10:48:20');
+INSERT INTO `categories` (`id`, `name`, `parent_id`, `deleted_at`, `created_at`, `updated_at`) VALUES
+(1, 'سيور', NULL, NULL, '2025-08-17 10:05:41', '2025-08-17 10:05:41'),
+(2, 'شيفرون', 1, NULL, '2025-08-17 10:05:50', '2025-08-17 10:05:56'),
+(3, 'املس', 1, NULL, '2025-08-17 10:06:06', '2025-08-17 10:06:06'),
+(4, 'pvc', 1, NULL, '2025-08-17 10:06:15', '2025-08-17 10:06:15'),
+(5, 'واطي', 2, NULL, '2025-08-17 10:06:31', '2025-08-17 10:06:31'),
+(6, 'عالي', 2, NULL, '2025-08-17 10:06:40', '2025-08-17 10:06:40'),
+(7, 'بكر', NULL, NULL, '2025-08-17 10:07:11', '2025-08-17 10:07:11'),
+(8, 'درافيل', NULL, NULL, '2025-08-17 10:07:18', '2025-08-17 10:07:18'),
+(9, 'جيربوكسات', NULL, NULL, '2025-08-17 10:07:47', '2025-08-17 10:07:47'),
+(10, 'بوابات ميزان', NULL, NULL, '2025-08-17 10:07:55', '2025-08-17 10:07:55');
 
 -- --------------------------------------------------------
 
@@ -145,6 +149,73 @@ CREATE TABLE `customers` (
 -- --------------------------------------------------------
 
 --
+-- Table structure for table `customer_dues`
+--
+
+CREATE TABLE `customer_dues` (
+  `id` bigint UNSIGNED NOT NULL,
+  `customer_id` bigint UNSIGNED NOT NULL,
+  `customer_invoice_id` bigint UNSIGNED DEFAULT NULL,
+  `description` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `amount` decimal(15,2) NOT NULL,
+  `paid_amount` decimal(15,2) NOT NULL DEFAULT '0.00',
+  `due_date` date DEFAULT NULL,
+  `status` tinyint NOT NULL DEFAULT '0',
+  `created_at` timestamp NULL DEFAULT NULL,
+  `updated_at` timestamp NULL DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `customer_invoices`
+--
+
+CREATE TABLE `customer_invoices` (
+  `id` bigint UNSIGNED NOT NULL,
+  `customer_id` bigint UNSIGNED NOT NULL,
+  `code` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `date` date NOT NULL,
+  `type` enum('cash','credit','opening_balance') COLLATE utf8mb4_unicode_ci NOT NULL,
+  `staute` tinyint NOT NULL DEFAULT '0' COMMENT 'حالة الفاتورة',
+  `paid_amount` decimal(15,2) NOT NULL DEFAULT '0.00' COMMENT 'إجمالي المدفوع',
+  `cost_price` decimal(15,2) NOT NULL DEFAULT '0.00' COMMENT 'التكاليف',
+  `total_amount` decimal(15,2) NOT NULL DEFAULT '0.00' COMMENT 'إجمالي الفاتورة',
+  `total_profit` decimal(15,2) NOT NULL DEFAULT '0.00' COMMENT 'سعر الإجمالي',
+  `notes` text COLLATE utf8mb4_unicode_ci,
+  `warehouse_id` bigint UNSIGNED DEFAULT NULL,
+  `wallet_id` bigint UNSIGNED DEFAULT NULL,
+  `deleted_at` timestamp NULL DEFAULT NULL,
+  `created_at` timestamp NULL DEFAULT NULL,
+  `updated_at` timestamp NULL DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `customer_invoices_items`
+--
+
+CREATE TABLE `customer_invoices_items` (
+  `id` bigint UNSIGNED NOT NULL,
+  `customer_invoice_id` bigint UNSIGNED NOT NULL,
+  `category_id` bigint UNSIGNED DEFAULT NULL,
+  `product_id` bigint UNSIGNED DEFAULT NULL,
+  `unit_name` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `size_id` bigint UNSIGNED DEFAULT NULL,
+  `quantity` int NOT NULL COMMENT 'الكمية',
+  `sale_price` decimal(15,2) NOT NULL DEFAULT '0.00' COMMENT 'سعر بيع الوحدة',
+  `total_price` decimal(15,2) NOT NULL DEFAULT '0.00' COMMENT 'سعر الإجمالي',
+  `profit` decimal(15,2) NOT NULL DEFAULT '0.00',
+  `total_profit` decimal(15,2) NOT NULL DEFAULT '0.00' COMMENT 'سعر الإجمالي',
+  `deleted_at` timestamp NULL DEFAULT NULL,
+  `created_at` timestamp NULL DEFAULT NULL,
+  `updated_at` timestamp NULL DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- --------------------------------------------------------
+
+--
 -- Table structure for table `exponses`
 --
 
@@ -157,17 +228,10 @@ CREATE TABLE `exponses` (
   `amount` decimal(15,2) NOT NULL,
   `note` text COLLATE utf8mb4_unicode_ci,
   `date` date DEFAULT NULL COMMENT 'تاريخ الإضافة بتاريخ الفاتورة',
+  `source_code` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `created_at` timestamp NULL DEFAULT NULL,
   `updated_at` timestamp NULL DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
---
--- Dumping data for table `exponses`
---
-
-INSERT INTO `exponses` (`id`, `expenseable_type`, `expenseable_id`, `expense_item_id`, `account_id`, `amount`, `note`, `date`, `created_at`, `updated_at`) VALUES
-(7, 'App\\Models\\Supplier_invoice', 5, 1, 2, '100.00', 'تكاليف إضافية', '2025-08-09', '2025-08-09 11:36:11', '2025-08-09 13:50:35'),
-(8, 'App\\Models\\Supplier_invoice', 5, 2, 2, '200.00', 'تكاليف إضافية', '2025-08-09', '2025-08-09 11:36:11', '2025-08-09 13:50:35');
 
 -- --------------------------------------------------------
 
@@ -178,8 +242,8 @@ INSERT INTO `exponses` (`id`, `expenseable_type`, `expenseable_id`, `expense_ite
 CREATE TABLE `exponse_items` (
   `id` bigint UNSIGNED NOT NULL,
   `name` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
-  `affect_debt` tinyint(1) NOT NULL COMMENT 'هل يؤثر علي المديونة ؟',
-  `affect_wallet` tinyint(1) NOT NULL COMMENT 'هل يؤثر علي الخزنة',
+  `is_profit` tinyint NOT NULL DEFAULT '0',
+  `deleted_at` timestamp NULL DEFAULT NULL,
   `created_at` timestamp NULL DEFAULT NULL,
   `updated_at` timestamp NULL DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
@@ -188,14 +252,17 @@ CREATE TABLE `exponse_items` (
 -- Dumping data for table `exponse_items`
 --
 
-INSERT INTO `exponse_items` (`id`, `name`, `affect_debt`, `affect_wallet`, `created_at`, `updated_at`) VALUES
-(1, 'نقل', 0, 1, '2025-08-09 10:50:19', '2025-08-09 10:50:19'),
-(2, 'إكرامية', 0, 1, '2025-08-09 10:50:29', '2025-08-09 10:50:29'),
-(3, 'كهرباء', 0, 1, '2025-08-09 10:50:35', '2025-08-09 10:50:35'),
-(4, 'كرتة', 0, 1, '2025-08-09 10:50:40', '2025-08-09 10:50:40'),
-(5, 'غفرة', 0, 1, '2025-08-09 10:50:53', '2025-08-09 10:50:53'),
-(6, 'المكان', 0, 1, '2025-08-09 10:50:57', '2025-08-09 10:50:57'),
-(7, 'مكن', 0, 1, '2025-08-09 10:51:39', '2025-08-09 10:51:39');
+INSERT INTO `exponse_items` (`id`, `name`, `is_profit`, `deleted_at`, `created_at`, `updated_at`) VALUES
+(1, 'نقل', 0, NULL, '2025-08-16 11:22:08', '2025-08-16 11:22:08'),
+(2, 'إكرامية', 0, NULL, '2025-08-16 11:26:20', '2025-08-16 11:26:20'),
+(3, 'كرتة', 0, NULL, '2025-08-16 11:26:25', '2025-08-16 11:26:25'),
+(4, 'كهرباء', 0, NULL, '2025-08-16 11:26:30', '2025-08-16 11:26:30'),
+(5, 'مياه', 0, NULL, '2025-08-16 11:26:39', '2025-08-16 11:26:39'),
+(6, 'إيجار', 0, NULL, '2025-08-16 11:26:50', '2025-08-16 11:26:50'),
+(7, 'المكان', 1, NULL, '2025-08-16 11:27:10', '2025-08-23 09:47:59'),
+(8, 'مكن', 1, NULL, '2025-08-16 11:27:17', '2025-08-23 09:48:20'),
+(9, 'الشركاء', 1, NULL, '2025-08-20 09:48:05', '2025-08-23 09:48:28'),
+(10, 'صاحب المكان', 1, NULL, '2025-08-20 09:48:23', '2025-08-23 09:48:33');
 
 -- --------------------------------------------------------
 
@@ -216,13 +283,6 @@ CREATE TABLE `external_debts` (
   `created_at` timestamp NULL DEFAULT NULL,
   `updated_at` timestamp NULL DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
---
--- Dumping data for table `external_debts`
---
-
-INSERT INTO `external_debts` (`id`, `debtable_type`, `debtable_id`, `description`, `amount`, `paid`, `remaining`, `is_paid`, `date`, `created_at`, `updated_at`) VALUES
-(1, 'App\\Models\\Supplier_invoice', 4, 'رصيد افتتاحي للمورد محمد', '1000.00', '0.00', '1000.00', 0, '2025-08-09', '2025-08-09 11:35:18', '2025-08-09 11:35:18');
 
 -- --------------------------------------------------------
 
@@ -252,17 +312,10 @@ CREATE TABLE `invoice_product_costs` (
   `base_cost` decimal(10,2) NOT NULL COMMENT 'السعر الأساسي من المورد',
   `cost_share` decimal(10,2) NOT NULL COMMENT 'سعر التكلفة للصنف',
   `suggested_price` decimal(10,2) DEFAULT NULL COMMENT 'سعر البيع المقترح',
-  `rate` int NOT NULL DEFAULT '0',
+  `rate` int NOT NULL DEFAULT '0' COMMENT 'النسبة لعمل البيع المقترح',
   `created_at` timestamp NULL DEFAULT NULL,
   `updated_at` timestamp NULL DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
---
--- Dumping data for table `invoice_product_costs`
---
-
-INSERT INTO `invoice_product_costs` (`id`, `stock_id`, `base_cost`, `cost_share`, `suggested_price`, `rate`, `created_at`, `updated_at`) VALUES
-(1, 1, '100.00', '302000.00', '511.02', 2, '2025-08-09 11:36:11', '2025-08-09 13:50:35');
 
 -- --------------------------------------------------------
 
@@ -295,19 +348,24 @@ INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES
 (12, '2025_07_17_163903_create_suppliers_table', 1),
 (13, '2025_07_17_163904_create_customers_table', 1),
 (14, '2025_07_17_163917_create_accounts_table', 1),
-(15, '2025_07_17_163918_create_account_transactions_table', 1),
 (16, '2025_07_17_163919_create_wallets_table', 1),
-(17, '2025_07_19_162415_create_supplier_invoices_table', 1),
-(18, '2025_07_19_162424_create_supplier_invoice_items_table', 1),
-(19, '2025_07_20_163914_create_stocks_table', 1),
-(20, '2025_07_20_163916_create_stock_movements_table', 1),
-(21, '2025_07_21_101559_create_stock_adjustments_table', 1),
-(22, '2025_07_21_101611_create_stock_adjustment_items_table', 1),
-(23, '2025_07_25_214147_create_wallet_movements_table', 1),
-(24, '2025_08_01_003208_create_invoice_product_costs_table', 1),
-(25, '2025_08_05_110354_create_exponse_items_table', 1),
-(26, '2025_08_05_110659_create_exponses_table', 1),
-(27, '2025_08_05_125722_create_external_debts_table', 1);
+(17, '2025_07_18_222930_create_wallet_warehouse_table', 1),
+(18, '2025_07_19_162415_create_supplier_invoices_table', 1),
+(19, '2025_07_19_162424_create_supplier_invoice_items_table', 1),
+(22, '2025_07_21_101559_create_stock_adjustments_table', 1),
+(23, '2025_07_21_101611_create_stock_adjustment_items_table', 1),
+(25, '2025_08_01_003208_create_invoice_product_costs_table', 1),
+(26, '2025_08_05_110354_create_exponse_items_table', 1),
+(27, '2025_08_05_110659_create_exponses_table', 1),
+(28, '2025_08_05_125722_create_external_debts_table', 1),
+(33, '2025_07_17_163918_create_account_transactions_table', 3),
+(34, '2025_07_25_214147_create_wallet_movements_table', 4),
+(35, '2025_08_10_141937_create_payment_transactions_table', 5),
+(41, '2025_07_20_163914_create_stocks_table', 6),
+(42, '2025_07_20_163916_create_stock_movements_table', 6),
+(43, '2025_08_14_131314_create_customer_invoices_table', 6),
+(45, '2025_08_19_170305_create_customer_dues_table', 6),
+(47, '2025_08_14_131624_create_customer_invoices_items_table', 7);
 
 -- --------------------------------------------------------
 
@@ -320,6 +378,36 @@ CREATE TABLE `password_reset_tokens` (
   `token` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
   `created_at` timestamp NULL DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `payment_transactions`
+--
+
+CREATE TABLE `payment_transactions` (
+  `id` bigint UNSIGNED NOT NULL,
+  `related_type` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `related_id` bigint UNSIGNED DEFAULT NULL,
+  `direction` enum('in','out') COLLATE utf8mb4_unicode_ci NOT NULL,
+  `wallet_id` bigint UNSIGNED NOT NULL,
+  `amount` decimal(15,2) NOT NULL,
+  `payment_date` date NOT NULL,
+  `description` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `created_at` timestamp NULL DEFAULT NULL,
+  `updated_at` timestamp NULL DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+--
+-- Dumping data for table `payment_transactions`
+--
+
+INSERT INTO `payment_transactions` (`id`, `related_type`, `related_id`, `direction`, `wallet_id`, `amount`, `payment_date`, `description`, `created_at`, `updated_at`) VALUES
+(10, 'App\\Models\\Customer', 3, 'in', 2, '5000.00', '2025-08-24', 'دفعة مقدمة', '2025-08-24 09:14:08', '2025-08-24 09:14:08'),
+(11, 'App\\Models\\Customer', 3, 'in', 2, '40000.00', '2025-08-25', 'دفعة مقدمة', '2025-08-25 08:07:01', '2025-08-25 08:07:01'),
+(12, 'App\\Models\\Supplier', 5, 'in', 5, '5000.00', '2025-08-26', 'دفعة مقدمة', '2025-08-26 09:01:37', '2025-08-26 09:01:37'),
+(13, 'App\\Models\\Supplier', 5, 'in', 5, '5000.00', '2025-08-26', 'دفعة مقدمة', '2025-08-26 09:01:37', '2025-08-26 09:01:37'),
+(14, 'App\\Models\\Supplier', 5, 'in', 5, '5000.00', '2025-08-26', 'دفعة مقدمة', '2025-08-26 09:11:10', '2025-08-26 09:11:10');
 
 -- --------------------------------------------------------
 
@@ -351,8 +439,7 @@ CREATE TABLE `products` (
   `category_id` bigint UNSIGNED NOT NULL,
   `unit_id` bigint UNSIGNED DEFAULT NULL,
   `name` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
-  `width` decimal(8,1) DEFAULT NULL,
-  `length` decimal(8,1) DEFAULT NULL,
+  `deleted_at` timestamp NULL DEFAULT NULL,
   `created_at` timestamp NULL DEFAULT NULL,
   `updated_at` timestamp NULL DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
@@ -361,9 +448,12 @@ CREATE TABLE `products` (
 -- Dumping data for table `products`
 --
 
-INSERT INTO `products` (`id`, `category_id`, `unit_id`, `name`, `width`, `length`, `created_at`, `updated_at`) VALUES
-(1, 5, 4, 'بكر 25', NULL, NULL, '2025-08-09 11:10:49', '2025-08-09 11:12:10'),
-(2, 3, 2, 'سير G7', NULL, NULL, '2025-08-09 11:12:33', '2025-08-09 11:12:33');
+INSERT INTO `products` (`id`, `category_id`, `unit_id`, `name`, `deleted_at`, `created_at`, `updated_at`) VALUES
+(1, 3, NULL, 'سير عرض 65', NULL, '2025-08-17 10:08:31', '2025-08-17 10:08:31'),
+(2, 7, NULL, 'بكر 25', NULL, '2025-08-17 10:08:46', '2025-08-17 10:08:46'),
+(3, 7, NULL, 'بكر 30', NULL, '2025-08-17 10:08:54', '2025-08-17 10:08:54'),
+(4, 5, NULL, 'سير G7', NULL, '2025-08-17 10:09:17', '2025-08-17 10:09:17'),
+(5, 6, NULL, 'سير G8', NULL, '2025-08-17 10:09:31', '2025-08-17 10:09:31');
 
 -- --------------------------------------------------------
 
@@ -384,26 +474,26 @@ CREATE TABLE `sizes` (
 --
 
 INSERT INTO `sizes` (`id`, `width`, `deleted_at`, `created_at`, `updated_at`) VALUES
-(1, 20, NULL, '2025-08-09 10:36:51', '2025-08-09 10:36:51'),
-(2, 25, NULL, '2025-08-09 10:36:54', '2025-08-09 10:36:54'),
-(3, 30, NULL, '2025-08-09 10:36:58', '2025-08-09 10:36:58'),
-(4, 35, NULL, '2025-08-09 10:37:02', '2025-08-09 10:37:02'),
-(5, 40, NULL, '2025-08-09 10:37:07', '2025-08-09 10:37:07'),
-(6, 45, NULL, '2025-08-09 10:37:11', '2025-08-09 10:37:11'),
-(7, 50, NULL, '2025-08-09 10:37:15', '2025-08-09 10:37:15'),
-(8, 55, NULL, '2025-08-09 10:37:18', '2025-08-09 10:37:18'),
-(9, 60, NULL, '2025-08-09 10:37:23', '2025-08-09 10:37:23'),
-(10, 65, NULL, '2025-08-09 10:37:26', '2025-08-09 10:37:26'),
-(11, 70, NULL, '2025-08-09 10:37:31', '2025-08-09 10:37:31'),
-(12, 75, NULL, '2025-08-09 10:37:39', '2025-08-09 10:37:39'),
-(13, 80, NULL, '2025-08-09 10:37:43', '2025-08-09 10:37:43'),
-(14, 85, NULL, '2025-08-09 10:37:46', '2025-08-09 10:37:46'),
-(15, 90, NULL, '2025-08-09 10:37:50', '2025-08-09 10:37:50'),
-(16, 95, NULL, '2025-08-09 10:38:00', '2025-08-09 10:38:00'),
-(17, 100, NULL, '2025-08-09 10:38:04', '2025-08-09 10:38:04'),
-(18, 110, NULL, '2025-08-09 10:38:10', '2025-08-09 10:38:10'),
-(19, 120, NULL, '2025-08-09 10:38:15', '2025-08-09 10:38:15'),
-(20, 150, NULL, '2025-08-09 10:38:21', '2025-08-09 10:38:21');
+(1, 20, NULL, '2025-08-16 11:10:47', '2025-08-16 11:10:47'),
+(2, 25, NULL, '2025-08-16 11:10:51', '2025-08-16 11:10:51'),
+(3, 30, NULL, '2025-08-16 11:10:55', '2025-08-16 11:10:55'),
+(4, 35, NULL, '2025-08-16 11:12:25', '2025-08-16 11:12:25'),
+(5, 40, NULL, '2025-08-16 11:15:59', '2025-08-16 11:15:59'),
+(6, 45, NULL, '2025-08-16 11:16:04', '2025-08-16 11:16:04'),
+(7, 50, NULL, '2025-08-16 11:16:08', '2025-08-16 11:16:08'),
+(8, 55, NULL, '2025-08-16 11:16:12', '2025-08-16 11:16:12'),
+(9, 60, NULL, '2025-08-16 11:16:17', '2025-08-16 11:16:17'),
+(10, 65, NULL, '2025-08-16 11:16:22', '2025-08-16 11:16:22'),
+(11, 70, NULL, '2025-08-16 11:16:25', '2025-08-16 11:16:25'),
+(12, 75, NULL, '2025-08-16 11:16:29', '2025-08-16 11:16:29'),
+(13, 80, NULL, '2025-08-16 11:16:33', '2025-08-16 11:16:33'),
+(14, 90, NULL, '2025-08-16 11:16:38', '2025-08-16 11:16:38'),
+(15, 100, NULL, '2025-08-16 11:16:42', '2025-08-16 11:16:42'),
+(16, 110, NULL, '2025-08-16 11:16:45', '2025-08-16 11:16:45'),
+(17, 120, NULL, '2025-08-16 11:16:49', '2025-08-16 11:16:49'),
+(18, 130, NULL, '2025-08-16 11:16:54', '2025-08-16 11:16:54'),
+(19, 150, NULL, '2025-08-16 11:16:58', '2025-08-16 11:16:58'),
+(20, 155, NULL, '2025-08-16 11:17:01', '2025-08-16 11:17:01');
 
 -- --------------------------------------------------------
 
@@ -417,19 +507,13 @@ CREATE TABLE `stocks` (
   `product_id` bigint UNSIGNED NOT NULL,
   `store_house_id` bigint UNSIGNED NOT NULL,
   `unit_id` bigint UNSIGNED DEFAULT NULL,
+  `size_id` bigint UNSIGNED DEFAULT NULL,
   `initial_quantity` int NOT NULL DEFAULT '0' COMMENT 'الكمية الواردة',
   `remaining_quantity` int NOT NULL DEFAULT '0' COMMENT 'الكمية المتبقية',
   `date` date DEFAULT NULL COMMENT 'تاريخ الإضافة بتاريخ الفاتورة',
   `created_at` timestamp NULL DEFAULT NULL,
   `updated_at` timestamp NULL DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
---
--- Dumping data for table `stocks`
---
-
-INSERT INTO `stocks` (`id`, `category_id`, `product_id`, `store_house_id`, `unit_id`, `initial_quantity`, `remaining_quantity`, `date`, `created_at`, `updated_at`) VALUES
-(1, 5, 1, 1, 4, 90, 90, '2025-08-09', '2025-08-09 11:36:11', '2025-08-09 13:50:35');
 
 -- --------------------------------------------------------
 
@@ -474,23 +558,17 @@ CREATE TABLE `stock_adjustment_items` (
 
 CREATE TABLE `stock_movements` (
   `id` bigint UNSIGNED NOT NULL,
-  `supplier_id` bigint UNSIGNED DEFAULT NULL,
+  `related_type` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `related_id` bigint UNSIGNED DEFAULT NULL,
   `stock_id` bigint UNSIGNED NOT NULL,
   `type` enum('in','out') COLLATE utf8mb4_unicode_ci NOT NULL COMMENT 'in => إضافة / out => خصم',
-  `quantity` int NOT NULL DEFAULT '0' COMMENT 'الكمية المحركة',
+  `quantity` int NOT NULL COMMENT 'الكمية المحركة',
   `note` text COLLATE utf8mb4_unicode_ci COMMENT 'شراء / بيع',
-  `source_code` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT 'كود الفاتورة',
+  `source_code` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT 'كود الفاتورة',
   `date` date DEFAULT NULL COMMENT 'تاريخ الإضافة بتاريخ الفاتورة',
   `created_at` timestamp NULL DEFAULT NULL,
   `updated_at` timestamp NULL DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
---
--- Dumping data for table `stock_movements`
---
-
-INSERT INTO `stock_movements` (`id`, `supplier_id`, `stock_id`, `type`, `quantity`, `note`, `source_code`, `date`, `created_at`, `updated_at`) VALUES
-(1, 1, 1, 'in', 20, 'شراء (تعديل)', 'SU-20252', '2025-08-09', '2025-08-09 11:36:11', '2025-08-09 12:40:34');
 
 -- --------------------------------------------------------
 
@@ -513,7 +591,7 @@ CREATE TABLE `store_houses` (
 --
 
 INSERT INTO `store_houses` (`id`, `name`, `phone`, `address`, `statue`, `created_at`, `updated_at`) VALUES
-(1, 'مخزن رئيسي', '01070380594', 'شارع النقطة - المرج', 1, '2025-08-09 11:29:00', '2025-08-09 11:29:00');
+(1, 'مخزن رئيسي', '01070380594', 'شارع النقطة - المرج', 1, '2025-08-16 11:27:43', '2025-08-16 11:27:43');
 
 -- --------------------------------------------------------
 
@@ -534,13 +612,6 @@ CREATE TABLE `suppliers` (
   `created_at` timestamp NULL DEFAULT NULL,
   `updated_at` timestamp NULL DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
---
--- Dumping data for table `suppliers`
---
-
-INSERT INTO `suppliers` (`id`, `name`, `phone`, `busniess_name`, `busniess_type`, `whatsUp`, `place`, `notes`, `deleted_at`, `created_at`, `updated_at`) VALUES
-(1, 'محمد', NULL, NULL, NULL, NULL, NULL, NULL, NULL, '2025-08-09 10:53:40', '2025-08-09 10:53:40');
 
 -- --------------------------------------------------------
 
@@ -567,14 +638,6 @@ CREATE TABLE `supplier_invoices` (
   `updated_at` timestamp NULL DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
---
--- Dumping data for table `supplier_invoices`
---
-
-INSERT INTO `supplier_invoices` (`id`, `supplier_id`, `invoice_code`, `invoice_date`, `invoice_type`, `invoice_staute`, `paid_amount`, `cost_price`, `total_amount`, `total_amount_invoice`, `notes`, `warehouse_id`, `wallet_id`, `deleted_at`, `created_at`, `updated_at`) VALUES
-(4, 1, 'SU-20251', '2025-08-09', 'opening_balance', 0, '0.00', '0.00', '1000.00', '1000.00', NULL, NULL, NULL, NULL, '2025-08-09 11:35:18', '2025-08-09 11:35:18'),
-(5, 1, 'SU-20252', '2025-08-09', 'cash', 1, '2000.00', '300.00', '2300.00', '2000.00', NULL, 1, 1, NULL, '2025-08-09 11:36:11', '2025-08-09 13:50:35');
-
 -- --------------------------------------------------------
 
 --
@@ -593,16 +656,10 @@ CREATE TABLE `supplier_invoice_items` (
   `length` decimal(15,2) NOT NULL DEFAULT '0.00' COMMENT 'الطول',
   `purchase_price` decimal(15,2) NOT NULL DEFAULT '0.00' COMMENT 'سعر الشراء',
   `total_price` decimal(15,2) NOT NULL DEFAULT '0.00' COMMENT 'سعر الإجمالي',
+  `deleted_at` timestamp NULL DEFAULT NULL,
   `created_at` timestamp NULL DEFAULT NULL,
   `updated_at` timestamp NULL DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
---
--- Dumping data for table `supplier_invoice_items`
---
-
-INSERT INTO `supplier_invoice_items` (`id`, `supplier_invoice_id`, `category_id`, `product_id`, `unit_id`, `size_id`, `quantity`, `pricePerMeter`, `length`, `purchase_price`, `total_price`, `created_at`, `updated_at`) VALUES
-(6, 5, 5, 1, 4, 2, 20, '0.00', '25.00', '100.00', '2000.00', '2025-08-09 13:50:35', '2025-08-09 13:50:35');
 
 -- --------------------------------------------------------
 
@@ -623,11 +680,11 @@ CREATE TABLE `units` (
 --
 
 INSERT INTO `units` (`id`, `name`, `symbol`, `created_at`, `updated_at`) VALUES
-(1, 'متر', 'م', '2025-08-09 10:35:56', '2025-08-09 10:35:56'),
-(2, 'سنتيمتر', 'سم', '2025-08-09 10:36:04', '2025-08-09 10:36:04'),
-(3, 'ملي', 'مم', '2025-08-09 10:36:13', '2025-08-09 10:36:13'),
-(4, 'قطع', 'ق', '2025-08-09 10:36:24', '2025-08-09 10:36:24'),
-(5, 'كيلو', 'ك', '2025-08-09 10:36:34', '2025-08-09 10:36:34');
+(1, 'متر', 'م', '2025-08-16 11:19:43', '2025-08-16 11:19:43'),
+(2, 'سنتيمتر', 'سم', '2025-08-16 11:20:03', '2025-08-16 11:20:03'),
+(3, 'قطعة', 'ق', '2025-08-16 11:20:12', '2025-08-16 11:20:12'),
+(4, 'كيلو', 'ك', '2025-08-16 11:20:21', '2025-08-16 11:20:21'),
+(5, 'ملي', 'مم', '2025-08-16 11:20:36', '2025-08-16 11:20:36');
 
 -- --------------------------------------------------------
 
@@ -654,7 +711,7 @@ CREATE TABLE `users` (
 --
 
 INSERT INTO `users` (`id`, `name`, `email`, `email_verified_at`, `password`, `google_id`, `avatar`, `is_admin`, `remember_token`, `created_at`, `updated_at`) VALUES
-(1, 'admin', 'admin@example.com', NULL, '$2y$12$ldczOQGQ..UJwKNQjvdc9.D/iIJ819oNyGBsXD6X0zFqqwGn1XD32', NULL, NULL, 1, NULL, '2025-08-09 10:35:02', '2025-08-09 10:35:02');
+(1, 'admin', 'admin@example.com', NULL, '$2y$12$zP/mZN4BB04GuAPnIut0f.ItDooi5gMegSrJMp4OfSZwNjJ837apy', NULL, NULL, 1, NULL, '2025-08-16 11:10:11', '2025-08-16 11:10:11');
 
 -- --------------------------------------------------------
 
@@ -664,11 +721,10 @@ INSERT INTO `users` (`id`, `name`, `email`, `email_verified_at`, `password`, `go
 
 CREATE TABLE `wallets` (
   `id` bigint UNSIGNED NOT NULL,
-  `account_id` bigint UNSIGNED NOT NULL,
   `name` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
-  `method` enum('cash','bank','vodafone_cash','instapay') COLLATE utf8mb4_unicode_ci NOT NULL,
   `details` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
-  `current_balance` decimal(8,2) NOT NULL DEFAULT '0.00',
+  `is_default` tinyint NOT NULL DEFAULT '0',
+  `deleted_at` timestamp NULL DEFAULT NULL,
   `created_at` timestamp NULL DEFAULT NULL,
   `updated_at` timestamp NULL DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
@@ -677,40 +733,40 @@ CREATE TABLE `wallets` (
 -- Dumping data for table `wallets`
 --
 
-INSERT INTO `wallets` (`id`, `account_id`, `name`, `method`, `details`, `current_balance`, `created_at`, `updated_at`) VALUES
-(1, 2, 'محفظة الكاش', 'cash', '0', '1500.00', '2025-08-09 11:04:10', '2025-08-09 12:45:55'),
-(2, 2, 'فودافون كاش', 'vodafone_cash', '01070380597', '0.00', '2025-08-09 11:04:34', '2025-08-09 11:25:17'),
-(3, 2, 'انستا باى', 'instapay', '01070380597', '0.00', '2025-08-09 11:05:11', '2025-08-09 11:05:11'),
-(4, 2, 'حساب CIP', 'bank', '0', '0.00', '2025-08-09 11:05:35', '2025-08-09 11:05:35'),
-(5, 3, 'الكاش', 'cash', '0', '0.00', '2025-08-09 11:06:06', '2025-08-09 11:06:06'),
-(6, 3, 'فودافون كاش', 'vodafone_cash', '01070380597', '0.00', '2025-08-09 11:06:18', '2025-08-09 11:06:18'),
-(7, 3, 'انستا باى', 'instapay', '0', '0.00', '2025-08-09 11:06:30', '2025-08-09 11:06:30'),
-(8, 3, 'حساب cip', 'bank', '0', '0.00', '2025-08-09 11:06:45', '2025-08-09 11:06:45');
+INSERT INTO `wallets` (`id`, `name`, `details`, `is_default`, `deleted_at`, `created_at`, `updated_at`) VALUES
+(1, 'نقدى', 'درج الخزنة', 1, NULL, '2025-08-16 11:57:30', '2025-08-16 12:05:50'),
+(2, 'فودافون كاش 177', '01013798177', 0, NULL, '2025-08-16 11:58:13', '2025-08-16 11:58:13'),
+(3, 'فودافون كاش 97', '01070380597', 0, NULL, '2025-08-16 11:58:32', '2025-08-16 12:04:37'),
+(4, 'حساب CIP', '0', 0, NULL, '2025-08-16 12:06:37', '2025-08-16 12:06:37'),
+(5, 'انستا باى', '01070380597', 0, NULL, '2025-08-16 12:07:11', '2025-08-16 12:07:11');
 
 -- --------------------------------------------------------
 
 --
--- Table structure for table `wallet_movements`
+-- Table structure for table `wallet_warehouse`
 --
 
-CREATE TABLE `wallet_movements` (
+CREATE TABLE `wallet_warehouse` (
   `id` bigint UNSIGNED NOT NULL,
   `wallet_id` bigint UNSIGNED NOT NULL,
-  `amount` decimal(8,2) NOT NULL,
-  `direction` enum('in','out') COLLATE utf8mb4_unicode_ci NOT NULL,
-  `note` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
-  `source_code` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `warehouse_id` bigint UNSIGNED NOT NULL,
   `created_at` timestamp NULL DEFAULT NULL,
   `updated_at` timestamp NULL DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 --
--- Dumping data for table `wallet_movements`
+-- Dumping data for table `wallet_warehouse`
 --
 
-INSERT INTO `wallet_movements` (`id`, `wallet_id`, `amount`, `direction`, `note`, `source_code`, `created_at`, `updated_at`) VALUES
-(2, 1, '-2300.00', 'out', 'فاتورة شراء', 'SU-20252', '2025-08-09 11:36:11', '2025-08-09 13:50:35'),
-(3, 1, '3000.00', 'in', 'إضافة رصيد يدوى', NULL, '2025-08-09 12:45:55', '2025-08-09 12:45:55');
+INSERT INTO `wallet_warehouse` (`id`, `wallet_id`, `warehouse_id`, `created_at`, `updated_at`) VALUES
+(4, 5, 2, NULL, NULL),
+(5, 4, 2, NULL, NULL),
+(7, 4, 3, NULL, NULL),
+(8, 5, 3, NULL, NULL),
+(9, 2, 2, NULL, NULL),
+(10, 3, 2, NULL, NULL),
+(11, 2, 3, NULL, NULL),
+(12, 3, 3, NULL, NULL);
 
 -- --------------------------------------------------------
 
@@ -722,7 +778,7 @@ CREATE TABLE `warehouses` (
   `id` bigint UNSIGNED NOT NULL,
   `name` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
   `type` enum('main','toridat','la7amat') COLLATE utf8mb4_unicode_ci NOT NULL,
-  `is_main` tinyint NOT NULL DEFAULT '0',
+  `is_default` tinyint NOT NULL DEFAULT '0',
   `statue` tinyint NOT NULL DEFAULT '1',
   `deleted_at` timestamp NULL DEFAULT NULL,
   `created_at` timestamp NULL DEFAULT NULL,
@@ -733,9 +789,9 @@ CREATE TABLE `warehouses` (
 -- Dumping data for table `warehouses`
 --
 
-INSERT INTO `warehouses` (`id`, `name`, `type`, `is_main`, `statue`, `deleted_at`, `created_at`, `updated_at`) VALUES
-(1, 'خزنة التوريدات', 'toridat', 0, 1, NULL, '2025-08-09 11:03:32', '2025-08-09 11:03:32'),
-(2, 'خزنة اللحامات', 'la7amat', 0, 1, NULL, '2025-08-09 11:03:45', '2025-08-09 11:03:45');
+INSERT INTO `warehouses` (`id`, `name`, `type`, `is_default`, `statue`, `deleted_at`, `created_at`, `updated_at`) VALUES
+(2, 'خزنة التوريدات', 'toridat', 1, 1, NULL, '2025-08-16 11:29:26', '2025-08-16 11:29:26'),
+(3, 'خزنة اللحامات', 'la7amat', 0, 1, NULL, '2025-08-16 11:29:36', '2025-08-16 11:29:36');
 
 --
 -- Indexes for dumped tables
@@ -754,6 +810,7 @@ ALTER TABLE `accounts`
 ALTER TABLE `account_transactions`
   ADD PRIMARY KEY (`id`),
   ADD KEY `account_transactions_account_id_foreign` (`account_id`),
+  ADD KEY `account_transactions_wallet_id_foreign` (`wallet_id`),
   ADD KEY `account_transactions_related_type_related_id_index` (`related_type`,`related_id`);
 
 --
@@ -775,6 +832,33 @@ ALTER TABLE `categories`
 --
 ALTER TABLE `customers`
   ADD PRIMARY KEY (`id`);
+
+--
+-- Indexes for table `customer_dues`
+--
+ALTER TABLE `customer_dues`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `customer_dues_customer_id_foreign` (`customer_id`),
+  ADD KEY `customer_dues_customer_invoice_id_foreign` (`customer_invoice_id`);
+
+--
+-- Indexes for table `customer_invoices`
+--
+ALTER TABLE `customer_invoices`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `customer_invoices_customer_id_foreign` (`customer_id`),
+  ADD KEY `customer_invoices_warehouse_id_foreign` (`warehouse_id`),
+  ADD KEY `customer_invoices_wallet_id_foreign` (`wallet_id`);
+
+--
+-- Indexes for table `customer_invoices_items`
+--
+ALTER TABLE `customer_invoices_items`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `customer_invoices_items_customer_invoice_id_foreign` (`customer_invoice_id`),
+  ADD KEY `customer_invoices_items_category_id_foreign` (`category_id`),
+  ADD KEY `customer_invoices_items_product_id_foreign` (`product_id`),
+  ADD KEY `customer_invoices_items_size_id_foreign` (`size_id`);
 
 --
 -- Indexes for table `exponses`
@@ -825,6 +909,14 @@ ALTER TABLE `password_reset_tokens`
   ADD PRIMARY KEY (`email`);
 
 --
+-- Indexes for table `payment_transactions`
+--
+ALTER TABLE `payment_transactions`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `payment_transactions_related_type_related_id_index` (`related_type`,`related_id`),
+  ADD KEY `payment_transactions_wallet_id_foreign` (`wallet_id`);
+
+--
 -- Indexes for table `personal_access_tokens`
 --
 ALTER TABLE `personal_access_tokens`
@@ -854,7 +946,8 @@ ALTER TABLE `stocks`
   ADD KEY `stocks_category_id_foreign` (`category_id`),
   ADD KEY `stocks_product_id_foreign` (`product_id`),
   ADD KEY `stocks_store_house_id_foreign` (`store_house_id`),
-  ADD KEY `stocks_unit_id_foreign` (`unit_id`);
+  ADD KEY `stocks_unit_id_foreign` (`unit_id`),
+  ADD KEY `stocks_size_id_foreign` (`size_id`);
 
 --
 -- Indexes for table `stock_adjustments`
@@ -876,7 +969,7 @@ ALTER TABLE `stock_adjustment_items`
 --
 ALTER TABLE `stock_movements`
   ADD PRIMARY KEY (`id`),
-  ADD KEY `stock_movements_supplier_id_foreign` (`supplier_id`),
+  ADD KEY `stock_movements_related_type_related_id_index` (`related_type`,`related_id`),
   ADD KEY `stock_movements_stock_id_foreign` (`stock_id`);
 
 --
@@ -928,15 +1021,15 @@ ALTER TABLE `users`
 -- Indexes for table `wallets`
 --
 ALTER TABLE `wallets`
-  ADD PRIMARY KEY (`id`),
-  ADD KEY `wallets_account_id_foreign` (`account_id`);
+  ADD PRIMARY KEY (`id`);
 
 --
--- Indexes for table `wallet_movements`
+-- Indexes for table `wallet_warehouse`
 --
-ALTER TABLE `wallet_movements`
+ALTER TABLE `wallet_warehouse`
   ADD PRIMARY KEY (`id`),
-  ADD KEY `wallet_movements_wallet_id_foreign` (`wallet_id`);
+  ADD KEY `wallet_warehouse_wallet_id_foreign` (`wallet_id`),
+  ADD KEY `wallet_warehouse_warehouse_id_foreign` (`warehouse_id`);
 
 --
 -- Indexes for table `warehouses`
@@ -952,13 +1045,13 @@ ALTER TABLE `warehouses`
 -- AUTO_INCREMENT for table `accounts`
 --
 ALTER TABLE `accounts`
-  MODIFY `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
+  MODIFY `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=20;
 
 --
 -- AUTO_INCREMENT for table `account_transactions`
 --
 ALTER TABLE `account_transactions`
-  MODIFY `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
+  MODIFY `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=62;
 
 --
 -- AUTO_INCREMENT for table `apps`
@@ -970,31 +1063,49 @@ ALTER TABLE `apps`
 -- AUTO_INCREMENT for table `categories`
 --
 ALTER TABLE `categories`
-  MODIFY `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=7;
+  MODIFY `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=11;
 
 --
 -- AUTO_INCREMENT for table `customers`
 --
 ALTER TABLE `customers`
-  MODIFY `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT;
+  MODIFY `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=9;
+
+--
+-- AUTO_INCREMENT for table `customer_dues`
+--
+ALTER TABLE `customer_dues`
+  MODIFY `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=18;
+
+--
+-- AUTO_INCREMENT for table `customer_invoices`
+--
+ALTER TABLE `customer_invoices`
+  MODIFY `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=34;
+
+--
+-- AUTO_INCREMENT for table `customer_invoices_items`
+--
+ALTER TABLE `customer_invoices_items`
+  MODIFY `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=42;
 
 --
 -- AUTO_INCREMENT for table `exponses`
 --
 ALTER TABLE `exponses`
-  MODIFY `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=9;
+  MODIFY `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=46;
 
 --
 -- AUTO_INCREMENT for table `exponse_items`
 --
 ALTER TABLE `exponse_items`
-  MODIFY `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=8;
+  MODIFY `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=11;
 
 --
 -- AUTO_INCREMENT for table `external_debts`
 --
 ALTER TABLE `external_debts`
-  MODIFY `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
+  MODIFY `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=41;
 
 --
 -- AUTO_INCREMENT for table `failed_jobs`
@@ -1006,13 +1117,19 @@ ALTER TABLE `failed_jobs`
 -- AUTO_INCREMENT for table `invoice_product_costs`
 --
 ALTER TABLE `invoice_product_costs`
-  MODIFY `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
+  MODIFY `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=17;
 
 --
 -- AUTO_INCREMENT for table `migrations`
 --
 ALTER TABLE `migrations`
-  MODIFY `id` int UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=28;
+  MODIFY `id` int UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=48;
+
+--
+-- AUTO_INCREMENT for table `payment_transactions`
+--
+ALTER TABLE `payment_transactions`
+  MODIFY `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=15;
 
 --
 -- AUTO_INCREMENT for table `personal_access_tokens`
@@ -1024,7 +1141,7 @@ ALTER TABLE `personal_access_tokens`
 -- AUTO_INCREMENT for table `products`
 --
 ALTER TABLE `products`
-  MODIFY `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
+  MODIFY `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
 
 --
 -- AUTO_INCREMENT for table `sizes`
@@ -1036,7 +1153,7 @@ ALTER TABLE `sizes`
 -- AUTO_INCREMENT for table `stocks`
 --
 ALTER TABLE `stocks`
-  MODIFY `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
+  MODIFY `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=7;
 
 --
 -- AUTO_INCREMENT for table `stock_adjustments`
@@ -1054,7 +1171,7 @@ ALTER TABLE `stock_adjustment_items`
 -- AUTO_INCREMENT for table `stock_movements`
 --
 ALTER TABLE `stock_movements`
-  MODIFY `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
+  MODIFY `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=47;
 
 --
 -- AUTO_INCREMENT for table `store_houses`
@@ -1066,19 +1183,19 @@ ALTER TABLE `store_houses`
 -- AUTO_INCREMENT for table `suppliers`
 --
 ALTER TABLE `suppliers`
-  MODIFY `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
+  MODIFY `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
 
 --
 -- AUTO_INCREMENT for table `supplier_invoices`
 --
 ALTER TABLE `supplier_invoices`
-  MODIFY `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
+  MODIFY `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=17;
 
 --
 -- AUTO_INCREMENT for table `supplier_invoice_items`
 --
 ALTER TABLE `supplier_invoice_items`
-  MODIFY `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=7;
+  MODIFY `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=45;
 
 --
 -- AUTO_INCREMENT for table `units`
@@ -1096,19 +1213,19 @@ ALTER TABLE `users`
 -- AUTO_INCREMENT for table `wallets`
 --
 ALTER TABLE `wallets`
-  MODIFY `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=9;
+  MODIFY `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
 
 --
--- AUTO_INCREMENT for table `wallet_movements`
+-- AUTO_INCREMENT for table `wallet_warehouse`
 --
-ALTER TABLE `wallet_movements`
-  MODIFY `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
+ALTER TABLE `wallet_warehouse`
+  MODIFY `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=13;
 
 --
 -- AUTO_INCREMENT for table `warehouses`
 --
 ALTER TABLE `warehouses`
-  MODIFY `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
+  MODIFY `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
 
 --
 -- Constraints for dumped tables
@@ -1118,7 +1235,8 @@ ALTER TABLE `warehouses`
 -- Constraints for table `account_transactions`
 --
 ALTER TABLE `account_transactions`
-  ADD CONSTRAINT `account_transactions_account_id_foreign` FOREIGN KEY (`account_id`) REFERENCES `accounts` (`id`) ON DELETE CASCADE;
+  ADD CONSTRAINT `account_transactions_account_id_foreign` FOREIGN KEY (`account_id`) REFERENCES `accounts` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
+  ADD CONSTRAINT `account_transactions_wallet_id_foreign` FOREIGN KEY (`wallet_id`) REFERENCES `wallets` (`id`) ON DELETE SET NULL ON UPDATE CASCADE;
 
 --
 -- Constraints for table `apps`
@@ -1131,6 +1249,30 @@ ALTER TABLE `apps`
 --
 ALTER TABLE `categories`
   ADD CONSTRAINT `categories_parent_id_foreign` FOREIGN KEY (`parent_id`) REFERENCES `categories` (`id`) ON DELETE CASCADE;
+
+--
+-- Constraints for table `customer_dues`
+--
+ALTER TABLE `customer_dues`
+  ADD CONSTRAINT `customer_dues_customer_id_foreign` FOREIGN KEY (`customer_id`) REFERENCES `customers` (`id`) ON DELETE CASCADE,
+  ADD CONSTRAINT `customer_dues_customer_invoice_id_foreign` FOREIGN KEY (`customer_invoice_id`) REFERENCES `customer_invoices` (`id`) ON DELETE SET NULL;
+
+--
+-- Constraints for table `customer_invoices`
+--
+ALTER TABLE `customer_invoices`
+  ADD CONSTRAINT `customer_invoices_customer_id_foreign` FOREIGN KEY (`customer_id`) REFERENCES `customers` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
+  ADD CONSTRAINT `customer_invoices_wallet_id_foreign` FOREIGN KEY (`wallet_id`) REFERENCES `wallets` (`id`) ON DELETE SET NULL ON UPDATE CASCADE,
+  ADD CONSTRAINT `customer_invoices_warehouse_id_foreign` FOREIGN KEY (`warehouse_id`) REFERENCES `warehouses` (`id`) ON DELETE SET NULL ON UPDATE CASCADE;
+
+--
+-- Constraints for table `customer_invoices_items`
+--
+ALTER TABLE `customer_invoices_items`
+  ADD CONSTRAINT `customer_invoices_items_category_id_foreign` FOREIGN KEY (`category_id`) REFERENCES `categories` (`id`) ON DELETE SET NULL ON UPDATE CASCADE,
+  ADD CONSTRAINT `customer_invoices_items_customer_invoice_id_foreign` FOREIGN KEY (`customer_invoice_id`) REFERENCES `customer_invoices` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
+  ADD CONSTRAINT `customer_invoices_items_product_id_foreign` FOREIGN KEY (`product_id`) REFERENCES `products` (`id`) ON DELETE SET NULL ON UPDATE CASCADE,
+  ADD CONSTRAINT `customer_invoices_items_size_id_foreign` FOREIGN KEY (`size_id`) REFERENCES `sizes` (`id`) ON DELETE SET NULL;
 
 --
 -- Constraints for table `exponses`
@@ -1146,6 +1288,12 @@ ALTER TABLE `invoice_product_costs`
   ADD CONSTRAINT `invoice_product_costs_stock_id_foreign` FOREIGN KEY (`stock_id`) REFERENCES `stocks` (`id`) ON DELETE SET NULL;
 
 --
+-- Constraints for table `payment_transactions`
+--
+ALTER TABLE `payment_transactions`
+  ADD CONSTRAINT `payment_transactions_wallet_id_foreign` FOREIGN KEY (`wallet_id`) REFERENCES `wallets` (`id`) ON DELETE CASCADE ON UPDATE CASCADE;
+
+--
 -- Constraints for table `products`
 --
 ALTER TABLE `products`
@@ -1158,6 +1306,7 @@ ALTER TABLE `products`
 ALTER TABLE `stocks`
   ADD CONSTRAINT `stocks_category_id_foreign` FOREIGN KEY (`category_id`) REFERENCES `categories` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
   ADD CONSTRAINT `stocks_product_id_foreign` FOREIGN KEY (`product_id`) REFERENCES `products` (`id`) ON DELETE CASCADE,
+  ADD CONSTRAINT `stocks_size_id_foreign` FOREIGN KEY (`size_id`) REFERENCES `sizes` (`id`) ON DELETE SET NULL,
   ADD CONSTRAINT `stocks_store_house_id_foreign` FOREIGN KEY (`store_house_id`) REFERENCES `store_houses` (`id`) ON DELETE CASCADE,
   ADD CONSTRAINT `stocks_unit_id_foreign` FOREIGN KEY (`unit_id`) REFERENCES `units` (`id`) ON DELETE SET NULL;
 
@@ -1178,8 +1327,7 @@ ALTER TABLE `stock_adjustment_items`
 -- Constraints for table `stock_movements`
 --
 ALTER TABLE `stock_movements`
-  ADD CONSTRAINT `stock_movements_stock_id_foreign` FOREIGN KEY (`stock_id`) REFERENCES `stocks` (`id`) ON DELETE CASCADE,
-  ADD CONSTRAINT `stock_movements_supplier_id_foreign` FOREIGN KEY (`supplier_id`) REFERENCES `suppliers` (`id`) ON DELETE SET NULL;
+  ADD CONSTRAINT `stock_movements_stock_id_foreign` FOREIGN KEY (`stock_id`) REFERENCES `stocks` (`id`) ON DELETE CASCADE;
 
 --
 -- Constraints for table `supplier_invoices`
@@ -1200,16 +1348,11 @@ ALTER TABLE `supplier_invoice_items`
   ADD CONSTRAINT `supplier_invoice_items_unit_id_foreign` FOREIGN KEY (`unit_id`) REFERENCES `units` (`id`) ON DELETE SET NULL;
 
 --
--- Constraints for table `wallets`
+-- Constraints for table `wallet_warehouse`
 --
-ALTER TABLE `wallets`
-  ADD CONSTRAINT `wallets_account_id_foreign` FOREIGN KEY (`account_id`) REFERENCES `accounts` (`id`) ON DELETE CASCADE;
-
---
--- Constraints for table `wallet_movements`
---
-ALTER TABLE `wallet_movements`
-  ADD CONSTRAINT `wallet_movements_wallet_id_foreign` FOREIGN KEY (`wallet_id`) REFERENCES `wallets` (`id`) ON DELETE CASCADE;
+ALTER TABLE `wallet_warehouse`
+  ADD CONSTRAINT `wallet_warehouse_wallet_id_foreign` FOREIGN KEY (`wallet_id`) REFERENCES `wallets` (`id`) ON DELETE CASCADE,
+  ADD CONSTRAINT `wallet_warehouse_warehouse_id_foreign` FOREIGN KEY (`warehouse_id`) REFERENCES `warehouses` (`id`) ON DELETE CASCADE;
 COMMIT;
 
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
