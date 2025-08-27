@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: localhost:3306
--- Generation Time: Aug 27, 2025 at 03:19 PM
+-- Generation Time: Aug 27, 2025 at 03:48 PM
 -- Server version: 8.0.30
 -- PHP Version: 8.1.10
 
@@ -107,6 +107,37 @@ CREATE TABLE `apps` (
 
 INSERT INTO `apps` (`id`, `logo`, `company_name`, `company_info`, `Tax_number`, `statue`, `user_id`, `is_active`, `secret_key`, `created_at`, `updated_at`) VALUES
 (1, 'uploads/setting/1755346235.png', 'شركه الفتح للحام وتوريد السيور الناقلة', NULL, NULL, 1, 1, 1, 'cc73ba33-e494-46ce-9a3d-ce8b37926685', '2025-08-16 11:10:35', '2025-08-27 12:09:36');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `categories`
+--
+
+CREATE TABLE `categories` (
+  `id` bigint UNSIGNED NOT NULL,
+  `name` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `parent_id` bigint UNSIGNED DEFAULT NULL,
+  `deleted_at` timestamp NULL DEFAULT NULL,
+  `created_at` timestamp NULL DEFAULT NULL,
+  `updated_at` timestamp NULL DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+--
+-- Dumping data for table `categories`
+--
+
+INSERT INTO `categories` (`id`, `name`, `parent_id`, `deleted_at`, `created_at`, `updated_at`) VALUES
+(1, 'سيور', NULL, NULL, '2025-08-17 10:05:41', '2025-08-17 10:05:41'),
+(2, 'شيفرون', 1, NULL, '2025-08-17 10:05:50', '2025-08-17 10:05:56'),
+(3, 'املس', 1, NULL, '2025-08-17 10:06:06', '2025-08-17 10:06:06'),
+(4, 'pvc', 1, NULL, '2025-08-17 10:06:15', '2025-08-17 10:06:15'),
+(5, 'واطي', 2, NULL, '2025-08-17 10:06:31', '2025-08-17 10:06:31'),
+(6, 'عالي', 2, NULL, '2025-08-17 10:06:40', '2025-08-17 10:06:40'),
+(7, 'بكر', NULL, NULL, '2025-08-17 10:07:11', '2025-08-17 10:07:11'),
+(8, 'درافيل', NULL, NULL, '2025-08-17 10:07:18', '2025-08-17 10:07:18'),
+(9, 'جيربوكسات', NULL, NULL, '2025-08-17 10:07:47', '2025-08-17 10:07:47'),
+(10, 'بوابات ميزان', NULL, NULL, '2025-08-17 10:07:55', '2025-08-17 10:07:55');
 
 -- --------------------------------------------------------
 
@@ -462,6 +493,33 @@ CREATE TABLE `personal_access_tokens` (
 -- --------------------------------------------------------
 
 --
+-- Table structure for table `products`
+--
+
+CREATE TABLE `products` (
+  `id` bigint UNSIGNED NOT NULL,
+  `category_id` bigint UNSIGNED NOT NULL,
+  `unit_id` bigint UNSIGNED DEFAULT NULL,
+  `name` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `deleted_at` timestamp NULL DEFAULT NULL,
+  `created_at` timestamp NULL DEFAULT NULL,
+  `updated_at` timestamp NULL DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+--
+-- Dumping data for table `products`
+--
+
+INSERT INTO `products` (`id`, `category_id`, `unit_id`, `name`, `deleted_at`, `created_at`, `updated_at`) VALUES
+(1, 3, NULL, 'سير عرض 65', NULL, '2025-08-17 10:08:31', '2025-08-17 10:08:31'),
+(2, 7, NULL, 'بكر 25', NULL, '2025-08-17 10:08:46', '2025-08-17 10:08:46'),
+(3, 7, NULL, 'بكر 30', NULL, '2025-08-17 10:08:54', '2025-08-17 10:08:54'),
+(4, 5, NULL, 'سير G7', NULL, '2025-08-17 10:09:17', '2025-08-17 10:09:17'),
+(5, 6, NULL, 'سير G8', NULL, '2025-08-17 10:09:31', '2025-08-17 10:09:31');
+
+-- --------------------------------------------------------
+
+--
 -- Table structure for table `sizes`
 --
 
@@ -732,6 +790,33 @@ INSERT INTO `units` (`id`, `name`, `symbol`, `created_at`, `updated_at`) VALUES
 -- --------------------------------------------------------
 
 --
+-- Table structure for table `users`
+--
+
+CREATE TABLE `users` (
+  `id` bigint UNSIGNED NOT NULL,
+  `name` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `email` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `email_verified_at` timestamp NULL DEFAULT NULL,
+  `password` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `google_id` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `avatar` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `is_admin` tinyint NOT NULL DEFAULT '1',
+  `remember_token` varchar(100) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `created_at` timestamp NULL DEFAULT NULL,
+  `updated_at` timestamp NULL DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+--
+-- Dumping data for table `users`
+--
+
+INSERT INTO `users` (`id`, `name`, `email`, `email_verified_at`, `password`, `google_id`, `avatar`, `is_admin`, `remember_token`, `created_at`, `updated_at`) VALUES
+(1, 'admin', 'admin@example.com', NULL, '$2y$12$zP/mZN4BB04GuAPnIut0f.ItDooi5gMegSrJMp4OfSZwNjJ837apy', NULL, NULL, 1, NULL, '2025-08-16 11:10:11', '2025-08-16 11:10:11');
+
+-- --------------------------------------------------------
+
+--
 -- Table structure for table `wallets`
 --
 
@@ -837,6 +922,13 @@ ALTER TABLE `apps`
   ADD KEY `apps_user_id_foreign` (`user_id`);
 
 --
+-- Indexes for table `categories`
+--
+ALTER TABLE `categories`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `categories_parent_id_foreign` (`parent_id`);
+
+--
 -- Indexes for table `customers`
 --
 ALTER TABLE `customers`
@@ -934,6 +1026,14 @@ ALTER TABLE `personal_access_tokens`
   ADD KEY `personal_access_tokens_tokenable_type_tokenable_id_index` (`tokenable_type`,`tokenable_id`);
 
 --
+-- Indexes for table `products`
+--
+ALTER TABLE `products`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `products_category_id_foreign` (`category_id`),
+  ADD KEY `products_unit_id_foreign` (`unit_id`);
+
+--
 -- Indexes for table `sizes`
 --
 ALTER TABLE `sizes`
@@ -1012,6 +1112,13 @@ ALTER TABLE `units`
   ADD PRIMARY KEY (`id`);
 
 --
+-- Indexes for table `users`
+--
+ALTER TABLE `users`
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `users_email_unique` (`email`);
+
+--
 -- Indexes for table `wallets`
 --
 ALTER TABLE `wallets`
@@ -1052,6 +1159,12 @@ ALTER TABLE `account_transactions`
 --
 ALTER TABLE `apps`
   MODIFY `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
+
+--
+-- AUTO_INCREMENT for table `categories`
+--
+ALTER TABLE `categories`
+  MODIFY `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=11;
 
 --
 -- AUTO_INCREMENT for table `customers`
@@ -1126,6 +1239,12 @@ ALTER TABLE `personal_access_tokens`
   MODIFY `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT;
 
 --
+-- AUTO_INCREMENT for table `products`
+--
+ALTER TABLE `products`
+  MODIFY `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
+
+--
 -- AUTO_INCREMENT for table `sizes`
 --
 ALTER TABLE `sizes`
@@ -1186,6 +1305,12 @@ ALTER TABLE `units`
   MODIFY `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
 
 --
+-- AUTO_INCREMENT for table `users`
+--
+ALTER TABLE `users`
+  MODIFY `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
+
+--
 -- AUTO_INCREMENT for table `wallets`
 --
 ALTER TABLE `wallets`
@@ -1219,6 +1344,12 @@ ALTER TABLE `account_transactions`
 --
 ALTER TABLE `apps`
   ADD CONSTRAINT `apps_user_id_foreign` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE ON UPDATE CASCADE;
+
+--
+-- Constraints for table `categories`
+--
+ALTER TABLE `categories`
+  ADD CONSTRAINT `categories_parent_id_foreign` FOREIGN KEY (`parent_id`) REFERENCES `categories` (`id`) ON DELETE CASCADE;
 
 --
 -- Constraints for table `customer_dues`
@@ -1262,6 +1393,13 @@ ALTER TABLE `invoice_product_costs`
 --
 ALTER TABLE `payment_transactions`
   ADD CONSTRAINT `payment_transactions_wallet_id_foreign` FOREIGN KEY (`wallet_id`) REFERENCES `wallets` (`id`) ON DELETE CASCADE ON UPDATE CASCADE;
+
+--
+-- Constraints for table `products`
+--
+ALTER TABLE `products`
+  ADD CONSTRAINT `products_category_id_foreign` FOREIGN KEY (`category_id`) REFERENCES `categories` (`id`) ON DELETE CASCADE,
+  ADD CONSTRAINT `products_unit_id_foreign` FOREIGN KEY (`unit_id`) REFERENCES `units` (`id`) ON DELETE SET NULL;
 
 --
 -- Constraints for table `stocks`
