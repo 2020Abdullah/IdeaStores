@@ -381,6 +381,7 @@ $(document).ready(function(){
                 </td>
                 <td>
                     <input type="text" name="items[${index}][sale_price]"  class="form-control sale_price" />
+                    <span class="alert alert-danger sale_price_error" style="display:none;">لا يمكن أن يكون سعر البيع أقل من سعر التكلفة</span>
                 </td>
                 <td>
                     <input type="text" name="items[${index}][total_price]"  class="form-control total_price" readonly />
@@ -453,6 +454,9 @@ $(document).ready(function(){
                         }
 
                         row.find('.price_unit_cost').val(
+                            formatNumberValue(response.data.cost.cost_share / response.initial_quantity)
+                        );
+                        row.find('.sale_price').val(
                             formatNumberValue(response.data.cost.cost_share / response.initial_quantity)
                         );
                     } else {
@@ -534,6 +538,25 @@ $(document).ready(function(){
                 </div>
             `;
             $('.warehouse-fields').append(fieldHtml);
+        }
+    });
+
+    // منع أن يكون سعر البيع أقل من سعر التكلفة مع إظهار رسالة خطأ
+    $(document).on('input', '.sale_price', function() {
+        let row = $(this).closest('tr');
+        let salePrice = parseFloat($(this).val()) || 0;
+        let costPrice = parseFloat(row.find('.price_unit_cost').val()) || 0;
+        let errorSpan = row.find('.sale_price_error');
+
+        if (salePrice < costPrice) {
+            errorSpan.show(); // إظهار رسالة الخطأ
+        } else {
+            errorSpan.hide(); // إخفاء رسالة الخطأ إذا كان السعر صحيح
+            calculateTotalPrice(row);
+            calculateProfit(row);
+            calculateTotalProfit(row);
+            calculateTotalInvoice();
+            calculateTotalProfitInvoice();
         }
     });
 

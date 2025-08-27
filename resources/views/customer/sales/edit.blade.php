@@ -192,25 +192,27 @@
                     <div id="costs-wrapper">
                         <button type="button" class="btn btn-primary waves-effect waves-float waves-light mb-1" id="add-cost">+ أضف تكلفة</button>    
                         @foreach ($invoice->costs as $index => $cost)
-                            <div class="row cost-item mb-1">
-                                <div class="col-md-6 mb-1">
-                                    <select name="costs[{{ $index }}][exponse_id]" class="select2 cost-select">
-                                        @foreach ($exponse_list as $ex_item)
-                                            <option value="{{ $ex_item->id }}" 
-                                                {{ (isset($ex_item) && $ex_item->id == $cost->expense_item_id) ? 'selected' : '' }}>
-                                                {{ $ex_item->name }}
-                                            </option>
-                                        @endforeach
-                                    </select>
+                            @if($cost->expenseItem && $cost->expenseItem->is_profit != 1)
+                                <div class="row cost-item mb-1">
+                                    <div class="col-md-6 mb-1">
+                                        <select name="costs[{{ $index }}][exponse_id]" class="select2 cost-select">
+                                            @foreach ($exponse_list as $ex_item)
+                                                <option value="{{ $ex_item->id }}" 
+                                                    {{ (isset($ex_item) && $ex_item->id == $cost->expense_item_id) ? 'selected' : '' }}>
+                                                    {{ $ex_item->name }}
+                                                </option>
+                                            @endforeach
+                                        </select>
+                                    </div>
+                                    <div class="col-md-4 mb-1">
+                                        <input type="number" name="costs[{{ $index }}][amount]" class="form-control costValue" value="{{ $cost->amount }}" placeholder="القيمة">
+                                    </div>
+                                    <div class="col-md-2 mb-1">
+                                        <button type="button" class="btn btn-danger remove-cost">حذف</button>
+                                    </div>
                                 </div>
-                                <div class="col-md-4 mb-1">
-                                    <input type="number" name="costs[{{ $index }}][amount]" class="form-control costValue" value="{{ $cost->amount }}" placeholder="القيمة">
-                                </div>
-                                <div class="col-md-2 mb-1">
-                                    <button type="button" class="btn btn-danger remove-cost">حذف</button>
-                                </div>
-                            </div>
-                        @endforeach            
+                            @endif
+                        @endforeach  
                     </div>
                     <div class="mb-2">
                         <label class="form-label">مجموع التكاليف</label>
@@ -365,6 +367,7 @@ $(function () {
                 </td>
                 <td>
                     <input type="text" name="items[${index}][sale_price]"  class="form-control sale_price" />
+                    <span class="alert alert-danger sale_price_error" style="display:none;">لا يمكن أن يكون سعر البيع أقل من سعر التكلفة</span>
                 </td>
                 <td>
                     <input type="text" name="items[${index}][total_price]"  class="form-control total_price" readonly />
@@ -444,6 +447,9 @@ $(function () {
 
                     row.find('.price_unit_cost').val(
                         formatNumberValue(response.data.cost.cost_share / response.initial_quantity)
+                    );
+                    row.find('.sale_price').val(
+                            formatNumberValue(response.data.cost.cost_share / response.initial_quantity)
                     );
                 } else {
                     row.find('.categoryInput').val('لم يتم العثور على بيانات');
@@ -615,6 +621,25 @@ $(function () {
             if (typeof toastr !== 'undefined') {
                 toastr.info('لا يمكن أن يتخطى مجموع المبالغ قيمة الفاتورة. تم ضبط هذا الحقل على الحد الأقصى المسموح.');
             }
+        }
+    });
+
+    // منع أن يكون سعر البيع أقل من سعر التكلفة مع إظهار رسالة خطأ
+    $(document).on('input', '.sale_price', function() {
+        let row = $(this).closest('tr');
+        let salePrice = parseFloat($(this).val()) || 0;
+        let costPrice = parseFloat(row.find('.price_unit_cost').val()) || 0;
+        let errorSpan = row.find('.sale_price_error');
+
+        if (salePrice < costPrice) {
+            errorSpan.show(); // إظهار رسالة الخطأ
+        } else {
+            errorSpan.hide(); // إخفاء رسالة الخطأ إذا كان السعر صحيح
+            calculateTotalPrice(row);
+            calculateProfit(row);
+            calculateTotalProfit(row);
+            calculateTotalInvoice();
+            calculateTotalProfitInvoice();
         }
     });
 

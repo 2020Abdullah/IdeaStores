@@ -525,6 +525,7 @@ class SalesController extends Controller
 
     protected function ProfitDistribution($invoice)
     {
+        $invoice->costs()->delete();
         // التأكد من وجود ربح صافي
         if (!$invoice->total_profit || $invoice->total_profit <= 0) {
             return;
@@ -547,6 +548,7 @@ class SalesController extends Controller
                 'amount'          => $this->normalizeNumber($shareAmount), // موجب للربح
                 'note'            => 'توزيع ربحية الفاتورة',
                 'date'            => $invoice->date,
+                'source_code'            => $invoice->code,
             ]);
         }
     }

@@ -8,7 +8,7 @@
             <div class="breadcrumb-wrapper">
                 <ol class="breadcrumb">
                     <li class="breadcrumb-item">
-                        <a href="{{ route('dashboard') }}">الرئيسية</a>
+                        <a href="{{ route('expenses.items') }}">الرئيسية</a>
                     </li>
                     <li class="breadcrumb-item active">
                         <a href="#">عرض الحركات</a>
@@ -80,7 +80,7 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="4" class="text-center">لا توجد اى حركات لهذا البند.</td>
+                            <td colspan="5" class="text-center">لا توجد اى حركات لهذا البند.</td>
                         </tr>
                     @endforelse
                 </tbody>

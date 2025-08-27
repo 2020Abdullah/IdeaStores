@@ -21,6 +21,7 @@ use App\Http\Controllers\UnitController;
 use App\Http\Controllers\WalletsController;
 use App\Http\Controllers\WarehouseController;
 use App\Http\Controllers\WelcomeController;
+use App\Models\App;
 
 /*
 |--------------------------------------------------------------------------
@@ -35,7 +36,7 @@ use App\Http\Controllers\WelcomeController;
 
 Route::get('/', [WelcomeController::class, 'index'])->name('home');
 
-Route::middleware('auth')->group(function(){
+Route::group(['middleware' => ['auth', 'CheckAppActive']], function(){
     Route::get('dashboard', [DashboardController::class, 'index'])->name('dashboard');
     Route::get('/dashboard/sales-chart', [DashboardController::class, 'salesChart'])->name('dashboard.sales.chart');
      
@@ -189,7 +190,13 @@ Route::middleware('auth')->group(function(){
     Route::get('/backup', fn() => view('backup'))->name('backup.view');
     Route::post('/backup/create', [BackupController::class, 'downloadBackup'])->name('backup.create');
     Route::post('/backup/restore', [BackupController::class, 'restoreBackupFlexible'])->name('backup.restore');
-
+    
 });
+
+Route::get('support', function () {
+    return view('inactive');
+})->name('support')->middleware('redirect.if.active');
+
+
 
 require __DIR__.'/auth.php';
