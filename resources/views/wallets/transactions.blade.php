@@ -36,6 +36,17 @@
 <div class="card">
     <div class="card-header">
         <h3 class="card-title">عرض سجل حركات المحفظة</h3>
+        <div class="card-action">
+            <select name="transaction_type" class="transaction_type form-select" data-wallet_id="{{ $wallet->id }}" style="width: 200px">
+                <option value="">الكل</option>
+                <option value="payment">مدفوعات</option>
+                <option value="expense">مصروفات</option>
+                <option value="purchase">مشتريات</option>
+                <option value="sale">مبيعات</option>
+                <option value="refund">مرتجعات</option>
+                <option value="transfer">التحويلات</option>
+            </select>
+        </div>
     </div>
     <div class="card-body">
         <div class="table-responsive">
@@ -48,51 +59,11 @@
                         <th>الاتجاه</th>
                         <th>المبلغ</th>
                         <th>البيان</th>
+                        <th>الكود المرجعي</th>
                     </tr>
                 </thead>
                 <tbody>
-                    @forelse($transactions as $t)
-                        <tr>
-                            <td>{{ \Carbon\Carbon::parse($t->date)->format('Y-m-d') }}</td>
-                            <td>{{ optional($t->account)->name ?? '-' }}</td>
-                            <td>
-                                @if ($t->transaction_type === 'added')
-                                    <span>إضافة يدوية</span> 
-                                @elseif($t->transaction_type === 'payment')
-                                    <span>مدفوعات</span>  
-                                @elseif($t->transaction_type === 'expense')   
-                                    <span>مصروفات</span>     
-                                @elseif($t->transaction_type === 'purchase')    
-                                    <span>مشتريات</span> 
-                                @elseif($t->transaction_type === 'sale')   
-                                    <span>مبيعات</span> 
-                                @elseif($t->transaction_type === 'transfer')     
-                                    <span>تحويل رصيد</span>    
-                                @else  
-                                    <span>رد مدفوعات</span>         
-                                @endif
-                            </td>
-                            <td>
-                                @if ($t->direction === 'in')
-                                    <span class="badge bg-success">إضافة رصيد</span> 
-                                @else 
-                                    <span class="badge bg-danger">خصم رصيد</span>               
-                                @endif
-                            </td>
-                            <td>
-                                @if ($t->direction == 'in')
-                                    <span class="text-success">{{ number_format($t->amount, 2) }}</span>
-                                @else 
-                                    <span class="text-danger">{{ number_format($t->amount, 2) }}</span>
-                                @endif
-                            </td>
-                            <td>{{ $t->description ?? '-' }}</td>
-                        </tr>
-                    @empty
-                        <tr>
-                            <td colspan="5" class="text-center">لا توجد حركات مالية لهذه المحفظة.</td>
-                        </tr>
-                    @endforelse
+                    @include('wallets.trans_table')
                 </tbody>
             </table>
         </div>
@@ -101,4 +72,43 @@
         {{ $transactions->links() }}
     </div>
 </div>
+@endsection
+
+@section('js')
+    <script>
+        $(function(){
+            $.ajaxSetup({
+                headers: {
+                    'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+                }
+            });
+            // filter search 
+            $(document).on('change', '.transaction_type', function(e){
+                e.preventDefault();
+                let type = $(this).val();
+                let wallet_id = $(this).data('wallet_id');
+                $.ajax({
+                    url: "{{ route('wallet.transactions.filter') }}",
+                    method: 'POST',
+                    data: {
+                        type: type,
+                        wallet_id: wallet_id,
+                    },
+                    beforeSend: function () {
+                        $('#loading-excute').fadeIn(500);
+                    },
+                    success: function (response) {
+                        $('.table-responsive tbody').html(response);
+                    },
+                    error: function(xhr){
+                        console.log(xhr);
+                    },
+                    complete: function(){
+                        $('#loading-excute').fadeOut(500);
+                        feather.replace();
+                    }
+                });
+            });
+        })
+    </script>
 @endsection

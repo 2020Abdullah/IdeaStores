@@ -70,15 +70,7 @@ class WalletsController extends Controller
     
         $wallet = Wallet::findOrFail($request->wallet_id);
         $warehouse = Warehouse::findOrFail($request->warehouse_id);
-    
-        // // حركة للمحفظة
-        // $wallet->transactions()->create([
-        //     'direction' => 'in',
-        //     'amount' => $request->amount,
-        //     'transaction_type' => 'added',
-        //     'description' => 'إضافة رصيد للمحفظة من ' . $warehouse->name,
-        //     'date' => now(),
-        // ]);
+
     
         // حركة للخزنة
         $warehouse->account->transactions()->create([
@@ -142,6 +134,18 @@ class WalletsController extends Controller
         });
     
         return redirect()->back()->with('success', 'تم تحويل الرصيد بنجاح');
+    }
+    
+    public function filter(Request $request){
+        $query = Account_transactions::where('wallet_id', $request->wallet_id);
+
+        if ($request->filled('type')) {
+            $query->where('transaction_type', $request->type);
+        }
+
+        $transactions = $query->orderBy('date', 'desc')->paginate(100);
+
+        return view('wallets.trans_table', ['transactions' => $transactions])->render();
     }
 
 }

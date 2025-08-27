@@ -48,7 +48,8 @@ Route::group(['middleware' => ['auth', 'CheckAppActive']], function(){
     Route::get('warehouse/{id}/transactions/show', [WarehouseController::class, 'showTransactions'])->name('warehouse.transactions');
     Route::post('warehouse/transfer', [WarehouseController::class, 'transfer'])->name('warehouse.transfer');
     Route::post('getWallets', [WarehouseController::class, 'getWalletByWarhouse'])->name('getWallets');
-    
+    Route::post('warehouse/transactions/filter', [WarehouseController::class, 'filter'])->name('warehouse.transactions.filter');
+
     // wallets
     Route::get('wallets/index', [WalletsController::class, 'index'])->name('wallets.index');
     Route::post('wallet/store', [WalletsController::class, 'store'])->name('wallet.store');
@@ -59,7 +60,8 @@ Route::group(['middleware' => ['auth', 'CheckAppActive']], function(){
     Route::get('wallet/{id}/trnsactions/show', [WalletsController::class, 'transactions'])->name('wallet.transactions.show');
     Route::post('getWalletBalance', [WalletsController::class, 'getWalletBalance'])->name('getWalletBalance');
     Route::post('wallets/transfer', [WalletsController::class, 'transfer'])->name('wallet.transfer');
-    
+    Route::post('wallet/transactions/filter', [WalletsController::class, 'filter'])->name('wallet.transactions.filter');
+
     // stores 
     Route::get('storesHouse/index', [StoreHouseController::class, 'index'])->name('storesHouse.index');
     Route::get('storesHouse/add', [StoreHouseController::class, 'add'])->name('storesHouse.add');

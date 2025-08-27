@@ -370,18 +370,29 @@ class InvoicePurchaseController extends Controller
                     'source_code' => $invoice->invoice_code,
                 ]);
             }
-            Account_transactions::create([
-                'account_id' => $default_warehouse->account->id,
-                'direction' => 'out',
-                'wallet_id' => $default_wallet->id,
-                'amount' => -$this->normalizeNumber($request->additional_cost),
-                'transaction_type' => 'expense',
-                'related_type' => Supplier_invoice::class,
-                'related_id' => $invoice->id,
-                'description' => $request->notes ?? 'مصروفات فواتير موردين',
-                'source_code' => $invoice->invoice_code,
-                'date' => $invoice->invoice_date,
-            ]);
+            if($invoice->transaction){
+                $invoice->transaction()->update([
+                    'amount' => -$this->normalizeNumber($request->additional_cost),
+                ]);
+            }
+            else {
+                Account_transactions::create([
+                    'account_id' => $default_warehouse->account->id,
+                    'direction' => 'out',
+                    'wallet_id' => $default_wallet->id,
+                    'amount' => -$this->normalizeNumber($request->additional_cost),
+                    'transaction_type' => 'expense',
+                    'related_type' => Supplier_invoice::class,
+                    'related_id' => $invoice->id,
+                    'description' => $request->notes ?? 'مصروفات فواتير موردين',
+                    'source_code' => $invoice->invoice_code,
+                    'date' => $invoice->invoice_date,
+                ]);
+            }
+        }
+        else {
+            $transaction = Account_transactions::where('source_code', $invoice->invoice_code)->first();
+            $transaction->delete();
         }
     }
 

@@ -222,7 +222,6 @@ class SalesController extends Controller
         $default_warehouse = Warehouse::where('is_default', 1)->first();
         $default_wallet = Wallet::where('is_default', 1)->first();
         if ($costs && is_array($costs)) {
-            $invoice->costs()->delete();
             foreach ($costs as $cost) {
                 $invoice->costs()->create([
                     'expense_item_id' => $cost['exponse_id'],
@@ -233,18 +232,29 @@ class SalesController extends Controller
                     'source_code' => $invoice->code,
                 ]);
             }
-            Account_transactions::create([
-                'account_id' => $default_warehouse->account->id,
-                'direction' => 'out',
-                'wallet_id' => $default_wallet->id,
-                'amount' => -$this->normalizeNumber($request->additional_cost),
-                'transaction_type' => 'expense',
-                'related_type' => CustomerInvoices::class,
-                'related_id' => $invoice->id,
-                'description' => $request->notes ?? 'مصروفات فواتير مبيعات',
-                'source_code' => $invoice->code,
-                'date' => $invoice->date,
-            ]);
+            if($invoice->transaction){
+                $invoice->transaction()->update([
+                    'amount' => -$this->normalizeNumber($request->additional_cost),
+                ]);
+            }
+            else {
+                Account_transactions::create([
+                    'account_id' => $default_warehouse->account->id,
+                    'direction' => 'out',
+                    'wallet_id' => $default_wallet->id,
+                    'amount' => -$this->normalizeNumber($request->additional_cost),
+                    'transaction_type' => 'expense',
+                    'related_type' => CustomerInvoices::class,
+                    'related_id' => $invoice->id,
+                    'description' => $request->notes ?? 'مصروفات فواتير مبيعات',
+                    'source_code' => $invoice->code,
+                    'date' => $invoice->date,
+                ]);
+            }
+        }
+        else {
+            $transaction = Account_transactions::where('source_code', $invoice->code)->first();
+            $transaction->delete();
         }
     }
 

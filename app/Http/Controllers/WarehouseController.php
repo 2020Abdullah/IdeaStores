@@ -119,4 +119,17 @@ class WarehouseController extends Controller
     
         return redirect()->back()->with('success', 'تم تحويل الرصيد بنجاح');
     }
+
+    public function filter(Request $request){
+        $query = Account_transactions::where('account_id', $request->account_id);
+
+        if ($request->filled('type')) {
+            $query->where('transaction_type', $request->type);
+        }
+
+        $transactions = $query->orderBy('date', 'desc')->paginate(100);
+
+        return view('warehouse.trans_table', ['transactions' => $transactions])->render();
+    }
+
 }

@@ -61,11 +61,11 @@
                 <tbody>
                     @forelse($expenseItem->exponses as $ex)
                         <tr>
+                            @php
+                                $typeName = class_basename($ex->expenseable_type);
+                            @endphp
                             <td>{{ $ex->date }}</td>
                             <td>
-                                @php
-                                    $typeName = class_basename($ex->expenseable_type);
-                                @endphp
                                 @if ($typeName === 'Supplier_invoice')
                                     <span>فاتورة شراء</span>
                                 @elseif($typeName === 'Wallet')
@@ -76,7 +76,21 @@
                             </td>
                             <td>{{ $ex->note }}</td>
                             <td>{{ $ex->amount }}</td>
-                            <td>{{ $ex->source_code ?? '_' }}</td>
+                            <td>
+                                @if ($ex->source_code !== null)
+                                    @if ($typeName === 'Supplier_invoice')
+                                        <a href="{{ route('supplier.invoice.show', $ex->source_code) }}">
+                                            {{ $ex->source_code }}
+                                        </a>
+                                    @else 
+                                        <a href="{{ route('customer.invoice.show', $ex->source_code) }}">
+                                            {{ $ex->source_code }}
+                                        </a>
+                                    @endif
+                                @else
+                                    _
+                                @endif
+                            </td>
                         </tr>
                     @empty
                         <tr>
