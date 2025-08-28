@@ -61,12 +61,16 @@
                                     <th>سعر التكلفة</th>
                                 </thead>
                                 <tbody>
-                                    @foreach ($invoice->costs as $cost)
+                                    @forelse ($nonProfitCosts as $cost)
                                         <tr>
                                             <td>{{ $cost->expenseItem->name }}</td>
                                             <td>{{ number_format($cost->amount) }} EGP</td>
                                         </tr>
-                                    @endforeach
+                                    @empty
+                                        <tr>
+                                            <td colspan="2" class="text-center">لا توجد تكاليف</td>
+                                        </tr>
+                                    @endforelse
                                 </tbody>
                             </table>
                             <div class="invoice_cost_total text-center mt-2">

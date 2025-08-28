@@ -690,8 +690,11 @@ class SalesController extends Controller
     
     public function show($code){
         $invoice = CustomerInvoices::where('code', $code)->first();
+        $nonProfitCosts = $invoice->costs()
+        ->whereHas('expenseItem', fn($q) => $q->where('is_profit', 0))
+        ->get();
         $app = App::latest()->first();
-        return view('customer.sales.show', compact('invoice', 'app'));
+        return view('customer.sales.show', compact('invoice', 'app', 'nonProfitCosts'));
     }
 
     public function deleteInv(Request $request)
