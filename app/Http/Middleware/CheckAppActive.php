@@ -7,6 +7,7 @@ use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Illuminate\Support\Facades\Http;
 use App\Models\App;
+use Illuminate\Support\Facades\Cache;
 
 class CheckAppActive
 {
@@ -19,32 +20,31 @@ class CheckAppActive
 
         $localApp = App::where('secret_key', $key)->first();
 
-        try {
-            $firebaseUrl = rtrim(env('FIREBASE_DB_URL'), '/'); 
-            $response = Http::timeout(3)->get("{$firebaseUrl}/subscriptions.json");
-            $subscriptions = $response->json() ?: [];
-            $client = collect($subscriptions)
-                ->map(fn($item) => (array)$item)
-                ->firstWhere('secret_key', $key);
+        // 👇 اسحب من الكاش بدل ما تسأل Firebase كل مرة
+        $isActive = Cache::remember("app_status_{$key}", now()->addMinutes(5), function () use ($key, $localApp) {
+            try {
+                $firebaseUrl = rtrim(env('FIREBASE_DB_URL'), '/'); 
+                $response = Http::timeout(1)->get("{$firebaseUrl}/subscriptions.json");
+                $subscriptions = $response->json() ?: [];
+                $client = collect($subscriptions)
+                    ->map(fn($item) => (array)$item)
+                    ->firstWhere('secret_key', $key);
 
-            if ($client && ($client['is_active'] ?? 0) == 1) {
-                // إذا مفعل في Firebase، حدّث الحالة المحلية
-                if ($localApp && $localApp->is_active != 1) {
-                    $localApp->update(['is_active' => 1]);
+                if ($client) {
+                    $status = ($client['is_active'] ?? 0) == 1 ? 1 : 0;
+                    if ($localApp && $localApp->is_active != $status) {
+                        $localApp->update(['is_active' => $status]);
+                    }
+                    return $status;
                 }
-            } elseif ($client && ($client['is_active'] ?? 0) == 0) {
-                // إذا موجود في Firebase وغير مفعل
-                if ($localApp && $localApp->is_active != 0) {
-                    $localApp->update(['is_active' => 0]);
-                }
+            } catch (\Exception $e) {
+                // في حالة الفشل، رجّع القيمة الحالية من قاعدة البيانات
+                return $localApp?->is_active ?? 0;
             }
-            // إذا لم يتم العثور على client في Firebase، لا تغيّر الحالة المحلية
-        } catch (\Exception $e) {
-            return $next($request);
-        }
+            return $localApp?->is_active ?? 0;
+        });
 
-        // إذا التطبيق محليًا غير مفعل، امنع الوصول
-        if ($localApp && $localApp->is_active === 0) {
+        if ($isActive === 0) {
             return redirect()->route('support')->with('error', 'التطبيق غير مفعل برجاء الإتصال بالدعم للمساعدة');
         }
 
