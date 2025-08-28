@@ -222,15 +222,26 @@ class SalesController extends Controller
         $default_warehouse = Warehouse::where('is_default', 1)->first();
         $default_wallet = Wallet::where('is_default', 1)->first();
         if ($costs && is_array($costs)) {
-            foreach ($costs as $cost) {
-                $invoice->costs()->create([
-                    'expense_item_id' => $cost['exponse_id'],
-                    'account_id' => $default_warehouse->account->id,
-                    'amount' => $this->normalizeNumber($cost['amount']),
-                    'note' => 'تكاليف إضافية علي فاتورة بيع',
-                    'date' => $invoice->date,
-                    'source_code' => $invoice->code,
-                ]);
+            if($invoice->costs){
+                foreach ($costs as $cost) {
+                    $expenseItemIDS = ExponseItem::where('id', $cost['exponse_id'])->where('is_profit', 0)->select('id')->get();
+                    $invoice->costs()->whereIn('expense_item_id', $expenseItemIDS)->update([
+                        'amount' => $this->normalizeNumber($cost['amount']),
+                        'date' => $invoice->date,
+                    ]);
+                }
+            }
+            else {
+                foreach ($costs as $cost) {
+                    $invoice->costs()->create([
+                        'expense_item_id' => $cost['exponse_id'],
+                        'account_id' => $default_warehouse->account->id,
+                        'amount' => $this->normalizeNumber($cost['amount']),
+                        'note' => 'تكاليف إضافية علي فاتورة بيع',
+                        'date' => $invoice->date,
+                        'source_code' => $invoice->code,
+                    ]);
+                }
             }
             if($invoice->transaction){
                 $invoice->transaction()->update([
@@ -535,12 +546,30 @@ class SalesController extends Controller
 
     protected function ProfitDistribution($invoice)
     {
-        // التأكد من وجود ربح صافي
+        // لو مفيش ربح أصلاً
         if (!$invoice->total_profit || $invoice->total_profit <= 0) {
+            // احذف أي توزيعات قديمة خاصة بالربح
+            $profitItems = ExponseItem::where('is_profit', 1)->pluck('id');
+            $invoice->costs()->whereIn('expense_item_id', $profitItems)->delete();
             return;
         }
     
-        // جلب البنود التي سيتم توزيع الربح عليها
+        // اجمع التكاليف (اللي مش من بنود الربح)
+        $totalCosts = $invoice->costs()
+            ->whereNotIn('expense_item_id', ExponseItem::where('is_profit', 1)->pluck('id'))
+            ->sum('amount');
+    
+        // صافي الربح بعد خصم التكاليف
+        $netProfit = $invoice->total_profit - $totalCosts;
+    
+        if ($netProfit <= 0) {
+            // لو مفيش حاجة تتوزع → امسح التوزيعات
+            $profitItems = ExponseItem::where('is_profit', 1)->pluck('id');
+            $invoice->costs()->whereIn('expense_item_id', $profitItems)->delete();
+            return;
+        }
+    
+        // جلب البنود اللي ليها نصيب من الربح
         $profitItems = ExponseItem::where('is_profit', 1)->get();
     
         if ($profitItems->isEmpty()) {
@@ -548,21 +577,22 @@ class SalesController extends Controller
         }
     
         // نصيب كل بند
-        $shareAmount = $invoice->total_profit / $profitItems->count();
+        $shareAmount = $netProfit / $profitItems->count();
     
+        // امسح التوزيع القديم
+        $invoice->costs()->whereIn('expense_item_id', $profitItems->pluck('id'))->delete();
+    
+        // أعد إنشاء التوزيع
         foreach ($profitItems as $item) {
-            // إنشاء حركة مباشرة في جدول Exponse
             $invoice->costs()->create([
                 'expense_item_id' => $item->id,
-                'amount'          => $this->normalizeNumber($shareAmount), // موجب للربح
+                'amount'          => $this->normalizeNumber($shareAmount),
                 'note'            => 'توزيع ربحية الفاتورة',
                 'date'            => $invoice->date,
-                'source_code'            => $invoice->code,
+                'source_code'     => $invoice->code,
             ]);
         }
-    }
-    
-    
+    }    
 
     public function payment(Request $request){
         $warehouse = Warehouse::where('id', $request->warehouse_id)->first();

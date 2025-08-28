@@ -354,47 +354,57 @@ class InvoicePurchaseController extends Controller
         return redirect()->route('supplier.account.show', $request->supplier_id)->with('success', 'تم إنشاء فاتورة مورد بنجاح');
     }
 
-    protected function updateCost($request, $invoice){
+    protected function updateCost($request, $invoice)
+    {
         $costs = $request->input('costs');
         $default_warehouse = Warehouse::where('is_default', 1)->first();
         $default_wallet = Wallet::where('is_default', 1)->first();
+
         if ($costs && is_array($costs)) {
+            // امسح التكاليف القديمة كلها
             $invoice->costs()->delete();
+
+            // أضف التكاليف الجديدة
             foreach ($costs as $cost) {
                 $invoice->costs()->create([
                     'expense_item_id' => $cost['exponse_id'],
-                    'account_id' => $default_warehouse->account->id,
-                    'amount' => $this->normalizeNumber($cost['amount']),
-                    'note' => 'تكاليف إضافية',
-                    'date' => $invoice->invoice_date,
-                    'source_code' => $invoice->invoice_code,
+                    'account_id'      => $default_warehouse->account->id,
+                    'amount'          => $this->normalizeNumber($cost['amount']),
+                    'note'            => $cost['note'] ?? 'تكاليف إضافية',
+                    'date'            => $cost['date'] ?? $invoice->invoice_date,
+                    'source_code'     => $invoice->invoice_code,
                 ]);
             }
-            if($invoice->transaction){
+
+            // تحديث أو إنشاء معاملة مالية
+            if ($invoice->transaction) {
                 $invoice->transaction()->update([
                     'amount' => -$this->normalizeNumber($request->additional_cost),
                 ]);
-            }
-            else {
+            } else {
                 Account_transactions::create([
-                    'account_id' => $default_warehouse->account->id,
-                    'direction' => 'out',
-                    'wallet_id' => $default_wallet->id,
-                    'amount' => -$this->normalizeNumber($request->additional_cost),
+                    'account_id'       => $default_warehouse->account->id,
+                    'direction'        => 'out',
+                    'wallet_id'        => $default_wallet->id,
+                    'amount'           => -$this->normalizeNumber($request->additional_cost),
                     'transaction_type' => 'expense',
-                    'related_type' => Supplier_invoice::class,
-                    'related_id' => $invoice->id,
-                    'description' => $request->notes ?? 'مصروفات فواتير موردين',
-                    'source_code' => $invoice->invoice_code,
-                    'date' => $invoice->invoice_date,
+                    'related_type'     => Supplier_invoice::class,
+                    'related_id'       => $invoice->id,
+                    'description'      => $request->notes ?? 'مصروفات فواتير موردين',
+                    'source_code'      => $invoice->invoice_code,
+                    'date'             => $invoice->invoice_date,
                 ]);
             }
-        }
-        else {
+
+        } else {
+            // لو مفيش تكاليف → احذف الترانزكشن لو موجود
             $transaction = Account_transactions::where('source_code', $invoice->invoice_code)->first();
-            $transaction->delete();
+            if ($transaction) {
+                $transaction->delete();
+            }
         }
     }
+
 
     protected function addOpenBalance($request)
     {
