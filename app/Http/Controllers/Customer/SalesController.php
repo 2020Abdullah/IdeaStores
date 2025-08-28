@@ -227,7 +227,7 @@ class SalesController extends Controller
                     'expense_item_id' => $cost['exponse_id'],
                     'account_id' => $default_warehouse->account->id,
                     'amount' => $this->normalizeNumber($cost['amount']),
-                    'note' => 'تكاليف إضافية',
+                    'note' => 'تكاليف إضافية علي فاتورة بيع',
                     'date' => $invoice->date,
                     'source_code' => $invoice->code,
                 ]);
@@ -535,7 +535,6 @@ class SalesController extends Controller
 
     protected function ProfitDistribution($invoice)
     {
-        $invoice->costs()->delete();
         // التأكد من وجود ربح صافي
         if (!$invoice->total_profit || $invoice->total_profit <= 0) {
             return;
