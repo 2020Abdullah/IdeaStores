@@ -50,7 +50,7 @@ git clone https://github.com/2020Abdullah/elfateh_system
 ### 2. الانتقال إلى المجلد
 
 ```
-cd [اسم المشروع]
+cd elfateh_system
 ```
 
 ### 3. تثبيت الحزم

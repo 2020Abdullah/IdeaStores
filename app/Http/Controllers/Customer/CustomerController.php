@@ -13,6 +13,7 @@ use App\Models\Warehouse;
 use Carbon\Carbon;
 use Exception;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Maatwebsite\Excel\Facades\Excel;
 use Mpdf\Mpdf;
@@ -88,7 +89,15 @@ class CustomerController extends Controller
         $data['warehouse_list'] = Warehouse::all();
         $data['customer'] = Customer::findOrFail($id);
         $data['payments'] = $data['customer']->paymentTransactions()->paginate(100);
-        $data['invoices_list'] = CustomerInvoices::where('customer_id' , $id)->paginate(100);
+    
+        $page = request('page', 1);
+        $cacheKey = "customer_{$id}_invoices_page_{$page}";
+    
+        $data['invoices_list'] = Cache::remember($cacheKey, 60, function () use ($id) {
+            return CustomerInvoices::where('customer_id', $id)
+                ->orderBy('date', 'desc')
+                ->paginate(100);
+        });
         return view('customer.Account', $data);
     }
 

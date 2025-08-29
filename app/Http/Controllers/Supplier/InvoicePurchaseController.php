@@ -21,21 +21,28 @@ use App\Models\Stock_movement;
 use App\Models\StoreHouse;
 use App\Models\Supplier;
 use App\Models\Supplier_invoice;
-use App\Models\Supplier_invoice_item;
 use App\Models\Unit;
 use App\Models\Wallet;
-use App\Models\Wallet_movement;
 use App\Models\Warehouse;
 use Exception;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Mpdf\Mpdf;
 
 class InvoicePurchaseController extends Controller
 {
     public function index(){
-        $invoices_list = Supplier_invoice::orderBy('invoice_date', 'desc')->paginate(100);
-        $warehouse_list = Warehouse::all();
-        return view('suppliers.invoices.index', compact('invoices_list', 'warehouse_list'));
+        $page = request('page', 1);
+        $perPage = 100;
+        $cacheKey = "supplier_invoices_page_{$page}";
+        $data['invoices_list'] = Cache::remember($cacheKey, 60, function () use ($perPage) {
+            // نجيب بيانات بسيطة بدل ما نجيب كل الجدول
+            return Supplier_invoice::orderBy('invoice_date', 'desc')
+                ->paginate($perPage);
+        });
+
+        $data['warehouse_list'] = Warehouse::all();
+        return view('suppliers.invoices.index', $data);
     }
     
     public function add($id = null){

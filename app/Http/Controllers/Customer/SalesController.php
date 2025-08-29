@@ -16,6 +16,7 @@ use App\Models\Wallet;
 use App\Models\Warehouse;
 use Exception;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Mpdf\Mpdf;
 use Psy\TabCompletion\Matcher\FunctionDefaultParametersMatcher;
@@ -23,7 +24,14 @@ use Psy\TabCompletion\Matcher\FunctionDefaultParametersMatcher;
 class SalesController extends Controller
 {
     public function index(){
-        $data['invoices_list'] = CustomerInvoices::orderBy('date', 'desc')->paginate(100);
+        $page = request('page', 1);
+        $perPage = 100;
+        $cacheKey = "customers_invoices_page_{$page}";
+        $data['invoices_list'] = Cache::remember($cacheKey, 60, function () use ($perPage) {
+            // نجيب بيانات بسيطة بدل ما نجيب كل الجدول
+            return CustomerInvoices::orderBy('date', 'desc')
+                ->paginate($perPage);
+        });
         return view('customer.sales.index', $data);
     }
     public function add($id = null){
