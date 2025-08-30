@@ -49,68 +49,71 @@
                     <!-- Header ends -->
                 </div>
 
-                <hr class="invoice-spacing">
 
-                <div class="card-body invoice-padding pt-0">
-                    <div class="row invoice-spacing">
-                        <div class="col-lg-12 p-0 mt-2">
-                            <h6 class="mb-2">تفاصيل التكاليف :</h6>
-                            <table class="table table-bordered">
-                                <thead>
-                                    <th>وصف التكلفة</th>
-                                    <th>سعر التكلفة</th>
-                                </thead>
-                                <tbody>
-                                    @forelse ($nonProfitCosts as $cost)
-                                        <tr>
-                                            <td>{{ $cost->expenseItem->name }}</td>
-                                            <td>{{ number_format($cost->amount) }} EGP</td>
-                                        </tr>
-                                    @empty
-                                        <tr>
-                                            <td colspan="2" class="text-center">لا توجد تكاليف</td>
-                                        </tr>
-                                    @endforelse
-                                </tbody>
-                            </table>
-                            <div class="invoice_cost_total text-center mt-2">
-                                <p><strong>إجمالي سعر التكلفة :</strong> {{ number_format($invoice->cost_price) }} EGP</p>
+                @if ($invoice->type !== 'opening_balance')
+                    <div class="card-body invoice-padding pt-0">
+                        <div class="row invoice-spacing">
+                            <div class="col-lg-12 p-0 mt-2">
+                                <h6 class="mb-2">تفاصيل التكاليف :</h6>
+                                <table class="table table-bordered">
+                                    <thead>
+                                        <th>وصف التكلفة</th>
+                                        <th>سعر التكلفة</th>
+                                    </thead>
+                                    <tbody>
+                                        @forelse ($nonProfitCosts as $cost)
+                                            <tr>
+                                                <td>{{ $cost->expenseItem->name }}</td>
+                                                <td>{{ number_format($cost->amount) }} EGP</td>
+                                            </tr>
+                                        @empty
+                                            <tr>
+                                                <td colspan="2" class="text-center">لا توجد تكاليف</td>
+                                            </tr>
+                                        @endforelse
+                                    </tbody>
+                                </table>
+                                <div class="invoice_cost_total text-center mt-2">
+                                    <p><strong>إجمالي سعر التكلفة :</strong> {{ number_format($invoice->cost_price) }} EGP</p>
+                                </div>
                             </div>
                         </div>
                     </div>
-                </div>
+                    
+                    <hr class="invoice-spacing">
 
-
-                <div class="table-responsive">
-                    <table class="table table-bordered">
-                        <thead>
-                            <tr>
-                                <th class="py-1">الصنف</th>
-                                <th class="py-1">المنتج</th>
-                                <th class="py-1">العرض</th>
-                                <th class="py-1">العدد / الكمية</th>
-                                <th class="py-1">سعر البيع</th>
-                                <th class="py-1">الإجمالي</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @foreach ($invoice->items as $item)
+                    <div class="table-responsive">
+                        <table class="table table-bordered">
+                            <thead>
                                 <tr>
-                                    <td>{{ $item->product->category->full_path }}</td>
-                                    <td>{{ $item->product->name }}</td>
-                                    <td>{{ $item->size->width }}</td>
-                                    @if ($item->unit_name === 'متر')
-                                        <td>{{ $item->quantity / 100}} متر</td>                                        
-                                    @else
-                                        <td>{{ $item->quantity }} {{ $item->unit_name }}</td>                                        
-                                    @endif
-                                    <td>{{ number_format($item->sale_price) }} EGP</td>
-                                    <td>{{ number_format($item->total_price) }} EGP</td>
+                                    <th class="py-1">الصنف</th>
+                                    <th class="py-1">المنتج</th>
+                                    <th class="py-1">العرض</th>
+                                    <th class="py-1">العدد / الكمية</th>
+                                    <th class="py-1">سعر البيع</th>
+                                    <th class="py-1">الإجمالي</th>
                                 </tr>
-                            @endforeach
-                        </tbody>
-                    </table>
-                </div>
+                            </thead>
+                            <tbody>
+                                @foreach ($invoice->items as $item)
+                                    <tr>
+                                        <td>{{ $item->product->category->full_path }}</td>
+                                        <td>{{ $item->product->name }}</td>
+                                        <td>{{ $item->size->width }}</td>
+                                        @if ($item->unit_name === 'متر')
+                                            <td>{{ $item->quantity / 100}} متر</td>                                        
+                                        @else
+                                            <td>{{ $item->quantity }} {{ $item->unit_name }}</td>                                        
+                                        @endif
+                                        <td>{{ number_format($item->sale_price) }} EGP</td>
+                                        <td>{{ number_format($item->total_price) }} EGP</td>
+                                    </tr>
+                                @endforeach
+                            </tbody>
+                        </table>
+                    </div>
+                @endif
+
 
                 <!-- Invoice Description ends -->
 

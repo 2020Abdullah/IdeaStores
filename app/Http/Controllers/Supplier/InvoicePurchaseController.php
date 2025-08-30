@@ -32,14 +32,8 @@ use Mpdf\Mpdf;
 class InvoicePurchaseController extends Controller
 {
     public function index(){
-        $page = request('page', 1);
-        $perPage = 100;
-        $cacheKey = "supplier_invoices_page_{$page}";
-        $data['invoices_list'] = Cache::remember($cacheKey, 60, function () use ($perPage) {
-            // نجيب بيانات بسيطة بدل ما نجيب كل الجدول
-            return Supplier_invoice::orderBy('invoice_date', 'desc')
-                ->paginate($perPage);
-        });
+        $data['invoices_list'] = Supplier_invoice::orderBy('invoice_date', 'desc')
+        ->paginate(100);
 
         $data['warehouse_list'] = Warehouse::all();
         return view('suppliers.invoices.index', $data);
@@ -300,27 +294,6 @@ class InvoicePurchaseController extends Controller
         $total_amount = $this->normalizeNumber($request->total_amount);
         $total_amount_invoice = $this->normalizeNumber($request->total_amount_invoice);
         $current_balance = $this->normalizeNumber($request->current_balance);
-
-        // التأكد من أن مبلغ الفاتورة لا يتخطي رصيد المحفظة 
-        // if ($total_amount > $current_balance) {   
-        //     return back()->with('info', 'رصيد المحفظة غير كافي لإجراء هذه العملية .');
-        // }
-
-
-        // $totalPaid = $supplier->paymentTransactions()
-        // ->get()
-        // ->sum(function ($payment) {
-        //     return abs($payment->amount);
-        // });
-
-        // // تحديث رصيد المورد
-        // $totalInvoicesSum = Supplier_invoice::where('supplier_id', $supplier->id)->sum('total_amount_invoice');
-
-        // $newBalance = $totalPaid - $totalInvoicesSum;
-
-        // $supplier->account()->update([
-        //     'current_balance' => $newBalance,
-        // ]);
 
         // 2. إنشاء الفاتورة 
         $invoice = Supplier_invoice::create([
@@ -705,55 +678,7 @@ class InvoicePurchaseController extends Controller
         $warehouse = Warehouse::where('id', $request->warehouse_id)->first();
     
         $amount = $this->normalizeNumber($request->amount);
-    
-        // تحديث الفواتير تلقائياً عند دفع دفعة مقدمة 
-        $invoices = Supplier_invoice::where('supplier_id', $request->supplier_id)
-                    ->where('invoice_staute', '!=', 1) // تجاهل الفواتير المدفوعة
-                    ->orderBy('invoice_date', 'asc') // ترتيب حسب الأقدمية
-                    ->get();
-    
-        foreach ($invoices as $inv) {
-            $remaining = $inv->total_amount_invoice - $inv->paid_amount;
         
-            if ($amount >= $remaining) {
-                // دفع الفاتورة بالكامل
-                $inv->update([
-                    'invoice_staute' => 1,
-                    'paid_amount' => $inv->paid_amount + $remaining,
-                ]);
-        
-                // حذف الدين الخارجي
-                if ($inv->debts) {
-                    $inv->debts->delete();
-                }
-        
-                $amount -= $remaining;
-        
-            } elseif ($amount > 0) {
-                // دفع جزئي
-                $inv->update([
-                    'invoice_staute' => 2,
-                    'paid_amount' => $inv->paid_amount + $amount,
-                ]);
-        
-                if ($inv->debts) {
-                    $inv->debts->update([
-                        'paid' => $inv->debts->paid + $amount,
-                        'remaining' => $inv->debts->amount - ($inv->debts->paid + $amount),
-                        'is_paid' => 0
-                    ]);
-                }
-        
-                $amount = 0;
-                break; // انتهى المبلغ
-            } else {
-                break;
-            }
-        }
-        
-    
-        $amount = $this->normalizeNumber($request->amount);
-    
         // تسجيل حركة معاملة في الخزنة
         Account_transactions::create([
             'account_id' => $warehouse->account->id,
@@ -776,6 +701,8 @@ class InvoicePurchaseController extends Controller
             'wallet_id' => $request->wallet_id,
             'description' => $request->description ?? 'دفعة مقدمة'
         ]);
+
+        $this->updateInvoiceState($request);
     
         return back()->with('success', 'تم دفع الدفعة بنجاح');
     }  

@@ -11,7 +11,11 @@
     </tr>
     @foreach ($invoices_list as $inv)
         <tr>
-            <td>{{ $inv->invoice_code }}</td>
+            <td>
+                <a href="{{ route('supplier.invoice.show', $inv->invoice_code) }}">
+                    {{ $inv->invoice_code }}
+                </a>
+            </td>
             <td>{{ $inv->invoice_date }}</td>
             <td>
                 <a href="{{ route('supplier.account.show', $inv->supplier->id) }}">
@@ -39,14 +43,6 @@
                 @endif
             </td>
             <td>
-                @if ($inv->invoice_type !== 'opening_balance')
-                    <a href="{{ route('supplier.invoice.show', $inv->invoice_code) }}"
-                    class="btn btn-icon btn-info waves-effect waves-float waves-light editBtn"
-                    title="عرض">
-                        <i data-feather='eye'></i>
-                    </a>                                
-                @endif
-
                 <a href="{{ route('supplier.invoice.edit', $inv->id) }}"
                 class="btn btn-icon btn-success waves-effect waves-float waves-light editBtn"
                 title="تعديل">

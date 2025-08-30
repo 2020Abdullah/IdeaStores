@@ -5,7 +5,7 @@
     <title>فاتورة #{{ $invoice->invoice_code }}</title>
     <style>
         body {
-            font-family: 'dejavusans', sans-serif;
+            font-family: 'Arial', sans-serif;
             direction: rtl;
             text-align: right;
             unicode-bidi: embed;
@@ -17,11 +17,11 @@
             border: 4px solid #333;
             padding: 10px;
             margin: 10px;
-            height: calc(100% - 40px);
+            height: 100%;
         }
 
         @font-face {
-            font-family: 'dejavusans';
+            font-family: 'Arial';
             font-weight: normal;
             font-style: normal;
         }
@@ -43,6 +43,20 @@
             width: 100%;
             border-collapse: collapse;
             margin-bottom: 20px;
+            page-break-inside: auto;
+        }
+
+        thead {
+            display: table-header-group;
+        }
+
+        tbody {
+            display: table-row-group;
+        }
+
+        tr {
+            page-break-inside: avoid;
+            page-break-after: auto;
         }
 
         th, td {
@@ -82,55 +96,35 @@
             <p><strong>تاريخ الفاتورة:</strong> {{ $invoice->invoice_date }}</p>
         </div>
     
-        <!-- Costs Table -->
-        {{-- <h4>تفاصيل التكاليف:</h4>
-        <table>
-            <thead>
-                <tr>
-                    <th>الوصف</th>
-                    <th>السعر</th>
-                </tr>
-            </thead>
-            <tbody>
-                @foreach ($invoice->costs as $cost)
+        @if ($invoice->invoice_type !== 'opening_balance')
+            <h4>المنتجات:</h4>
+            <table>
+                <thead>
                     <tr>
-                        <td>{{ $cost->description }}</td>
-                        <td>{{ number_format($cost->amount) }} EGP</td>
+                        <th class="py-1">الصنف</th>
+                        <th class="py-1">المنتج</th>
+                        <th class="py-1">العدد / الكمية</th>
+                        <th class="py-1">العرض</th>
+                        <th class="py-1">الطول</th>
+                        <th class="py-1">سعر الشراء</th>
+                        <th class="py-1">الإجمالي</th>
                     </tr>
-                @endforeach
-            </tbody>
-        </table>
-    
-        <p class="total">إجمالي التكاليف: {{ number_format($invoice->cost_price) }} EGP</p> --}}
-    
-        <!-- Items Table -->
-        <h4>المنتجات:</h4>
-        <table>
-            <thead>
-                <tr>
-                    <th class="py-1">الصنف</th>
-                    <th class="py-1">المنتج</th>
-                    <th class="py-1">العدد / الكمية</th>
-                    <th class="py-1">العرض</th>
-                    <th class="py-1">الطول</th>
-                    <th class="py-1">سعر الشراء</th>
-                    <th class="py-1">الإجمالي</th>
-                </tr>
-            </thead>
-            <tbody>
-                @foreach ($invoice->items as $item)
-                    <tr>
-                        <td>{{ $item->product->category->full_path }}</td>
-                        <td>{{ $item->product->name }}</td>
-                        <td>{{ $item->quantity }}</td>
-                        <td>{{ $item->size->width }}</td>
-                        <td>{{ $item->length }}</td>
-                        <td>{{ number_format($item->purchase_price) }} EGP</td>
-                        <td>{{ number_format($item->total_price) }} EGP</td>
-                    </tr>
-                @endforeach
-            </tbody>
-        </table>
+                </thead>
+                <tbody>
+                    @foreach ($invoice->items as $item)
+                        <tr>
+                            <td>{{ $item->product->category->full_path }}</td>
+                            <td>{{ $item->product->name }}</td>
+                            <td>{{ $item->quantity }}</td>
+                            <td>{{ $item->size->width }}</td>
+                            <td>{{ $item->length }}</td>
+                            <td>{{ number_format($item->purchase_price) }} EGP</td>
+                            <td>{{ number_format($item->total_price) }} EGP</td>
+                        </tr>
+                    @endforeach
+                </tbody>
+            </table>    
+        @endif
     
         <p class="total">إجمالي الفاتورة: {{ number_format($invoice->total_amount - $invoice->cost_price) }} EGP</p>
     

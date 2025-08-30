@@ -24,7 +24,7 @@ class CheckAppActive
         $isActive = Cache::remember("app_status_{$key}", now()->addMinutes(5), function () use ($key, $localApp) {
             try {
                 $firebaseUrl = rtrim(env('FIREBASE_DB_URL'), '/'); 
-                $response = Http::timeout(1)->get("{$firebaseUrl}/subscriptions.json");
+                $response = Http::timeout(3)->get("{$firebaseUrl}/subscriptions.json");
                 $subscriptions = $response->json() ?: [];
                 $client = collect($subscriptions)
                     ->map(fn($item) => (array)$item)
@@ -38,10 +38,9 @@ class CheckAppActive
                     return $status;
                 }
             } catch (\Exception $e) {
-                // في حالة الفشل، رجّع القيمة الحالية من قاعدة البيانات
-                return $localApp?->is_active ?? 0;
+                return $localApp?->is_active ?? 1;
             }
-            return $localApp?->is_active ?? 0;
+            return $localApp?->is_active ?? 1;
         });
 
         if ($isActive === 0) {

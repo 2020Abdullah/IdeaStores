@@ -18,18 +18,42 @@ class WalletsController extends Controller
     }
 
     public function store(WalletRequest $request){
-        $wallet = new Wallet();
-        $wallet->name = $request->name;
-        $wallet->details = $request->details;
-        $wallet->save();
+        DB::transaction(function () use ($request) {
+            $wallet = new Wallet();
+            $wallet->name       = $request->name;
+            $wallet->details    = $request->details;
+            $wallet->is_default = $request->boolean('is_default'); 
+            $wallet->save();
+    
+            if ($wallet->is_default) {
+                Wallet::where('id', '!=', $wallet->id)->update(['is_default' => 0]);
+            }
+        });
+    
         return back()->with('success', 'تم إضافة حساب بنكي بنجاح');
     }
 
     public function update(WalletRequest $request){
         $wallet = Wallet::findOrFail($request->wallet_id);
-        $wallet->name = $request->name;
-        $wallet->details = $request->details;
-        $wallet->save();
+        if ($request->is_default == 0 && $wallet->is_default == 1) {
+            $otherDefaultExists = Wallet::where('id', '!=', $wallet->id)
+                                        ->where('is_default', 1)
+                                        ->exists();
+            if (! $otherDefaultExists) {
+                return back()->withErrors(['is_default' => 'يجب أن تكون هناك محفظة افتراضية واحدة على الأقل.']);
+            }
+        }
+        DB::transaction(function () use ($request, $wallet) {
+            $wallet->name       = $request->name;
+            $wallet->details    = $request->details;
+            $wallet->is_default = $request->boolean('is_default'); // كنت ناسيها
+            $wallet->save();
+    
+            if ($request->is_default == 1) {
+                Wallet::where('id', '!=', $wallet->id)->update(['is_default' => 0]);
+            }
+        });
+
         return back()->with('success', 'تم تعديل بيانات الحساب البنكي بنجاح');
     }
 

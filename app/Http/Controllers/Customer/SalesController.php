@@ -24,14 +24,8 @@ use Psy\TabCompletion\Matcher\FunctionDefaultParametersMatcher;
 class SalesController extends Controller
 {
     public function index(){
-        $page = request('page', 1);
-        $perPage = 100;
-        $cacheKey = "customers_invoices_page_{$page}";
-        $data['invoices_list'] = Cache::remember($cacheKey, 60, function () use ($perPage) {
-            // نجيب بيانات بسيطة بدل ما نجيب كل الجدول
-            return CustomerInvoices::orderBy('date', 'desc')
-                ->paginate($perPage);
-        });
+        $data['invoices_list'] = CustomerInvoices::orderBy('date', 'desc')
+        ->paginate(100);
         return view('customer.sales.index', $data);
     }
     public function add($id = null){
@@ -225,55 +219,62 @@ class SalesController extends Controller
         return $invoice_code;
     }
 
-    protected function updateCost($request, $invoice){
+    protected function updateCost($request, $invoice)
+    {
         $costs = $request->input('costs');
         $default_warehouse = Warehouse::where('is_default', 1)->first();
         $default_wallet = Wallet::where('is_default', 1)->first();
-        if ($costs && is_array($costs)) {
-            if($invoice->costs){
-                foreach ($costs as $cost) {
-                    $expenseItemIDS = ExponseItem::where('id', $cost['exponse_id'])->where('is_profit', 0)->select('id')->get();
-                    $invoice->costs()->whereIn('expense_item_id', $expenseItemIDS)->update([
-                        'amount' => $this->normalizeNumber($cost['amount']),
-                        'date' => $invoice->date,
-                    ]);
-                }
+
+        if ($costs && is_array($costs) && count($costs)) {
+
+            // 1) امسح كل التكاليف الحالية
+            $invoice->costs()
+            ->whereHas('expenseItem', fn($q) => $q->where('is_profit', 0))
+            ->delete();
+
+            // 2) أنشئ التكاليف الجديدة
+            foreach ($costs as $cost) {
+                $invoice->costs()->create([
+                    'expense_item_id' => $cost['exponse_id'],
+                    'account_id'      => $default_warehouse->account->id,
+                    'amount'          => $this->normalizeNumber($cost['amount']),
+                    'note'            => $cost['note'] ?? 'تكاليف إضافية علي فاتورة بيع',
+                    'date'            => $invoice->date,
+                    'source_code'     => $invoice->code,
+                ]);
             }
-            else {
-                foreach ($costs as $cost) {
-                    $invoice->costs()->create([
-                        'expense_item_id' => $cost['exponse_id'],
-                        'account_id' => $default_warehouse->account->id,
-                        'amount' => $this->normalizeNumber($cost['amount']),
-                        'note' => 'تكاليف إضافية علي فاتورة بيع',
-                        'date' => $invoice->date,
-                        'source_code' => $invoice->code,
-                    ]);
-                }
-            }
-            if($invoice->transaction){
+
+            // 3) حدّث أو أنشئ الترانزكشن
+            if ($invoice->transaction) {
                 $invoice->transaction()->update([
                     'amount' => -$this->normalizeNumber($request->additional_cost),
                 ]);
-            }
-            else {
+            } else {
                 Account_transactions::create([
-                    'account_id' => $default_warehouse->account->id,
-                    'direction' => 'out',
-                    'wallet_id' => $default_wallet->id,
-                    'amount' => -$this->normalizeNumber($request->additional_cost),
+                    'account_id'       => $default_warehouse->account->id,
+                    'direction'        => 'out',
+                    'wallet_id'        => $default_wallet->id,
+                    'amount'           => -$this->normalizeNumber($request->additional_cost),
                     'transaction_type' => 'expense',
-                    'related_type' => CustomerInvoices::class,
-                    'related_id' => $invoice->id,
-                    'description' => $request->notes ?? 'مصروفات فواتير مبيعات',
-                    'source_code' => $invoice->code,
-                    'date' => $invoice->date,
+                    'related_type'     => CustomerInvoices::class,
+                    'related_id'       => $invoice->id,
+                    'description'      => $request->notes ?? 'مصروفات فواتير مبيعات',
+                    'source_code'      => $invoice->code,
+                    'date'             => $invoice->date,
                 ]);
             }
-        }
-        else {
-            $transaction = Account_transactions::where('source_code', $invoice->code)->first();
-            $transaction->delete();
+
+        } else {
+            // لو مفيش تكاليف
+            // امسح الترانزكشن
+            if ($invoice->transaction) {
+                $invoice->transaction()->delete();
+            }
+
+            // امسح فقط البنود غير الربحية المرتبطة بالفاتورة
+            $invoice->costs()
+                ->whereHas('expenseItem', fn($q) => $q->where('is_profit', 0))
+                ->delete();
         }
     }
 
@@ -617,7 +618,7 @@ class SalesController extends Controller
             'description' => $request->description ?? 'دفع مقدمة من العميل'
         ]);
         
-        // تسجيل دفعة للمورد
+        // تسجيل دفعة للعميل
         paymentTransaction::create([
             'related_type' => Customer::class,
             'related_id' => $request->customer_id,

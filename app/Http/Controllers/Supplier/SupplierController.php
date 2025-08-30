@@ -115,11 +115,14 @@ class SupplierController extends Controller
         $data['payments'] = $data['supplier']->paymentTransactions()->paginate(100);
         $page = request('page', 1);
         $cacheKey = "customer_{$id}_invoices_page_{$page}";
-        $data['invoices_list'] = Cache::remember($cacheKey, 60, function () use ($id) {
+        $data['invoices_list'] = Cache::remember($cacheKey, 30, function () use ($id) {
             return Supplier_invoice::where('supplier_id', $id)
                 ->orderBy('invoice_date', 'desc')
                 ->paginate(100);
         });
+        $data['invoices_list'] = Supplier_invoice::where('supplier_id', $id)
+        ->orderBy('invoice_date', 'desc')
+        ->paginate(100);
         return view('suppliers.Account', $data);
     }
 

@@ -39,6 +39,7 @@
                         <th>اسم المحفظة</th>
                         <th>الوصف</th>
                         <th>الرصيد الحالي</th>
+                        <th>هل هي افتراضية</th>
                         <th>إجراء</th>
                     </tr>
                     @foreach ($wallets as $wallet)
@@ -46,6 +47,13 @@
                             <td>{{ $wallet->name }}</td>
                             <td>{{ $wallet->details }}</td>
                             <td>{{ number_format($wallet->balance) }}</td>
+                            <td>
+                                @if ($wallet->is_default == 0)
+                                    <Span>لا</Span>
+                                @else
+                                    <Span>نعم</Span>
+                                @endif
+                            </td>
                             <td>
                                 <a href="{{ route('wallet.transactions.show', $wallet->id) }}"
                                     class="btn btn-icon btn-info waves-effect waves-float waves-light"
@@ -59,6 +67,7 @@
                                  data-wallet_id="{{ $wallet->id }}" 
                                  data-name="{{ $wallet->name }}"
                                  data-details="{{ $wallet->details }}"
+                                 data-is_default="{{ $wallet->is_default }}"
                                  >
                                     <i data-feather='edit'></i>
                                 </a>     
@@ -98,6 +107,13 @@
                         <label class="form-label">رقم المحفظة أو الحساب البنكي (اختيارى)</label>
                         <input type="text" class="form-control" name="details" placeholder="تفاصيل الحساب">
                     </div>
+                    <div class="mb-1">
+                        <label class="form-label">هل المحفظة افتراضية (يتم دفع منها المصروفات تلقائياً) *</label>
+                        <select name="is_default" class="form-select is_default">
+                            <option value="0" selected>لا</option>
+                            <option value="1">نعم</option>
+                        </select>
+                    </div>
                 </div>
                 <div class="modal-footer">
                     <button type="submit" class="btnSubmit btn btn-success waves-effect waves-float waves-light">حفظ البيانات</button>
@@ -126,6 +142,13 @@
                     <div class="mb-2">
                         <label class="form-label">رقم المحفظة أو الحساب البنكي (اختيارى)</label>
                         <input type="text" class="form-control details" name="details" placeholder="تفاصيل الحساب">
+                    </div>
+                    <div class="mb-1">
+                        <label class="form-label">هل المحفظة افتراضية (يتم دفع منها المصروفات تلقائياً) *</label>
+                        <select name="is_default" class="form-select is_default">
+                            <option value="0" selected>لا</option>
+                            <option value="1">نعم</option>
+                        </select>
                     </div>
                 </div>
                 <div class="modal-footer">
@@ -231,10 +254,12 @@
                 let wallet_id = $(this).data('wallet_id');
                 let name = $(this).data('name');
                 let details = $(this).data('details');
+                let is_default = $(this).data('is_default');
 
                 $("#editWallet .wallet_id").val(wallet_id);
                 $("#editWallet .name").val(name);
                 $("#editWallet .details").val(details);
+                $("#editWallet .is_default").val(is_default);
             });
 
             $(document).on('click', '.addBalanceBtn', function(e){

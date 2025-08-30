@@ -497,7 +497,7 @@ $(function () {
             if (response.status) {
                 lastUnitSelect.empty().append(`<option value="">اختر الوحدة</option>`);
                 response.data.forEach(item => {
-                    lastUnitSelect.append(`<option value="${item.id}">${item.symbol}</option>`);
+                    lastUnitSelect.append(`<option value="${item.id}">${item.name}</option>`);
                 });
             } else {
                 lastUnitSelect.html('<option>حدث خطأ في جلب الوحدات</option>');
