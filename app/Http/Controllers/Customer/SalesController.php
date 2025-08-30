@@ -662,25 +662,28 @@ class SalesController extends Controller
 
     public function filterByCustomer(Request $request)
     {
-        $query = CustomerInvoices::where('customer_id', $request->customer_id);
+        $query = CustomerInvoices::query()
+            ->where('customer_id', $request->customer_id); // شرط العميل ثابت
     
         if ($request->filled('searchCode')) {
-            $query->where('code',$request->searchCode);
+            $query->where('code', $request->searchCode);
         }
     
         if ($request->filled('invoice_type')) {
             $query->where('type', $request->invoice_type);
         }
-
+    
         if ($request->filled('invoice_staute')) {
-            if($request->invoice_staute === 'unpaid'){
-                $query->where('staute', 0)->orWhere('staute', 2);
-            }
-            else {
+            if ($request->invoice_staute === 'unpaid') {
+                $query->where(function ($q) {
+                    $q->where('staute', 0)
+                      ->orWhere('staute', 2);
+                });
+            } else {
                 $query->where('staute', $request->invoice_staute);
             }
         }
-        
+    
         if ($request->filled('start_date')) {
             $query->whereDate('date', '>=', $request->start_date);
         }
@@ -695,6 +698,7 @@ class SalesController extends Controller
             'invoices_list' => $invoices_list
         ])->render();
     }
+    
 
     
     public function show($code){

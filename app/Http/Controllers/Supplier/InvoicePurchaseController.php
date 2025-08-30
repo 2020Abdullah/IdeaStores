@@ -735,25 +735,27 @@ class InvoicePurchaseController extends Controller
 
     public function filterBySupplier(Request $request)
     {
-        $query = Supplier_invoice::where('supplier_id', $request->supplier_id);
-    
+        $query = Supplier_invoice::query()
+            ->where('supplier_id', $request->supplier_id); 
         if ($request->filled('searchCode')) {
-            $query->where('invoice_code',$request->searchCode);
+            $query->where('invoice_code', $request->searchCode);
         }
     
         if ($request->filled('invoice_type')) {
             $query->where('invoice_type', $request->invoice_type);
         }
-
+    
         if ($request->filled('invoice_staute')) {
-            if($request->invoice_staute === 'unpaid'){
-                $query->where('invoice_staute', 0)->orWhere('invoice_staute', 2);
-            }
-            else {
+            if ($request->invoice_staute === 'unpaid') {
+                $query->where(function ($q) {
+                    $q->where('invoice_staute', 0)
+                      ->orWhere('invoice_staute', 2);
+                });
+            } else {
                 $query->where('invoice_staute', $request->invoice_staute);
             }
         }
-        
+    
         if ($request->filled('start_date')) {
             $query->whereDate('invoice_date', '>=', $request->start_date);
         }
@@ -768,6 +770,7 @@ class InvoicePurchaseController extends Controller
             'invoices_list' => $invoices_list
         ])->render();
     }
+    
 
     public function deleteInv(Request $request)
     {

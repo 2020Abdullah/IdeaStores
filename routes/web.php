@@ -36,6 +36,18 @@ use App\Models\App;
 
 Route::get('/', [WelcomeController::class, 'index'])->name('home');
 
+Route::group(['middleware' => ['auth']], function(){
+    Route::post('getWallets', [WarehouseController::class, 'getWalletByWarhouse'])->name('getWallets');
+    Route::get('getStockProducts', [StockController::class, 'getStockProducts'])->name('getStockProducts');
+    Route::post('getStocks', [StockController::class, 'getStocks'])->name('getStocks');
+    Route::post('get-subcategories', [CategoryController::class, 'getSubcategories'])->name('getSubcategories');
+    Route::get('/get-all-hierarchical-categories', [CategoryController::class, 'getAllHierarchicalCategories'])->name('getAllHierarchicalCategories');
+    Route::post('getWalletBalance', [WalletsController::class, 'getWalletBalance'])->name('getWalletBalance');
+    Route::get('getUnits', [UnitController::class, 'getUnits'])->name('getUnits');
+    Route::post('getProducts', [ProductController::class, 'getProducts'])->name('getProducts');
+    Route::get('getSizes', [SizeController::class, 'getSizes'])->name('getSizes');
+});
+
 Route::group(['middleware' => ['auth', 'CheckAppActive']], function(){
     Route::get('dashboard', [DashboardController::class, 'index'])->name('dashboard');
     Route::get('/dashboard/sales-chart', [DashboardController::class, 'salesChart'])->name('dashboard.sales.chart');
@@ -47,7 +59,6 @@ Route::group(['middleware' => ['auth', 'CheckAppActive']], function(){
     Route::post('warehouse/sync', [WarehouseController::class, 'walltetsSync'])->name('wallets.sync');
     Route::get('warehouse/{id}/transactions/show', [WarehouseController::class, 'showTransactions'])->name('warehouse.transactions');
     Route::post('warehouse/transfer', [WarehouseController::class, 'transfer'])->name('warehouse.transfer');
-    Route::post('getWallets', [WarehouseController::class, 'getWalletByWarhouse'])->name('getWallets');
     Route::post('warehouse/transactions/filter', [WarehouseController::class, 'filter'])->name('warehouse.transactions.filter');
 
     // wallets
@@ -58,7 +69,6 @@ Route::group(['middleware' => ['auth', 'CheckAppActive']], function(){
     Route::post('warehouse/wallets/sync', [WalletsController::class, 'syncStore'])->name('wallet.sync.store');
     Route::post('wallet/balance/add', [WalletsController::class, 'addBalance'])->name('wallet.balance.store');
     Route::get('wallet/{id}/trnsactions/show', [WalletsController::class, 'transactions'])->name('wallet.transactions.show');
-    Route::post('getWalletBalance', [WalletsController::class, 'getWalletBalance'])->name('getWalletBalance');
     Route::post('wallets/transfer', [WalletsController::class, 'transfer'])->name('wallet.transfer');
     Route::post('wallet/transactions/filter', [WalletsController::class, 'filter'])->name('wallet.transactions.filter');
 
@@ -71,8 +81,6 @@ Route::group(['middleware' => ['auth', 'CheckAppActive']], function(){
     Route::get('mainStore/stocks/index', [StockController::class, 'index'])->name('stock.index');
     Route::get('mainStore/stock/{id}', [StockController::class, 'show'])->name('stock.show');
     Route::post('stock/transction/filter', [StockController::class, 'transctionFilter'])->name('transction.filter');
-    Route::get('getStockProducts', [StockController::class, 'getStockProducts'])->name('getStockProducts');
-    Route::post('getStocks', [StockController::class, 'getStocks'])->name('getStocks');
 
     // add product to stores
     Route::post('stock/store', [StoreHouseController::class, 'addProduct'])->name('addProduct');
@@ -82,15 +90,12 @@ Route::group(['middleware' => ['auth', 'CheckAppActive']], function(){
     Route::post('units/store', [UnitController::class, 'store'])->name('units.store');
     Route::post('units/update', [UnitController::class, 'update'])->name('units.update');
     Route::post('units/delete', [UnitController::class, 'delete'])->name('units.delete');
-    Route::get('getUnits', [UnitController::class, 'getUnits'])->name('getUnits');
     
     // category
     Route::get('category/list', [CategoryController::class, 'index'])->name('category.index');
     Route::post('category/store', [CategoryController::class, 'store'])->name('category.store');
     Route::post('category/update', [CategoryController::class, 'update'])->name('category.update');
     Route::post('category/delete', [CategoryController::class, 'delete'])->name('category.delete');
-    Route::post('get-subcategories', [CategoryController::class, 'getSubcategories'])->name('getSubcategories');
-    Route::get('/get-all-hierarchical-categories', [CategoryController::class, 'getAllHierarchicalCategories'])->name('getAllHierarchicalCategories');
 
     // products
     Route::get('products/index', [ProductController::class, 'index'])->name('product.index');
@@ -99,7 +104,6 @@ Route::group(['middleware' => ['auth', 'CheckAppActive']], function(){
     Route::post('product/store', [ProductController::class, 'store'])->name('product.store');
     Route::post('product/update', [ProductController::class, 'update'])->name('product.update');
     Route::post('product/delete', [ProductController::class, 'delete'])->name('product.delete');
-    Route::post('getProducts', [ProductController::class, 'getProducts'])->name('getProducts');
     Route::get('products/price/show', [ProductController::class, 'showPrice'])->name('product.Price.show');
     Route::post('product/price/update', [ProductController::class, 'updatePrice'])->name('product.Price.update');
     
@@ -144,7 +148,6 @@ Route::group(['middleware' => ['auth', 'CheckAppActive']], function(){
     Route::post('sizes/store', [SizeController::class, 'store'])->name('size.store');
     Route::post('sizes/update', [SizeController::class, 'update'])->name('size.update');
     Route::post('sizes/delete', [SizeController::class, 'delete'])->name('size.delete');
-    Route::get('getSizes', [SizeController::class, 'getSizes'])->name('getSizes');
 
     // Expenses
     Route::get('Expenses/items', [ExponseItemController::class, 'index'])->name('expenses.items');

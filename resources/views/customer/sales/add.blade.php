@@ -576,40 +576,6 @@ $(document).ready(function(){
         return isNaN(n) ? 0 : n;
     }
 
-    // عند إدخال رصيد كل محفظة هتأخد كام من الفاتورة 
-    $(document).on('input', '.balance', function () {
-        // خد إجمالي الفاتورة من أيٍّ من الحقلين المتاحين عندك
-        const totalInvoice =
-            toNumber($('.total_amount_invoice').val()) ||
-            toNumber($('.total_amount').val());
-
-        // إجمالي ما كُتب في كل المحافظ
-        let sumBalances = 0;
-        $('.balance').each(function () {
-            sumBalances += toNumber($(this).val());
-        });
-
-        // لو المجموع تعدّى الإجمالي، اضبط الحقل الحالي على الحد المسموح
-        if (sumBalances > totalInvoice) {
-            const $this = $(this);
-            const current = toNumber($this.val());
-            const others = sumBalances - current;            // مجموع باقي الحقول
-            let allowed = Math.max(totalInvoice - others, 0); // المسموح في هذا الحقل
-
-            // لو المسموح = 0 خلّيه فاضي بدل "0" لتفادي "05,000..."
-            if (allowed === 0) {
-                $this.val('');
-            } else {
-                // ثبّت على رقم صالح (اختياري: رقمين عشريين)
-                $this.val(allowed.toFixed(2).replace(/\.00$/, ''));
-            }
-
-            if (typeof toastr !== 'undefined') {
-                toastr.info('لا يمكن أن يتخطى مجموع المبالغ قيمة الفاتورة. تم ضبط هذا الحقل على الحد الأقصى المسموح.');
-            }
-        }
-    });
-
     // راقب الحقول إذا المستخدم غيّر أي حاجة
     $('form input, form select, form textarea').on('change input', function () {
         isFormChanged = true;
@@ -690,6 +656,23 @@ $(document).ready(function(){
         // لو كل شيء تمام، اعرض التأكيد
         if (confirm("هل أنت متأكد من حفظ البيانات؟")) {
             this.submit();
+        }
+    });
+
+    // راقب الحقول إذا المستخدم غيّر أي حاجة
+    $('form input, form select, form textarea').on('change input', function () {
+        isFormChanged = true;
+    });
+
+    // راقب الروابط داخل الـ sidebar أو التابات
+    $('.nav-item a').on('click', function (e) {
+        if (isFormChanged) {
+            e.preventDefault(); // منع التنقل
+
+            if (confirm("لديك تغييرات غير محفوظة، هل أنت متأكد من مغادرة الصفحة؟")) {
+                isFormChanged = false;
+                window.location.href = $(this).attr('href');
+            }
         }
     });
 

@@ -351,7 +351,7 @@ $(function () {
         let purchase_price = parseFloat(row.find('.purchase_price').val()) || 0;
         let size = parseFloat(row.find('.SizeSelect option:selected').text()) || 0;
 
-        if(symbol === 'سم'){
+        if(symbol === 'سنتيمتر'){
             pricePerMM = size * purchase_price;
         }
         else {
