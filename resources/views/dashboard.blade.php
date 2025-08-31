@@ -27,14 +27,14 @@
     <h2>إحصائيات</h2>
     <div class="row text-center">
         <div class="col-md-12">
-            <div class="card">
+            {{-- <div class="card">
                 <div class="card-header">
                     <input type="text" class="form-control datefilter" placeholder="اختر الفترة" style="width: 250px;">
                 </div>
                 <div class="card-body">
                     <canvas id="profitLossChart" width="200" height="200"></canvas>
                 </div>
-            </div>
+            </div> --}}
             <div class="card">
                 <div class="card-header d-flex justify-content-between">
                     <h5>تحليل المبيعات</h5>
@@ -259,71 +259,103 @@ $(function() {
             });
     }
 
-    let chartInstance;
 
-    // دالة تحميل البيانات
-    function loadProfitLossChart(start = null, end = null) {
-        $.ajax({
-            url: "{{ route('profit.loss.chart') }}",
-            method: "POST",
-            headers: {'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')},
-            data: { start: start, end: end },
-            success: function (data) {
-                let ctx = document.getElementById("profitLossChart").getContext("2d");
+    // let chartInstance = null;
 
-                if (chartInstance) {
-                    chartInstance.destroy(); // نحذف القديم لو موجود
-                }
+    // // دالة تحميل البيانات
+    // function loadProfitLossChart(start = null, end = null) {
+    //     $.ajax({
+    //         url: "{{ route('profit.loss.chart') }}",
+    //         method: "POST",
+    //         headers: {'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')},
+    //         data: { start: start, end: end },
+    //         success: function (response) {
+    //             // backend يرجع { summary: {...}, pie_chart: {...} }
+    //             let data = response.pie_chart ?? response; // توافقيّة إذا أرسلنا مباشرة بنية chart قديمة
+    //             let summary = response.summary ?? null;
 
-                chartInstance = new Chart(ctx, {
-                    type: "doughnut",
-                    data: data,
-                    options: {
-                        responsive: false,
-                        cutout: "65%", // تصغير الدائرة الداخلية
-                        plugins: {
-                            legend: { position: "bottom" },
-                            title: {
-                                display: true,
-                                text: "نسبة الأرباح مقابل الخسائر"
-                            },
-                            tooltip: {
-                                callbacks: {
-                                    label: function(context) {
-                                        let value = context.parsed;
-                                        let total = context.chart._metasets[context.datasetIndex].total;
-                                        let percent = ((value / total) * 100).toFixed(2);
-                                        return context.label + ': ' + value + ' (' + percent + '%)';
-                                    }
-                                }
-                            }
-                        }
-                    }
-                });
-            },
-            error: function(xhr){
-                console.log("Error:", xhr.responseText);
-            }
-        });
-    }
+    //             // تحديث ملخص النصوص إذا كانت عناصر الـ DOM موجودة (اختياري)
+    //             if (summary) {
+    //                 // تأكد أنّ هذه العناصر موجودة في HTML أو أنشئها مسبقاً
+    //                 if ($('#profitStatus').length) {
+    //                     let statusText = summary.status ? summary.status : '';
+    //                     if (summary.net_margin_percent !== null && summary.net_margin_percent !== undefined) {
+    //                         statusText += ' — هامش صافي ' + summary.net_margin_percent + '%';
+    //                     }
+    //                     $('#profitStatus').text(statusText);
+    //                 }
+    //                 if ($('#revenue').length) $('#revenue').text(summary.revenue ?? 0);
+    //                 if ($('#totalCosts').length) $('#totalCosts').text(summary.total_costs ?? 0);
+    //                 if ($('#netProfit').length) $('#netProfit').text(summary.net_profit ?? 0);
+    //                 if ($('#periodLabel').length) $('#periodLabel').text(summary.period ?? '');
+    //             }
 
-    // أول تحميل بدون تاريخ (كل الأوقات)
-    loadProfitLossChart();
+    //             let ctx = document.getElementById("profitLossChart").getContext("2d");
 
-    // تهيئة Flatpickr
-    flatpickr(".datefilter", {
-        mode: "range",
-        dateFormat: "Y-m-d",
-        onChange: function(selectedDates) {
-            if (selectedDates.length === 2) {
-                let start = selectedDates[0].toLocaleDateString('en-CA');
-                let end = selectedDates[1].toLocaleDateString('en-CA');
-                loadProfitLossChart(start, end);
-            } else {
-                loadProfitLossChart(); // رجوع للوضع الافتراضي
-            }
-        }
-    });
+    //             if (chartInstance) {
+    //                 chartInstance.destroy(); // نحذف القديم لو موجود
+    //             }
+
+    //             // إصلاح callback للـ tooltip ليتناسب مع Chart.js v3+
+    //             chartInstance = new Chart(ctx, {
+    //                 type: "doughnut",
+    //                 data: data,
+    //                 options: {
+    //                     responsive: true,
+    //                     maintainAspectRatio: false,
+    //                     cutout: "65%", // تصغير الدائرة الداخلية
+    //                     plugins: {
+    //                         legend: { position: "bottom" },
+    //                         title: {
+    //                             display: true,
+    //                             text: "نسبة الأرباح مقابل الخسائر"
+    //                         },
+    //                         tooltip: {
+    //                             callbacks: {
+    //                                 label: function(context) {
+    //                                     // قيمة القطعة
+    //                                     let value = context.parsed;
+    //                                     // مجموع كل القيم في الـ dataset الحالي
+    //                                     let dataset = context.dataset.data;
+    //                                     let total = dataset.reduce(function(sum, val) {
+    //                                         // تأكد من تحويل القيم إلى أرقام
+    //                                         return sum + (Number(val) || 0);
+    //                                     }, 0);
+    //                                     let percent = total ? ((Number(value) / total) * 100).toFixed(2) : '0.00';
+    //                                     let label = context.label || '';
+    //                                     return label + ': ' + (Number(value) || 0) + ' (' + percent + '%)';
+    //                                 }
+    //                             }
+    //                         }
+    //                     }
+    //                 }
+    //             });
+    //         },
+    //         error: function(xhr){
+    //             console.error("Error loading profit/loss chart:", xhr.responseText || xhr.statusText);
+    //         }
+    //     });
+    // }
+
+    // // أول تحميل بدون تاريخ (كل الأوقات)
+    // loadProfitLossChart();
+
+    // // تهيئة Flatpickr
+    // flatpickr(".datefilter", {
+    //     mode: "range",
+    //     dateFormat: "Y-m-d",
+    //     onChange: function(selectedDates) {
+    //         if (selectedDates.length === 2) {
+    //             // استخدم toISOString لنتيجة ثابتة بصيغة YYYY-MM-DD
+    //             let start = selectedDates[0].toISOString().slice(0,10);
+    //             let end = selectedDates[1].toISOString().slice(0,10);
+    //             loadProfitLossChart(start, end);
+    //         } else {
+    //             loadProfitLossChart(); // رجوع للوضع الافتراضي
+    //         }
+    //     }
+    // });
+
 });
 </script>
 @endsection

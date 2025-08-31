@@ -12,8 +12,10 @@ use App\Models\Project;
 use App\Models\Service;
 use App\Models\Supplier;
 use App\Models\Supplier_invoice;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 
 class DashboardController extends Controller
 {
@@ -82,32 +84,109 @@ class DashboardController extends Controller
     }
     public function profitLossChart(Request $request)
     {
-        // فلترة التواريخ إذا تم تمرير start و end
-        $query = DB::table('customer_invoices');
+        $start = $request->start ?? null;
+        $end = $request->end ?? null;
 
-        if ($request->start && $request->end) {
-            $query->whereBetween('date', [$request->start, $request->end]);
+        // مساعد تطبيق فلتر التاريخ
+        $applyDate = function($table) use ($start, $end) {
+            $q = DB::table($table);
+            return ($start && $end) ? $q->whereBetween('date', [$start, $end]) : $q;
+        };
+
+        // 1) نجمع القيم الأساسية (نتحقق من اسماء الجداول الشائعة)
+        $revenue = (float) $applyDate('customer_invoices')->sum('total_amount');
+
+        $purchases = Schema::hasTable('supplier_invoices')
+            ? (float) $applyDate('supplier_invoices')->sum('total_amount')
+            : 0.0;
+
+        $expenses = Schema::hasTable('exponses') // غيّر ل 'expenses' لو عندك الاسم الصحيح
+            ? (float) $applyDate('exponses')->sum('amount')
+            : (Schema::hasTable('expenses') ? (float) $applyDate('expenses')->sum('amount') : 0.0);
+
+        $externalDebts = Schema::hasTable('external_debts')
+            ? (float) $applyDate('external_debts')->sum('amount')
+            : 0.0;
+
+        // 2) المستحقات (receivables) — نحاول حسابها من جدول receivables أو من customer_invoices (total - paid)
+        $receivables = 0.0;
+        if (Schema::hasTable('receivables')) {
+            $receivables = (float) $applyDate('receivables')->sum('amount');
+        } else {
+            // fallback: إذا الفواتير فيها حقل paid_amount نحسب المبلغ المتبقي
+            if (Schema::hasTable('customer_invoices') && Schema::hasColumn('customer_invoices', 'paid_amount')) {
+                $receivables = (float) $applyDate('customer_invoices')->selectRaw('SUM(total_amount - COALESCE(paid_amount,0)) as due')->value('due');
+            } else {
+                $receivables = 0.0; // لا توجد معلومة كافية
+            }
         }
 
-        $totalProfit = $query->sum('total_profit'); // مجموع أرباح المبيعات
+        // 3) صافي الربح من حقل total_profit إن كان موجودًا
+        $netProfitByField = (Schema::hasColumn('customer_invoices', 'total_profit'))
+            ? (float) $applyDate('customer_invoices')->sum('total_profit')
+            : null;
 
-        $totalExpenses = DB::table('exponses')->sum('amount'); // مجموع المصروفات
-        $totalSupplierInvoices = DB::table('supplier_invoices')->sum('total_amount'); // مجموع فواتير الموردين
+        // 4) حسابات سريعة احتياطية
+        $netProfit_calc_purchases = $revenue - ($purchases + $expenses); // الربح حسب المشتريات + المصروفات
+        $netProfit_calc_externalDebts = $revenue - ($externalDebts + $expenses); // بديل إن اعتبرنا الديون كتكلفة قصيرة الأجل
 
-        $totalLoss = $totalExpenses + $totalSupplierInvoices;
+        // نختار التمثيل المستخدم للـ "صافي الربح" في الdashboard:
+        $netProfit = $netProfitByField !== null ? $netProfitByField : $netProfit_calc_purchases;
 
-        $data = [
-            'labels' => ['الأرباح', 'الخسائر'],
-            'datasets' => [
-                [
-                    'data' => [$totalProfit, $totalLoss],
-                    'backgroundColor' => ['#1cc88a', '#e74a3b'], // أخضر أرباح، أحمر خسائر
-                    'hoverBackgroundColor' => ['#17a673', '#c0392b'],
-                    'borderWidth' => 1
+        // مؤشرات
+        $totalCosts = $purchases + $expenses;
+        $netMarginPercent = $revenue > 0 ? round(($netProfit / $revenue) * 100, 2) : null;
+        $coverageRatio = $totalCosts > 0 ? round(($revenue / $totalCosts), 2) : null;
+        $liquidityProxy = round($receivables - $externalDebts, 2); // موجبة يعني مستحقات تغطي الديون الخارجية تقريبا
+
+        // رسالة موقف مبسطة
+        if ($netProfit > 0) $positionText = "كسب";
+        elseif ($netProfit < 0) $positionText = "خسارة";
+        else $positionText = "متوازن";
+
+        // بيانات للرسم:
+        $barData = [
+            'labels' => ['المبيعات','المشتريات','المصروفات','الديون الخارجية','المستحقات','صافي الربح'],
+            'datasets' => [[
+                'label' => 'قيمة (جنيه)',
+                'data' => [
+                    round($revenue,2),
+                    round($purchases,2),
+                    round($expenses,2),
+                    round($externalDebts,2),
+                    round($receivables,2),
+                    round($netProfit,2),
                 ]
-            ]
+            ]]
         ];
 
-        return response()->json($data);
+        $pieData = [
+            'labels' => ['صافي الربح','التكاليف الإجمالية'],
+            'datasets' => [[
+                'data' => [ max($netProfit,0), max($totalCosts,0) ]
+            ]]
+        ];
+
+        $summary = [
+            'period' => ($start && $end) ? "$start إلى $end" : 'حتى الآن',
+            'revenue' => round($revenue,2),
+            'purchases' => round($purchases,2),
+            'expenses' => round($expenses,2),
+            'external_debts' => round($externalDebts,2),
+            'receivables' => round($receivables,2),
+            'total_costs' => round($totalCosts,2),
+            'net_profit' => round($netProfit,2),
+            'net_profit_by_field' => $netProfitByField !== null ? round($netProfitByField,2) : null,
+            'net_margin_percent' => $netMarginPercent,
+            'coverage_ratio' => $coverageRatio,
+            'liquidity_proxy' => $liquidityProxy,
+            'position' => $positionText,
+        ];
+
+        return response()->json([
+            'summary' => $summary,
+            'bar_chart' => $barData,
+            'pie_chart' => $pieData,
+        ]);
     }
 }

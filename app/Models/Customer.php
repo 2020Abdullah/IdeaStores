@@ -37,6 +37,10 @@ class Customer extends Model
         return $this->morphMany(Stock_movement::class, 'related');
     }
 
+    public function debts(){
+        return $this->morphOne(ExternalDebts::class, 'debtable');
+    }
+
     public function getBalanceAttribute()
     {
         // مجموع كل الفواتير (total_amount_invoice)

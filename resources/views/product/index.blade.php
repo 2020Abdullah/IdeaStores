@@ -38,8 +38,8 @@
             <a href="{{ route('product.add') }}" class="btn btn-success waves-effect waves-float waves-light">
                 إضافة منتج جديد 
             </a>
-            <a href="{{ route('export.products') }}" class="btn btn-success">⬇ تحميل المنتجات</a>
-            <button type="button" class="btn btn-success waves-effect waves-float waves-light" data-bs-toggle="modal" data-bs-target="#importData">
+            <a href="{{ route('export.products') }}" class="btn btn-primary">⬇ تحميل المنتجات</a>
+            <button type="button" class="btn btn-info waves-effect waves-float waves-light" data-bs-toggle="modal" data-bs-target="#importData">
                 استيراد البيانات 
             </button>
         </div>

@@ -8,6 +8,7 @@ use App\Models\App;
 use App\Models\Customer;
 use App\Models\CustomerInvoices;
 use App\Models\ExponseItem;
+use App\Models\ExternalDebts;
 use App\Models\paymentTransaction;
 use App\Models\Stock;
 use App\Models\Stock_movement;
@@ -498,12 +499,12 @@ class SalesController extends Controller
     {
         $customer = Customer::findOrFail($request->customer_id);
     
-        // مجموع المدفوعات (نخليها موجبة = مستحقات لنا)
+        // مجموع المدفوعات (موجب = مستحقات لنا)
         $available = $this->normalizeNumber(
             $customer->paymentTransactions()->sum('amount')
         );
     
-        // جلب كل الفواتير الآجلة + الرصيد الافتتاحي (استبعاد الكاش فقط)
+        // جلب الفواتير الآجلة فقط (استبعاد الكاش)
         $invoices = CustomerInvoices::where('customer_id', $request->customer_id)
             ->where('type', '!=', 'cash')
             ->orderBy('date', 'asc')
@@ -511,14 +512,10 @@ class SalesController extends Controller
     
         // إعادة التوزيع من الصفر
         foreach ($invoices as $invoice) {
-            $invoice->update([
-                'paid_amount'   => 0,
-                'staute'        =>  0, // 0 = غير مدفوعة
-            ]);
             $invoice->dues()->delete();
         }
     
-        // توزيع المبلغ على الفواتير
+        // توزيع المدفوعات على الفواتير
         foreach ($invoices as $invoice) {
             $invoiceAmount = $this->normalizeNumber($invoice->total_amount);
     
@@ -529,10 +526,10 @@ class SalesController extends Controller
                     'customer_invoice_id' => $invoice->id,
                     'description' => 'مستحقات لنا',
                     'amount'      => $invoiceAmount,
-                    'paid_amount'   => 0,
-                    'due_date'        => $invoice->date,
-                    'status'        => 0,
-                    'user_id' => $this->user_id,
+                    'paid_amount' => 0,
+                    'due_date'    => $invoice->date,
+                    'status'      => 0,
+                    'user_id'     => $this->user_id,
                 ]);
                 continue;
             }
@@ -544,7 +541,7 @@ class SalesController extends Controller
                     'staute'      => 1, // مدفوعة
                 ]);
                 $invoice->dues()->delete();
-                $available -= $invoiceAmount; // خصم من الرصيد المدفوع
+                $available -= $invoiceAmount;
                 continue;
             }
     
@@ -557,18 +554,46 @@ class SalesController extends Controller
                     'staute'      => 2, // مدفوعة جزئياً
                 ]);
     
-                $invoice->dues()->update([
-                    'amount'      => $invoiceAmount,
-                    'paid_amount' => $paidNow,
-                    'status'     => 2,
-                    'due_date'        => $invoice->date,
-                ]);
+                $invoice->dues()->updateOrCreate(
+                    ['customer_invoice_id' => $invoice->id],
+                    [
+                        'customer_id' => $request->customer_id,
+                        'description' => 'مستحقات لنا',
+                        'amount'      => $invoiceAmount,
+                        'paid_amount' => $paidNow,
+                        'due_date'    => $invoice->date,
+                        'status'      => 2,
+                        'user_id'     => $this->user_id,
+                    ]
+                );
     
-                $available = 0; // خلص الرصيد المدفوع
+                $available = 0;
                 continue;
             }
         }
+    
+        // ✅ إدارة الدين الخارجي
+        if ($available > 0) {
+            // لو فيه دين خارجي قديم → نحدثه
+            $customer->debts()->updateOrCreate(
+                ['debtable_id' => $customer->id, 'debtable_type' => Customer::class],
+                [
+                    'description'   => 'مستحقات زائدة للعميل',
+                    'amount'        => $available,
+                    'paid'          => 0,
+                    'remaining'     => $available,
+                    'is_paid'       => 0,
+                    'date'          => now(),
+                    'user_id'       => $this->user_id,
+                ]
+            );
+        } else {
+            // لو مفيش مدفوعات زائدة → احذف أي دين خارجي قديم
+            $customer->debts()->delete();
+        }
     }
+    
+    
 
     protected function ProfitDistribution($invoice)
     {

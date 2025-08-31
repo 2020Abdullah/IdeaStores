@@ -18,4 +18,5 @@ class CustomerDue extends Model
     public function invoice(){
         return $this->belongsTo(CustomerInvoices::class , 'customer_invoice_id');
     }
+
 }

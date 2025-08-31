@@ -139,24 +139,18 @@
                                                 <input type="text" class="form-control width" value="{{ $item->size->width }}" readonly />
                                             </td>
                                             <td>
-                                                @if ($item->unit_name === 'متر')
-                                                    <input type="text" name="items[{{$index}}][remaining_quantity]" 
-                                                    class="form-control remaining_quantity" 
-                                                    value="{{ $item->stock->movements->where('type', 'in')->sum('quantity') / 100 }}" readonly /> 
-                                                @else
-                                                    <input type="text" name="items[{{$index}}][remaining_quantity]" 
-                                                    class="form-control remaining_quantity" 
-                                                    value="{{ $item->stock->movements->where('type', 'in')->sum('quantity') }}" readonly />
-                                                @endif
+                                                <input type="text" name="items[{{$index}}][remaining_quantity]" 
+                                                class="form-control remaining_quantity" 
+                                                value="{{ $item->quantity }}" readonly />
                                             </td>
                                             <td>
                                                 <input type="text" name="items[{{$index}}][unit_name]" class="form-control unit" value="{{ $item->unit_name }}" readonly />
                                             </td>
                                             <td>
-                                                <input type="text" name="items[{{$index}}][price_unit_cost]"  class="form-control price_unit_cost" value="{{ number_format($item->stock->cost->cost_share / $item->stock->initial_quantity, 2) }}" readonly />
+                                                <input type="text" name="items[{{$index}}][price_unit_cost]"  class="form-control price_unit_cost" value="{{ number_format($item->stock->cost->cost_share / $item->stock->movements->where('type', 'in')->sum('quantity')) }}" readonly />
                                             </td>
                                             <td>
-                                                <input type="text" name="items[{{$index}}][quantity]"  class="form-control quantity" value="{{ $item->unit_name === 'متر' ? $item->quantity / 100 : $item->quantity}}" />
+                                                <input type="text" name="items[{{$index}}][quantity]"  class="form-control quantity" value="{{ $item->quantity }}" />
                                             </td>
                                             <td>
                                                 <input type="text" name="items[{{$index}}][sale_price]"  class="form-control sale_price" value="{{ number_format($item->sale_price) }}"  />

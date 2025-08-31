@@ -30,4 +30,9 @@ class CustomerInvoices extends Model
     public function costs(){
         return $this->morphMany(Exponse::class, 'expenseable');
     }
+    
+    public function debts(){
+        return $this->morphOne(ExternalDebts::class, 'debtable');
+    }
+
 }

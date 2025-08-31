@@ -27,7 +27,7 @@
             <div class="col">
                 <div class="card-balance">
                     <h3>المستحقات</h3>
-                    <h4>{{ number_format($dues->sum('amount')) }} EGP</h4>
+                    <h4>{{ number_format($dues->sum('amount') - $dues->sum('paid_amount')) }} EGP</h4>
                 </div>
             </div>
         </div>
