@@ -19,8 +19,23 @@ use Mpdf\Mpdf;
 
 class SupplierController extends Controller
 {
+    protected $user_id;
+
+    public function __construct()
+    {
+        $this->middleware(function ($request, $next) {
+            if (auth()->check()) {
+                $this->user_id = auth()->user()->id; 
+            } else {
+                $this->user_id = null;
+                auth()->logout();
+            }
+            return $next($request);
+        });
+    }
+
     public function index(){
-        $suppliers_list = Supplier::all();
+        $suppliers_list = Supplier::where('user_id', $this->user_id)->get();
         return view('suppliers.index', compact('suppliers_list'));
     }
 
@@ -43,6 +58,7 @@ class SupplierController extends Controller
             $Supplier->whatsUp = $request->whatsUp;
             $Supplier->place = $request->place;
             $Supplier->notes = $request->notes;
+            $Supplier->user_id = $this->user_id;
             $Supplier->save();
         }
         catch(Exception $e){
@@ -113,13 +129,6 @@ class SupplierController extends Controller
         $data['warehouse_list'] = Warehouse::all();
         $data['supplier'] = Supplier::findOrFail($id);
         $data['payments'] = $data['supplier']->paymentTransactions()->paginate(100);
-        $page = request('page', 1);
-        $cacheKey = "customer_{$id}_invoices_page_{$page}";
-        $data['invoices_list'] = Cache::remember($cacheKey, 30, function () use ($id) {
-            return Supplier_invoice::where('supplier_id', $id)
-                ->orderBy('invoice_date', 'desc')
-                ->paginate(100);
-        });
         $data['invoices_list'] = Supplier_invoice::where('supplier_id', $id)
         ->orderBy('invoice_date', 'desc')
         ->paginate(100);

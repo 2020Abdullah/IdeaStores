@@ -39,7 +39,6 @@ class BackupController extends Controller
         }
     }
 
-    // استعادة نسخة احتياطية
     public function restoreBackupFlexible(Request $request)
     {
         $request->validate([
@@ -50,40 +49,22 @@ class BackupController extends Controller
             $file = $request->file('backup_file');
             $sqlContent = file_get_contents($file->getRealPath());
     
-            // تقسيم أوامر SQL حسب الفاصلة المنقوطة
+            // تقسيم الأوامر حسب الفاصلة المنقوطة
             $statements = array_filter(array_map('trim', explode(";", $sqlContent)));
     
-            // المرحلة 1: إنشاء الجداول وإضافة الأعمدة الجديدة
             foreach ($statements as $stmt) {
                 if (stripos($stmt, 'CREATE TABLE') === 0) {
+                    // استخراج اسم الجدول
                     preg_match('/CREATE TABLE `?(\w+)`?/i', $stmt, $matches);
                     $tableName = $matches[1] ?? null;
     
-                    if ($tableName) {
-                        if (Schema::hasTable($tableName)) {
-                            // الجدول موجود → إضافة الأعمدة الجديدة فقط
-                            preg_match_all('/^\s*`([^`]+)`\s+([^,]+)/m', $stmt, $matches, PREG_SET_ORDER);
-                            foreach ($matches as $match) {
-                                $col = $match[1];
-                                $colType = trim($match[2]);
-    
-                                if (!Schema::hasColumn($tableName, $col)) {
-                                    if (preg_match('/^([a-z]+(\(\d+(,\d+)?\))?)/i', $colType, $typeMatch)) {
-                                        $cleanType = $typeMatch[1];
-                                        DB::statement("ALTER TABLE `$tableName` ADD `$col` $cleanType");
-                                    }
-                                }
-                            }
-                        } else {
-                            // الجدول غير موجود → إنشاء كامل
-                            DB::statement($stmt);
-                        }
+                    if ($tableName && !Schema::hasTable($tableName)) {
+                        // إنشاء الجدول إذا لم يكن موجوداً
+                        DB::statement($stmt);
                     }
                 }
-            }
     
-            // المرحلة 2: استيراد البيانات بشكل مرن
-            foreach ($statements as $stmt) {
+                // التعامل مع INSERT
                 if (stripos($stmt, 'INSERT INTO') === 0) {
                     preg_match('/INSERT INTO `?(\w+)`?/i', $stmt, $matches);
                     $tableName = $matches[1] ?? null;
@@ -93,7 +74,7 @@ class BackupController extends Controller
                         $columns = Schema::getColumnListing($tableName);
                         $columnsList = implode(',', array_map(fn($c) => "`$c`", $columns));
     
-                        // تعديل INSERT ليشمل فقط الأعمدة الموجودة
+                        // تعديل INSERT ليشمل فقط الأعمدة الموجودة ويتجاهل التكرار
                         $stmt = preg_replace('/INSERT INTO `?\w+`?/i', "INSERT IGNORE INTO `$tableName` ($columnsList)", $stmt);
     
                         DB::statement($stmt);
@@ -104,12 +85,8 @@ class BackupController extends Controller
             return back()->with('success', 'تمت الاستعادة بنجاح.');
     
         } catch (\Exception $e) {
-            return back()->with('error', $e->getMessage());
+            return back()->with('error', 'حدث خطأ أثناء الاستعادة: ' . $e->getMessage());
         }
     }
     
-    
-    
-    
-
 }

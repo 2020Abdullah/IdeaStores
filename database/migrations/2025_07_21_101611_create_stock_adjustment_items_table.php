@@ -19,6 +19,7 @@ return new class extends Migration
             $table->integer('actual_qty')->comment('القيمة الفعلية'); // الكمية الفعلية (من الجرد اليدوي)
             $table->integer('difference')->comment('قيمة الجرد'); // actual - system
             $table->date('date')->nullable()->comment('تاريخ الإضافة');
+            $table->foreignId('user_id')->constrained('users')->cascadeOnDelete()->cascadeOnUpdate();
             $table->timestamps();
         });
     }

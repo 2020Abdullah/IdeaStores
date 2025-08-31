@@ -8,7 +8,6 @@ use App\Models\App;
 use App\Models\Customer;
 use App\Models\CustomerInvoices;
 use App\Models\ExponseItem;
-use App\Models\InvoiceProductCost;
 use App\Models\paymentTransaction;
 use App\Models\Stock;
 use App\Models\Stock_movement;
@@ -16,15 +15,29 @@ use App\Models\Wallet;
 use App\Models\Warehouse;
 use Exception;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Mpdf\Mpdf;
-use Psy\TabCompletion\Matcher\FunctionDefaultParametersMatcher;
 
 class SalesController extends Controller
 {
+    protected $user_id;
+
+    public function __construct()
+    {
+        $this->middleware(function ($request, $next) {
+            if (auth()->check()) {
+                $this->user_id = auth()->user()->id; 
+            } else {
+                $this->user_id = null;
+                auth()->logout();
+            }
+            return $next($request);
+        });
+    }
+
     public function index(){
         $data['invoices_list'] = CustomerInvoices::orderBy('date', 'desc')
+        ->where('user_id', $this->user_id)
         ->paginate(100);
         return view('customer.sales.index', $data);
     }
@@ -34,9 +47,9 @@ class SalesController extends Controller
             $data['customer'] = Customer::findOrFail($id);
         }
         else {
-            $data['customer_list'] = Customer::all();
+            $data['customer_list'] = Customer::where('user_id', $this->user_id)->get();
         }
-        $data['stock_category'] = Stock::with('category')->get();
+        $data['stock_category'] = Stock::where('user_id', $this->user_id)->with('category')->get();
         $data['exponse_list'] = ExponseItem::all();
         $data['wallets'] = Wallet::all();
         return view('customer.sales.add', $data);
@@ -49,7 +62,7 @@ class SalesController extends Controller
         $data['exponse_list'] = ExponseItem::all();
         // جلب الكمية المتاحة لكل منتج من جدول الحركات
         foreach ($data['invoice']->items as $item) {
-            $item->stock = Stock::where('category_id', $item->category_id)->where('product_id', $item->product_id)->first();
+            $item->stock = Stock::where('user_id', $this->user_id)->where('category_id', $item->category_id)->where('product_id', $item->product_id)->first();
         }
         return view('customer.sales.edit', $data);
     }
@@ -241,6 +254,7 @@ class SalesController extends Controller
                     'note'            => $cost['note'] ?? 'تكاليف إضافية علي فاتورة بيع',
                     'date'            => $invoice->date,
                     'source_code'     => $invoice->code,
+                    'user_id'     => $this->user_id,
                 ]);
             }
 
@@ -261,6 +275,7 @@ class SalesController extends Controller
                     'description'      => $request->notes ?? 'مصروفات فواتير مبيعات',
                     'source_code'      => $invoice->code,
                     'date'             => $invoice->date,
+                    'user_id'     => $this->user_id,
                 ]);
             }
 
@@ -304,6 +319,7 @@ class SalesController extends Controller
                 'total_amount' => $total_amount_invoice,
                 'paid_amount' => 0,
                 'notes' => $request->notes,
+                'user_id' => $this->user_id,
             ]);
               
             // تحديث الفواتير أولاً بأول وإعادة حساب رصيد المورد    
@@ -334,6 +350,7 @@ class SalesController extends Controller
                 'paid_amount' => 0,
                 'staute' => 0, 
                 'notes' => $request->notes,
+                'user_id' => $this->user_id,
             ]);
 
             // 2. إعادة حساب الأرصدة وضبطها 
@@ -375,6 +392,7 @@ class SalesController extends Controller
                 'paid_amount' => $total_amount_invoice,
                 'staute' => 1, 
                 'notes' => $request->notes,
+                'user_id' => $this->user_id,
             ]);
 
             // 2. ضبط المخزن وخصم البضاعة وتسجيل عناصر الفاتورة
@@ -414,7 +432,8 @@ class SalesController extends Controller
                             'related_id'       => $request->customer_id,
                             'description'      => $request->notes ?? 'تحصيل فاتورة مبيعات كاش',
                             'source_code'      => $invoice->code,
-                            'date'             => $invoice->invoice_date
+                            'date'             => $invoice->invoice_date,
+                            'user_id'             => $this->user_id,
                         ]);
                     }
                 }
@@ -456,6 +475,7 @@ class SalesController extends Controller
                     'note' => 'بيع',
                     'source_code' => $invoice->code,
                     'date' => $request->invoice_date,
+                    'user_id' => $this->user_id,
                 ]);
    
                 // 2. تسجيل عناصر الفاتورة 
@@ -512,6 +532,7 @@ class SalesController extends Controller
                     'paid_amount'   => 0,
                     'due_date'        => $invoice->date,
                     'status'        => 0,
+                    'user_id' => $this->user_id,
                 ]);
                 continue;
             }
@@ -553,41 +574,47 @@ class SalesController extends Controller
     {
         // لو مفيش ربح أصلاً
         if (!$invoice->total_profit || $invoice->total_profit <= 0) {
-            // احذف أي توزيعات قديمة خاصة بالربح
-            $profitItems = ExponseItem::where('is_profit', 1)->pluck('id');
-            $invoice->costs()->whereIn('expense_item_id', $profitItems)->delete();
+            $profitItemIds = ExponseItem::where('is_profit', 1)
+                ->pluck('id')
+                ->toArray();
+            $invoice->costs()->whereIn('expense_item_id', $profitItemIds)
+                ->where('user_id', $this->user_id)
+                ->delete();
             return;
         }
     
-        // اجمع التكاليف (اللي مش من بنود الربح)
+        // جلب كل بنود الربح
+        $profitItems = ExponseItem::where('is_profit', 1)->get();
+        if ($profitItems->isEmpty()) return;
+    
+        $profitItemIds = $profitItems->pluck('id')->toArray();
+    
+        // حساب صافي الربح بعد خصم التكاليف غير الربحية المرتبطة بالمستخدم الحالي
         $totalCosts = $invoice->costs()
-            ->whereNotIn('expense_item_id', ExponseItem::where('is_profit', 1)->pluck('id'))
+            ->where('user_id', $this->user_id)
+            ->whereNotIn('expense_item_id', $profitItemIds)
             ->sum('amount');
     
-        // صافي الربح بعد خصم التكاليف
         $netProfit = $invoice->total_profit - $totalCosts;
     
         if ($netProfit <= 0) {
-            // لو مفيش حاجة تتوزع → امسح التوزيعات
-            $profitItems = ExponseItem::where('is_profit', 1)->pluck('id');
-            $invoice->costs()->whereIn('expense_item_id', $profitItems)->delete();
+            $invoice->costs()
+                ->whereIn('expense_item_id', $profitItemIds)
+                ->where('user_id', $this->user_id)
+                ->delete();
             return;
         }
     
-        // جلب البنود اللي ليها نصيب من الربح
-        $profitItems = ExponseItem::where('is_profit', 1)->get();
+        // حذف التوزيع القديم المرتبط بالمستخدم الحالي
+        $invoice->costs()
+            ->whereIn('expense_item_id', $profitItemIds)
+            ->where('user_id', $this->user_id)
+            ->delete();
     
-        if ($profitItems->isEmpty()) {
-            return;
-        }
-    
-        // نصيب كل بند
+        // تحديد نصيب كل بند
         $shareAmount = $netProfit / $profitItems->count();
     
-        // امسح التوزيع القديم
-        $invoice->costs()->whereIn('expense_item_id', $profitItems->pluck('id'))->delete();
-    
-        // أعد إنشاء التوزيع
+        // إعادة إنشاء التوزيع
         foreach ($profitItems as $item) {
             $invoice->costs()->create([
                 'expense_item_id' => $item->id,
@@ -595,9 +622,11 @@ class SalesController extends Controller
                 'note'            => 'توزيع ربحية الفاتورة',
                 'date'            => $invoice->date,
                 'source_code'     => $invoice->code,
+                'user_id'         => $this->user_id,
             ]);
         }
-    }    
+    }
+    
 
     public function payment(Request $request){
         $warehouse = Warehouse::where('id', $request->warehouse_id)->first();
@@ -611,7 +640,8 @@ class SalesController extends Controller
             'transaction_type' => 'payment',
             'related_type' => Customer::class,  
             'related_id' => $request->customer_id,
-            'description' => $request->description ?? 'دفع مقدمة من العميل'
+            'description' => $request->description ?? 'دفع مقدمة من العميل',
+            'user_id' => $this->user_id,
         ]);
         
         // تسجيل دفعة للعميل
@@ -622,7 +652,8 @@ class SalesController extends Controller
             'amount' => $amount,
             'payment_date' => now()->toDateString(),
             'wallet_id' => $request->wallet_id,
-            'description' => $request->description ?? 'دفعة مقدمة'
+            'description' => $request->description ?? 'دفعة مقدمة',
+            'user_id' => $this->user_id,
         ]);
 
         $this->updateInvoiceState($request);
@@ -631,7 +662,7 @@ class SalesController extends Controller
     }  
 
     public function filter(Request $request){
-        $query = CustomerInvoices::query();
+        $query = CustomerInvoices::query()->where('user_id', $this->user_id);
 
         if ($request->filled('searchText')) {
             $searchText = $request->searchText;
@@ -659,7 +690,7 @@ class SalesController extends Controller
     public function filterByCustomer(Request $request)
     {
         $query = CustomerInvoices::query()
-            ->where('customer_id', $request->customer_id); // شرط العميل ثابت
+            ->where('customer_id', $request->customer_id)->where('user_id', $this->user_id); // شرط العميل ثابت
     
         if ($request->filled('searchCode')) {
             $query->where('code', $request->searchCode);
@@ -695,8 +726,6 @@ class SalesController extends Controller
         ])->render();
     }
     
-
-    
     public function show($code){
         $invoice = CustomerInvoices::where('code', $code)->first();
         $nonProfitCosts = $invoice->costs()
@@ -711,7 +740,7 @@ class SalesController extends Controller
         DB::beginTransaction();
         try {
             $invoice = CustomerInvoices::findOrFail($request->id);
-            $customer = Customer::findOrFail($request->customer_id);
+            $customer = Customer::where('user_id', $this->user_id)->findOrFail($request->customer_id);
     
             if ($invoice->dues()->exists()) {
                 // فاتورة آجل: حذف المستحقات فقط
@@ -749,7 +778,7 @@ class SalesController extends Controller
     }
 
     public function returnedInvoices(){
-        $invoices_list = CustomerInvoices::onlyTrashed()->orderBy('deleted_at', 'desc')->paginate(100);
+        $invoices_list = CustomerInvoices::onlyTrashed()->where('user_id', $this->user_id)->orderBy('deleted_at', 'desc')->paginate(100);
         return view('customer.sales.returned', compact('invoices_list'));
     }
 

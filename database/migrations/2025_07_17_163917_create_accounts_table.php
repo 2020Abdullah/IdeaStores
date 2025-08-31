@@ -16,8 +16,6 @@ return new class extends Migration
             $table->string('name');
             $table->nullableMorphs('accountable');
             $table->enum('type', ['warehouse', 'wallet' ,'supplier', 'customer']);
-            $table->tinyInteger('is_main')->default(0);
-            $table->decimal('current_balance', 15,2)->default(0);
             $table->softDeletes();
             $table->timestamps();
         });

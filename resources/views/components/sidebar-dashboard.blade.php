@@ -175,12 +175,12 @@
                     <span class="menu-title text-truncate">إدارة المخزن</span>
                 </a>
                 <ul class="menu-content">
-                    <li>
+                    {{-- <li>
                         <a class="d-flex align-items-center" href="{{ route('storesHouse.add') }}">
                             <i data-feather='circle'></i>
                             <span class="menu-item text-truncate">إضافة مخزن</span>
                         </a>
-                    </li>
+                    </li> --}}
                     <li>
                         <a class="d-flex align-items-center" href="{{ route('stock.index') }}">
                             <i data-feather='circle'></i>

@@ -14,8 +14,7 @@ return new class extends Migration
         Schema::create('exponse_items', function (Blueprint $table) {
             $table->id();
             $table->string('name');
-            $table->boolean('affect_debt')->comment('هل يؤثر علي المديونة ؟');
-            $table->boolean('affect_wallet')->comment('هل يؤثر علي الخزنة');
+            $table->boolean('is_profit')->comment('هل يؤثر علي الربحية');
             $table->softDeletes();
             $table->timestamps();
         });

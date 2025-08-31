@@ -31,18 +31,10 @@ class WarehouseController extends Controller
             $warehouse->save();
 
             // create account warehouse
-            if($request->is_main == 1){
-                $warehouse->account()->create([
-                    'name' => 'حساب خزنة رئيسية',
-                    'type' => 'warehouse',
-                ]);
-            }
-            else {
-                $warehouse->account()->create([
-                    'name' => 'حساب ' . $request->name,
-                    'type' => 'warehouse',
-                ]);
-            }
+            $warehouse->account()->create([
+                'name' => 'حساب ' . $request->name,
+                'type' => 'warehouse',
+            ]);
         }
         catch(Exception $e){
             return $e->getMessage();

@@ -17,6 +17,7 @@ return new class extends Migration
             $table->string('phone');
             $table->string('address')->nullable();
             $table->tinyInteger('statue')->default(1);
+            $table->softDeletes();
             $table->timestamps();
         });
     }

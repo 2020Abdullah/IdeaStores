@@ -13,15 +13,29 @@ use App\Models\Warehouse;
 use Carbon\Carbon;
 use Exception;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Maatwebsite\Excel\Facades\Excel;
 use Mpdf\Mpdf;
 
 class CustomerController extends Controller
 {
+    protected $user_id;
+
+    public function __construct()
+    {
+        $this->middleware(function ($request, $next) {
+            if (auth()->check()) {
+                $this->user_id = auth()->user()->id; 
+            } else {
+                $this->user_id = null;
+                auth()->logout();
+            }
+            return $next($request);
+        });
+    }
+
     public function index(){
-        $customer_list = Customer::all();
+        $customer_list = Customer::where('user_id', $this->user_id)->get();
         return view('customer.index', compact('customer_list'));
     }
 
@@ -30,7 +44,7 @@ class CustomerController extends Controller
     }
 
     public function edit($id){
-        $customer = Customer::findOrFail($id);
+        $customer = Customer::where('id', $id)->where('user_id', $this->user_id)->firstOrFail();
         return view('customer.edit', compact('customer'));
     }
 
@@ -45,10 +59,11 @@ class CustomerController extends Controller
             $customer->whatsUp = $request->whatsUp;
             $customer->place = $request->place;
             $customer->notes = $request->notes;
+            $customer->user_id = $this->user_id;
             $customer->save();
 
             $customer->account()->create([
-                'name'     => 'حساب العميل: ' . $customer->name,
+                'name' => 'حساب العميل: ' . $customer->name,
                 'type' => 'customer',
             ]);
             DB::commit();
@@ -63,7 +78,10 @@ class CustomerController extends Controller
     public function update(CustomerRequest $request){
         DB::beginTransaction();
         try {
-            $customer = Customer::findOrFail($request->id);
+            $customer = Customer::where('id', $request->id)
+                                ->where('user_id', $this->user_id)
+                                ->firstOrFail();
+
             $customer->name = $request->name;
             $customer->phone = $request->phone;
             $customer->busniess_name = $request->busniess_name;
@@ -74,7 +92,7 @@ class CustomerController extends Controller
             $customer->save();
 
             $customer->account()->update([
-                'name'     => 'حساب العميل: ' . $customer->name,
+                'name' => 'حساب العميل: ' . $customer->name,
             ]);
             DB::commit();
         }
@@ -87,30 +105,41 @@ class CustomerController extends Controller
 
     public function showAccount($id){
         $data['warehouse_list'] = Warehouse::all();
-        $data['customer'] = Customer::findOrFail($id);
+        $data['customer'] = Customer::where('id', $id)
+                                    ->where('user_id', $this->user_id)
+                                    ->firstOrFail();
         $data['payments'] = $data['customer']->paymentTransactions()->paginate(100);
         $data['invoices_list'] = CustomerInvoices::where('customer_id', $id)
-        ->orderBy('date', 'desc')
-        ->paginate(100);
+                                                ->where('user_id', $this->user_id)
+                                                ->orderBy('date', 'desc')
+                                                ->paginate(100);
         return view('customer.Account', $data);
     }
 
     public function exportAccount(Request $request){
         $app = App::latest()->first();
-        $customer = Customer::where('id', $request->customer_id)->first();
-        $invoices = CustomerInvoices::where('customer_id', $request->customer_id)->latest()->get();
-        
-        // جلب أول وآخر تاريخ فاتورة وتحويلها لكائنات Carbon
-        $firstInvoice = CustomerInvoices::where('customer_id', $request->customer_id)->first();
-        $lastInvoice = CustomerInvoices::where('customer_id', $request->customer_id)->latest()->first();
-    
-        // تحويل التواريخ إلى تنسيق عربي جميل مثلاً d/m/Y
+        $customer = Customer::where('id', $request->customer_id)
+                            ->where('user_id', $this->user_id)
+                            ->firstOrFail();
+
+        $invoices = CustomerInvoices::where('customer_id', $request->customer_id)
+                                    ->where('user_id', $this->user_id)
+                                    ->latest()
+                                    ->get();
+
+        $firstInvoice = CustomerInvoices::where('customer_id', $request->customer_id)
+                                        ->where('user_id', $this->user_id)
+                                        ->first();
+        $lastInvoice = CustomerInvoices::where('customer_id', $request->customer_id)
+                                       ->where('user_id', $this->user_id)
+                                       ->latest()
+                                       ->first();
+
         $first_inv_date = $firstInvoice ? Carbon::parse($firstInvoice->invoice_date)->format('d-m-Y') : '-';
         $last_inv_date = $lastInvoice ? Carbon::parse($lastInvoice->invoice_date)->format('d-m-Y') : '-';
-    
+
         $html = view('customer.show_account_pdf', compact('customer', 'first_inv_date', 'app', 'last_inv_date', 'invoices'))->render();
 
-        // إعداد mPDF بدعم RTL واللغة العربية
         $mpdf = new Mpdf([
             'mode' => 'utf-8',
             'format' => 'A4',
@@ -123,6 +152,7 @@ class CustomerController extends Controller
         return response($mpdf->Output('account.pdf', 'I'), 200)
             ->header('Content-Type', 'application/pdf');
     }
+
     public function downloadTemplate(){
         return Excel::download(new CustomerTemplateExport, 'نموذج_العملاء.xlsx');
     }

@@ -16,8 +16,8 @@ return new class extends Migration
             $table->enum('type', ['surplus', 'shortage'])->comment('عجز أم فائض'); // فائض أو عجز
             $table->timestamp('adjusted_at');
             $table->text('note')->nullable();
-            $table->foreignId('user_id')->constrained()->cascadeOnDelete();
             $table->date('date')->nullable()->comment('تاريخ الإضافة');
+            $table->foreignId('user_id')->constrained('users')->cascadeOnDelete()->cascadeOnUpdate();
             $table->timestamps();
         });
     }

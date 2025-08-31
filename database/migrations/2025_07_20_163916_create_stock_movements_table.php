@@ -20,6 +20,7 @@ return new class extends Migration
             $table->text('note')->nullable()->comment('شراء / بيع'); 
             $table->string('source_code')->nullable()->comment('كود الفاتورة'); 
             $table->date('date')->nullable()->comment('تاريخ الإضافة بتاريخ الفاتورة');
+            $table->foreignId('user_id')->constrained('users')->cascadeOnDelete()->cascadeOnUpdate();
             $table->timestamps();
         });
     }

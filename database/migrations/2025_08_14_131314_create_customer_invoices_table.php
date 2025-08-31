@@ -25,6 +25,7 @@ return new class extends Migration
             $table->text('notes')->nullable();
             $table->foreignId('warehouse_id')->nullable()->constrained('warehouses')->onDelete('SET NULL')->cascadeOnUpdate();
             $table->foreignId('wallet_id')->nullable()->constrained('wallets')->onDelete('SET NULL')->cascadeOnUpdate();
+            $table->foreignId('user_id')->constrained('users')->cascadeOnDelete()->cascadeOnUpdate();
             $table->softDeletes();
             $table->timestamps();
         });

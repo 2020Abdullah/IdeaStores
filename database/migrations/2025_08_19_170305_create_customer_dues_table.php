@@ -20,6 +20,7 @@ return new class extends Migration
             $table->decimal('paid_amount', 15, 2)->default(0); // ما تم دفعه
             $table->date('due_date')->nullable(); // تاريخ الاستحقاق
             $table->tinyInteger('status')->default(0);
+            $table->foreignId('user_id')->constrained('users')->cascadeOnDelete()->cascadeOnUpdate();
             $table->timestamps();
         });
     }

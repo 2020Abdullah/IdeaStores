@@ -48,6 +48,7 @@ return new class extends Migration
             
             // تاريخ الحركة (ممكن يختلف عن تاريخ الإدخال)
             $table->date('date')->nullable()->comment('تاريخ العملية الحقيقي'); 
+            $table->foreignId('user_id')->constrained('users')->cascadeOnDelete()->cascadeOnUpdate();
             $table->timestamps();
         });
     }

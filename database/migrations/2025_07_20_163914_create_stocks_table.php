@@ -15,12 +15,11 @@ return new class extends Migration
             $table->id();
             $table->foreignId('category_id')->constrained('categories')->onDelete('cascade')->onUpdate('cascade');
             $table->foreignId('product_id')->constrained()->onDelete('cascade');
+            $table->foreignId('size_id')->nullable()->constrained('sizes')->nullOnDelete();
             $table->foreignId('store_house_id')->constrained()->onDelete('cascade');
             $table->foreignId('unit_id')->nullable()->constrained('units')->nullOnDelete();
-            $table->foreignId('size_id')->nullable()->constrained('sizes')->nullOnDelete();
-            $table->integer('initial_quantity')->default(0)->comment('الكمية الواردة');       
-            $table->integer('remaining_quantity')->default(0)->comment('الكمية المتبقية');      
             $table->date('date')->nullable()->comment('تاريخ الإضافة بتاريخ الفاتورة');
+            $table->foreignId('user_id')->constrained('users')->cascadeOnDelete()->cascadeOnUpdate();
             $table->timestamps();
         });
     }

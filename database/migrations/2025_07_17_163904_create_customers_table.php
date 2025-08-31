@@ -20,6 +20,8 @@ return new class extends Migration
             $table->string('whatsUp')->nullable();
             $table->string('place')->nullable();
             $table->text('notes')->nullable();
+            $table->foreignId('user_id')->constrained('users')->cascadeOnDelete()->cascadeOnUpdate();
+            $table->softDeletes();
             $table->timestamps();
         });
     }

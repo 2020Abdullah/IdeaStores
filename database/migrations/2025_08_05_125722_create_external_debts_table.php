@@ -20,6 +20,7 @@ return new class extends Migration
             $table->decimal('remaining', 15, 2);
             $table->boolean('is_paid')->default(0);
             $table->date('date')->nullable()->comment('تاريخ الإضافة بتاريخ الفاتورة');
+            $table->foreignId('user_id')->constrained('users')->cascadeOnDelete()->cascadeOnUpdate();
             $table->timestamps();
         });
     }

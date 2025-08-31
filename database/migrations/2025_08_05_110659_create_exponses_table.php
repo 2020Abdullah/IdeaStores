@@ -19,6 +19,8 @@ return new class extends Migration
             $table->decimal('amount', 15, 2);
             $table->text('note')->nullable();
             $table->date('date')->nullable()->comment('تاريخ الإضافة بتاريخ الفاتورة');
+            $table->string('source_code')->nullable();
+            $table->foreignId('user_id')->constrained('users')->cascadeOnDelete()->cascadeOnUpdate();
             $table->timestamps();
         });
     }

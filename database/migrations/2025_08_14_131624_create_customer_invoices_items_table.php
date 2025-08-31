@@ -21,7 +21,8 @@ return new class extends Migration
             $table->integer('quantity')->comment('الكمية');
             $table->decimal('sale_price', 15, 2)->default(0)->comment('سعر بيع الوحدة');
             $table->decimal('total_price', 15, 2)->default(0)->comment('سعر الإجمالي');
-            $table->decimal('total_profit', 15, 2)->default(0)->comment('سعر الإجمالي');
+            $table->decimal('profit', 15, 2)->default(0)->comment('هامش الربح للصنف');
+            $table->decimal('total_profit', 15, 2)->default(0)->comment('إجمالي هامش الربح');
             $table->softDeletes();
             $table->timestamps();
         });
