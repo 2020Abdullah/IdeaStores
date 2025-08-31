@@ -80,6 +80,34 @@ class DashboardController extends Controller
     
         return response()->json($data);
     }
+    public function profitLossChart(Request $request)
+    {
+        // فلترة التواريخ إذا تم تمرير start و end
+        $query = DB::table('customer_invoices');
 
+        if ($request->start && $request->end) {
+            $query->whereBetween('date', [$request->start, $request->end]);
+        }
 
+        $totalProfit = $query->sum('total_profit'); // مجموع أرباح المبيعات
+
+        $totalExpenses = DB::table('exponses')->sum('amount'); // مجموع المصروفات
+        $totalSupplierInvoices = DB::table('supplier_invoices')->sum('total_amount'); // مجموع فواتير الموردين
+
+        $totalLoss = $totalExpenses + $totalSupplierInvoices;
+
+        $data = [
+            'labels' => ['الأرباح', 'الخسائر'],
+            'datasets' => [
+                [
+                    'data' => [$totalProfit, $totalLoss],
+                    'backgroundColor' => ['#1cc88a', '#e74a3b'], // أخضر أرباح، أحمر خسائر
+                    'hoverBackgroundColor' => ['#17a673', '#c0392b'],
+                    'borderWidth' => 1
+                ]
+            ]
+        ];
+
+        return response()->json($data);
+    }
 }

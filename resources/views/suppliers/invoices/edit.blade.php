@@ -135,7 +135,7 @@
                                                     @foreach ($units as $unit)
                                                         <option value="{{ $unit->id }}" 
                                                             {{ (isset($item) && $item->unit_id == $unit->id) ? 'selected' : '' }}>
-                                                            {{ $unit->symbol }}
+                                                            {{ $unit->name }}
                                                         </option>
                                                     @endforeach
                                                 </select>

@@ -14,6 +14,11 @@
             height: 400px !important;
         }
     }
+    #profitLossChart {
+        max-width: 200px;
+        max-height: 200px;
+        margin: auto;
+    }
 </style>
 @endsection
 
@@ -21,6 +26,25 @@
 <div class="dashboard">
     <h2>إحصائيات</h2>
     <div class="row text-center">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header">
+                    <input type="text" class="form-control datefilter" placeholder="اختر الفترة" style="width: 250px;">
+                </div>
+                <div class="card-body">
+                    <canvas id="profitLossChart" width="200" height="200"></canvas>
+                </div>
+            </div>
+            <div class="card">
+                <div class="card-header d-flex justify-content-between">
+                    <h5>تحليل المبيعات</h5>
+                    <input type="text" id="dateRange" class="form-control" placeholder="اختر الفترة" style="width: 250px;">
+                </div>
+                <div class="card-body">
+                    <canvas id="salesChart" height="120"></canvas>
+                </div>
+            </div> 
+        </div>
         <div class="col-md-4">
             <div class="card">
                 <a href="{{ route('supplier.index') }}">
@@ -111,18 +135,7 @@
                 </a>
             </div>
         </div>
-    </div>
-
-    <div class="card">
-        <div class="card-header d-flex justify-content-between">
-            <h5>تحليل المبيعات</h5>
-            <input type="text" id="dateRange" class="form-control" placeholder="اختر الفترة" style="width: 250px;">
-        </div>
-        <div class="card-body">
-            <canvas id="salesChart" height="120"></canvas>
-        </div>
     </div>    
-    
 </div>
 @endsection
 
@@ -245,8 +258,72 @@ $(function() {
                 });
             });
     }
+
+    let chartInstance;
+
+    // دالة تحميل البيانات
+    function loadProfitLossChart(start = null, end = null) {
+        $.ajax({
+            url: "{{ route('profit.loss.chart') }}",
+            method: "POST",
+            headers: {'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')},
+            data: { start: start, end: end },
+            success: function (data) {
+                let ctx = document.getElementById("profitLossChart").getContext("2d");
+
+                if (chartInstance) {
+                    chartInstance.destroy(); // نحذف القديم لو موجود
+                }
+
+                chartInstance = new Chart(ctx, {
+                    type: "doughnut",
+                    data: data,
+                    options: {
+                        responsive: false,
+                        cutout: "65%", // تصغير الدائرة الداخلية
+                        plugins: {
+                            legend: { position: "bottom" },
+                            title: {
+                                display: true,
+                                text: "نسبة الأرباح مقابل الخسائر"
+                            },
+                            tooltip: {
+                                callbacks: {
+                                    label: function(context) {
+                                        let value = context.parsed;
+                                        let total = context.chart._metasets[context.datasetIndex].total;
+                                        let percent = ((value / total) * 100).toFixed(2);
+                                        return context.label + ': ' + value + ' (' + percent + '%)';
+                                    }
+                                }
+                            }
+                        }
+                    }
+                });
+            },
+            error: function(xhr){
+                console.log("Error:", xhr.responseText);
+            }
+        });
+    }
+
+    // أول تحميل بدون تاريخ (كل الأوقات)
+    loadProfitLossChart();
+
+    // تهيئة Flatpickr
+    flatpickr(".datefilter", {
+        mode: "range",
+        dateFormat: "Y-m-d",
+        onChange: function(selectedDates) {
+            if (selectedDates.length === 2) {
+                let start = selectedDates[0].toLocaleDateString('en-CA');
+                let end = selectedDates[1].toLocaleDateString('en-CA');
+                loadProfitLossChart(start, end);
+            } else {
+                loadProfitLossChart(); // رجوع للوضع الافتراضي
+            }
+        }
+    });
 });
-
-
 </script>
 @endsection

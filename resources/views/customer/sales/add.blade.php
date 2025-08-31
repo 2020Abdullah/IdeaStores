@@ -443,13 +443,12 @@ $(document).ready(function(){
                         row.find('.category_id').val(response.data.category_id);
                         row.find('.width').val(response.data.size.width ?? '');
                         row.find('.size_id').val(response.data.size.id);
+                        row.find('.remaining_quantity').val(response.remaining_quantity);
 
                         if(response.data.unit.name === 'سنتيمتر'){
                             row.find('.unit').val('متر');
-                            row.find('.remaining_quantity').val(response.remaining_quantity / 100);
                         }
                         else {
-                            row.find('.remaining_quantity').val(response.remaining_quantity);
                             row.find('.unit').val(response.data.unit.name ?? '');
                         }
 

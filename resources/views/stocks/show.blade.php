@@ -21,6 +21,22 @@
 @endsection
 
 @section('content')
+    <div class="card">
+        <div class="card-body">
+            <div class="row">
+                <div class="col">
+                    <div class="card-balance">
+                        <h3>الكمية المتاحة</h3>
+                        @if ($stock->unit->name === 'سنتيمتر')
+                            <h4>{{ $stock->movements()->sum('quantity') }} متر</h4>   
+                        @else
+                            <h4>{{ $stock->movements()->sum('quantity') }} {{ $stock->unit->name }}</h4>   
+                        @endif
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
     <section class="storeHouse">
         <div class="card">
             <div class="card-header">

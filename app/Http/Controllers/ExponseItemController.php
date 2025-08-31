@@ -58,7 +58,7 @@ class ExponseItemController extends Controller
             'expenseable_type' => Wallet::class,
             'expenseable_id' => $wallet->id,
             'account_id' => $warehouse->account->id,
-            'amount' => $request->amount,
+            'amount' => -$request->amount,
             'note' => $request->notes ?? 'مصروفات',
             'date' => now(),
         ]);

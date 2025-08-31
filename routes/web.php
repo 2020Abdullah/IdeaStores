@@ -37,6 +37,7 @@ use App\Models\App;
 Route::get('/', [WelcomeController::class, 'index'])->name('home');
 
 Route::group(['middleware' => ['auth']], function(){
+    Route::get('/dashboard/sales-chart', [DashboardController::class, 'salesChart'])->name('dashboard.sales.chart');
     Route::post('getWallets', [WarehouseController::class, 'getWalletByWarhouse'])->name('getWallets');
     Route::get('getStockProducts', [StockController::class, 'getStockProducts'])->name('getStockProducts');
     Route::post('getStocks', [StockController::class, 'getStocks'])->name('getStocks');
@@ -46,11 +47,12 @@ Route::group(['middleware' => ['auth']], function(){
     Route::get('getUnits', [UnitController::class, 'getUnits'])->name('getUnits');
     Route::post('getProducts', [ProductController::class, 'getProducts'])->name('getProducts');
     Route::get('getSizes', [SizeController::class, 'getSizes'])->name('getSizes');
+    Route::post('/dashboard/profit-loss-chart', [DashboardController::class, 'profitLossChart'])
+    ->name('profit.loss.chart');
 });
 
 Route::group(['middleware' => ['auth', 'CheckAppActive']], function(){
     Route::get('dashboard', [DashboardController::class, 'index'])->name('dashboard');
-    Route::get('/dashboard/sales-chart', [DashboardController::class, 'salesChart'])->name('dashboard.sales.chart');
      
     // warehouse 
     Route::get('warehouse/index', [WarehouseController::class, 'index'])->name('warehouse.index');

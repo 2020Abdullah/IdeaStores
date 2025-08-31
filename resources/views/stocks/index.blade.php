@@ -62,8 +62,20 @@
                                 <td>{{ $stock->category->fullPath() }}</td>
                                 <td>{{ $stock->product->name }}</td>
                                 <td>{{ $stock->size->width }}</td>
-                                <td>{{ $stock->initial_quantity }} {{ $stock->unit->name }}</td>
-                                <td>{{ $stock->movements->sum('quantity') }} {{ $stock->unit->name }}</td>
+                                <td>
+                                    @if ($stock->unit->name === 'سنتيمتر')
+                                        {{ $stock->movements->where('type', 'in')->sum('quantity') }} متر
+                                    @else
+                                        {{ $stock->movements->where('type', 'in')->sum('quantity') }} {{ $stock->unit->name }}
+                                    @endif
+                                </td>
+                                <td>
+                                    @if ($stock->unit->name === 'سنتيمتر')
+                                        {{ $stock->movements->sum('quantity') }} متر
+                                    @else
+                                        {{ $stock->movements->sum('quantity') }} {{ $stock->unit->name }}
+                                    @endif
+                                </td>
                                 <td>
                                     <a href="{{ route('stock.show', $stock->id) }}" class="btn btn-info waves-effect">
                                         <i data-feather='eye'></i>

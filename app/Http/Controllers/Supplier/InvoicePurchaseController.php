@@ -72,38 +72,38 @@ class InvoicePurchaseController extends Controller
         $invoice_items = $request->input('items');
         $costs = $request->input('costs');
         $main_store = StoreHouse::latest()->first();
-
+    
         if ($invoice_items && is_array($invoice_items)) {
-            // 1. استرجاع الأصناف القديمة
-            $old_items = $invoice->items;
-
-            // 2. طرح الكميات القديمة من المخزون
-            foreach ($old_items as $old_item) {
-                $stock = Stock::where([
-                    'category_id' => $old_item->category_id,
-                    'product_id' => $old_item->product_id,
-                    'size_id' => $old_item->size_id,
-                ])->first();
-
-                if ($stock) {
-                    // حساب كمية حسب الوحدة (إذا سم مثلا)
-                    $unit = Unit::find($old_item->unit_id);
-                    $quantity_to_deduct = ($unit && $unit->symbol === 'سم') ? ($old_item->length * $old_item->quantity) : $old_item->quantity;
-
-                    $stock->initial_quantity -= $quantity_to_deduct;
-                    $stock->remaining_quantity -= $quantity_to_deduct;
-
-                    // لا تجعل الكمية أقل من صفر
-                    $stock->initial_quantity = max($stock->initial_quantity, 0);
-                    $stock->remaining_quantity = max($stock->remaining_quantity, 0);
-
-                    $stock->save();
-                }
-            }
-
+            // // 1. استرجاع الأصناف القديمة
+            // $old_items = $invoice->items;
+    
+            // // 2. طرح الكميات القديمة من المخزون
+            // foreach ($old_items as $old_item) {
+            //     $stock = Stock::where([
+            //         'category_id' => $old_item->category_id,
+            //         'product_id' => $old_item->product_id,
+            //         'size_id' => $old_item->size_id,
+            //     ])->first();
+    
+            //     if ($stock) {
+            //         // تحويل من سنتيمتر إلى متر إذا كانت الوحدة سم
+            //         $unit = Unit::find($old_item->unit_id);
+            //         $quantity_to_deduct = ($unit && strtolower($unit->symbol) === 'سم') ? (($old_item->length * $old_item->quantity)) : $old_item->quantity;
+    
+            //         $stock->initial_quantity -= $quantity_to_deduct;
+            //         $stock->remaining_quantity -= $quantity_to_deduct;
+    
+            //         // لا تجعل الكمية أقل من صفر
+            //         $stock->initial_quantity = max($stock->initial_quantity, 0);
+            //         $stock->remaining_quantity = max($stock->remaining_quantity, 0);
+    
+            //         $stock->save();
+            //     }
+            // }
+    
             // 3. حذف الأصناف القديمة
             $invoice->items()->delete();
-
+    
             // 4. إضافة الأصناف الجديدة وتحديث المخزون
             foreach ($invoice_items as $index => $item) {
                 $invoice->items()->create([
@@ -118,41 +118,23 @@ class InvoicePurchaseController extends Controller
                     'purchase_price' => $item['purchase_price'],
                     'total_price' => $this->normalizeNumber($item['total_price']),
                 ]);
-
+    
                 // تحديث المخزون
                 $stock = Stock::where([
                     'category_id' => $item['category_id'],
                     'product_id' => $item['product_id'],
                     'size_id' => $item['size_id'],
                 ])->first();
-
+    
                 $unit = Unit::findOrFail($item['unit_id']);
-                $quantity_to_add = ($unit->symbol === 'سم') ? ($item['length'] * $item['quantity']) : $item['quantity'];
+                $quantity_to_add = (strtolower($unit->symbol) === 'سم') ? (($item['length'] * $item['quantity'])) : $item['quantity'];
 
-                if ($stock) {
-                    $stock->initial_quantity += $quantity_to_add;
-                    $stock->remaining_quantity += $quantity_to_add;
-                    $stock->unit_id = $item['unit_id'];
-                    $stock->size_id = $item['size_id'];
-                    $stock->save();
-                } else {
-                    $stock = Stock::create([
-                        'category_id' => $item['category_id'],
-                        'product_id' => $item['product_id'],
-                        'store_house_id' => $main_store->id,
-                        'unit_id' => $item['unit_id'],
-                        'size_id' => $item['size_id'],
-                        'initial_quantity' => $quantity_to_add,
-                        'remaining_quantity' => $quantity_to_add,
-                        'date' => $invoice->invoice_date,
-                    ]);
-                }
-
+    
                 // تسجيل أو تحديث حركة المخزن
                 $stock_movement = Stock_movement::where('source_code', $invoice->invoice_code)
                     ->where('stock_id', $stock->id)
                     ->first();
-
+    
                 if ($stock_movement) {
                     $stock_movement->update([
                         'type' => 'in',
@@ -172,17 +154,16 @@ class InvoicePurchaseController extends Controller
                         'date' => $invoice->invoice_date,
                     ]);
                 }
-
+    
                 // حساب نصيب الصنف من التكاليف الإضافية
                 if ($request->additional_cost > 0) {
                     $total_invoice_amount = $this->normalizeNumber($request->total_amount_invoice);
                     $general_cost = $this->normalizeNumber($request->additional_cost);
                     $item_total_price = $this->normalizeNumber($item['total_price']);
-
+    
                     $item_percentage = $item_total_price / $total_invoice_amount;
-
                     $cost_share = ($item_percentage * $general_cost) + $item_total_price;
-
+    
                     InvoiceProductCost::updateOrCreate([
                         'stock_id' => $stock->id,
                     ], [
@@ -197,11 +178,10 @@ class InvoicePurchaseController extends Controller
                         'cost_share' => $this->normalizeNumber($item['total_price']),
                     ]);
                 }
-
             }
         }
     }
-
+    
     protected function credit($request){
         DB::beginTransaction();
         try {
@@ -349,7 +329,7 @@ class InvoicePurchaseController extends Controller
                 $invoice->costs()->create([
                     'expense_item_id' => $cost['exponse_id'],
                     'account_id'      => $default_warehouse->account->id,
-                    'amount'          => $this->normalizeNumber($cost['amount']),
+                    'amount'          => -$this->normalizeNumber($cost['amount']),
                     'note'            => $cost['note'] ?? 'تكاليف إضافية',
                     'date'            => $cost['date'] ?? $invoice->invoice_date,
                     'source_code'     => $invoice->invoice_code,
@@ -798,27 +778,7 @@ class InvoicePurchaseController extends Controller
                 ]);
                 $supplier->paymentTransactions()->delete();
             }
-            // تحديث كل أصناف الفاتورة في الستوك
-            foreach ($invoice->items as $item) {
-                $unit = Unit::findOrFail($item['unit_id']);
-                $quantity = ($unit->symbol === 'سم') ? $item['length'] : $item['quantity'];
-        
-                $stock = Stock::where('category_id', $item->category_id)
-                              ->where('product_id', $item->product_id)
-                              ->first();
-    
-                if ($stock) {
-                    $stock->initial_quantity -= $quantity;
-                    $stock->remaining_quantity -= $quantity;
-                    $stock->save();
 
-                    if ($stock->initial_quantity <= 0 || $stock->remaining_quantity <= 0) {
-                        $stock->delete(); // لو انتهت الكمية نحذف الإستوك
-                        $stock->cost()->delete();
-                    }
-                }
-            }
-    
             // حذف حركة الستوك المتعلقة بالفاتورة
             Stock_movement::where('source_code', $invoice->invoice_code)->delete();
 

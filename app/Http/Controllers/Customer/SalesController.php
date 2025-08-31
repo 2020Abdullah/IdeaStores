@@ -237,7 +237,7 @@ class SalesController extends Controller
                 $invoice->costs()->create([
                     'expense_item_id' => $cost['exponse_id'],
                     'account_id'      => $default_warehouse->account->id,
-                    'amount'          => $this->normalizeNumber($cost['amount']),
+                    'amount'          => -$this->normalizeNumber($cost['amount']),
                     'note'            => $cost['note'] ?? 'تكاليف إضافية علي فاتورة بيع',
                     'date'            => $invoice->date,
                     'source_code'     => $invoice->code,
@@ -443,12 +443,8 @@ class SalesController extends Controller
             // 1. خصم من المخزن البضاعة 
             $stock = Stock::where('id', $item['stock_id'])->first();
             $stock->movements()->where('source_code', $invoice->code)->delete(); // حذف كل سجل الحركات لإعادة إنشاءه من جديد
-            if($item['unit_name'] === 'متر'){
-                $quantity = $item['quantity'] * 100;
-            }
-            else {
-                $quantity = $item['quantity'];
-            }
+            $quantity = $item['quantity'];
+
             if($stock){
                 // 2. إنشاء سجل حركات جديد
                 $stock->movements()->create([

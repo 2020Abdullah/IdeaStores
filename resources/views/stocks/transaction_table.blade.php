@@ -29,9 +29,9 @@
             <td>
                 @if ($stock->unit->name === 'سنتيمتر')
                     @if ($move->type === 'in')
-                        <span class="text-success">+{{ $move->quantity / 100}}  متر</span>
+                        <span class="text-success">+{{ $move->quantity}}  متر</span>
                     @else
-                        <span class="text-danger">{{ $move->quantity / 100}}  متر</span>
+                        <span class="text-danger">{{ $move->quantity}}  متر</span>
                     @endif      
                 @else
                     @if ($move->type === 'in')
