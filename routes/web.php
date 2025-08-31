@@ -11,6 +11,7 @@ use App\Http\Controllers\Customer\CustomerController;
 use App\Http\Controllers\customer\SalesController;
 use App\Http\Controllers\DueController;
 use App\Http\Controllers\ExponseItemController;
+use App\Http\Controllers\ExportController;
 use App\Http\Controllers\ExternalDebtsController;
 use App\Http\Controllers\SizeController;
 use App\Http\Controllers\StockController;
@@ -35,6 +36,11 @@ use App\Models\App;
 */
 
 Route::get('/', [WelcomeController::class, 'index'])->name('home');
+
+Route::get('/export/products', [ExportController::class, 'exportProducts'])->name('export.products');
+Route::get('/export/categories', [ExportController::class, 'exportCategories'])->name('export.categories');
+Route::post('import/products', [ExportController::class, 'ImportProducts'])->name('import.products');
+Route::post('import/categories', [ExportController::class, 'ImportCategories'])->name('import.categories');
 
 Route::group(['middleware' => ['auth']], function(){
     Route::get('/dashboard/sales-chart', [DashboardController::class, 'salesChart'])->name('dashboard.sales.chart');

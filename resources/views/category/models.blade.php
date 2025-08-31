@@ -86,3 +86,26 @@
         </div>
     </div>
 </div>
+
+<!-- model import data -->
+<div class="modal fade text-start modal-success" id="importData" tabindex="-1" aria-modal="true" role="dialog">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">استيراد البيانات</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form action="{{ route('import.categories') }}" method="POST" enctype="multipart/form-data">
+                @csrf
+                <input type="hidden" name="id" class="id">
+                <div class="modal-body">
+                    <label class="form-label">استيراد من شيت اكسيل</label>
+                    <input type="file" class="form-control" name="file" required>
+                </div>
+                <div class="modal-footer">
+                    <button type="submit" class="btn btn-danger waves-effect waves-float waves-light">استيراد البيانات</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>

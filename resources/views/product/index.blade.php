@@ -38,6 +38,10 @@
             <a href="{{ route('product.add') }}" class="btn btn-success waves-effect waves-float waves-light">
                 إضافة منتج جديد 
             </a>
+            <a href="{{ route('export.products') }}" class="btn btn-success">⬇ تحميل المنتجات</a>
+            <button type="button" class="btn btn-success waves-effect waves-float waves-light" data-bs-toggle="modal" data-bs-target="#importData">
+                استيراد البيانات 
+            </button>
         </div>
     </div>
     <div class="card-body">
@@ -95,6 +99,29 @@
                 </div>
                 <div class="modal-footer">
                     <button type="submit" class="btn btn-danger waves-effect waves-float waves-light">تأكيد الحذف</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- model import product -->
+<div class="modal fade text-start modal-success" id="importData" tabindex="-1" aria-modal="true" role="dialog">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">استيراد البيانات</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form action="{{ route('import.products') }}" method="POST" enctype="multipart/form-data">
+                @csrf
+                <input type="hidden" name="id" class="id">
+                <div class="modal-body">
+                    <label class="form-label">استيراد من شيت اكسيل</label>
+                    <input type="file" class="form-control" name="file" required>
+                </div>
+                <div class="modal-footer">
+                    <button type="submit" class="btn btn-danger waves-effect waves-float waves-light">استيراد البيانات</button>
                 </div>
             </form>
         </div>

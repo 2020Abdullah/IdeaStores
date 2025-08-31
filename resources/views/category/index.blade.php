@@ -38,6 +38,10 @@
             <button type="button" class="btn btn-success waves-effect waves-float waves-light" data-bs-toggle="modal" data-bs-target="#addcate">
                 إضافة تصنيف 
             </button>
+            <a href="{{ route('export.categories') }}" class="btn btn-primary">⬇ تحميل الأصناف</a>
+            <button type="button" class="btn btn-success waves-effect waves-float waves-light" data-bs-toggle="modal" data-bs-target="#importData">
+                استيراد البيانات 
+            </button>
         </div>
     </div>
     <div class="card-body">
