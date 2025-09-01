@@ -11,7 +11,7 @@
                 <div class="modal-body">
                     <div class="mb-2">
                         <label class="form-label">المقاس</label>
-                        <input type="number" class="form-control width" name="width">
+                        <input type="text" class="form-control width" name="width">
                     </div>
                 </div>
                 <div class="modal-footer">
@@ -36,7 +36,7 @@
                 <div class="modal-body">
                     <div class="mb-2">
                         <label class="form-label">المقاس</label>
-                        <input type="number" class="form-control width" name="width" required>
+                        <input type="text" class="form-control width" name="width" required>
                     </div>
                 </div>
                 <div class="modal-footer">
