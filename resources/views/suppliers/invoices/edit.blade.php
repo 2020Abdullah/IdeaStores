@@ -96,7 +96,7 @@
                                         <th>الصنف</th>
                                         <th>المنتج</th>
                                         <th>وحدة القياس</th>
-                                        <th>العرض</th>
+                                        <th>المقاس</th>
                                         <th>سعر الشراء للوحدة</th>
                                         <th>السعر للمتر</th>
                                         <th>الطول / القطر</th>
@@ -256,6 +256,44 @@ $(function () {
     $.ajaxSetup({
         headers: {
             'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+        }
+    });
+
+    $(document).on('change', '.categorySelect', function() {
+        const categoryId = $(this).val();
+        const row = $(this).closest('tr');
+        const select = row.find('.productSelect');
+
+        // النص المعروض للتصنيف
+        const categoryText = $(this).find('option:selected').text();
+
+        // تحقق إذا يحتوي على كلمة "بكر"
+        if (categoryText.includes("بكر")) {
+            row.find('.length').val(0).prop('readonly', true);
+            row.find('.SizeSelect').val('').prop('disabled', true);
+        } else {
+            row.find('.length').prop('readonly', false);
+            row.find('.SizeSelect').prop('disabled', false);
+        }
+
+        if (categoryId) {
+            $.ajax({
+                url: '{{ route("getProducts") }}',
+                method: 'POST',
+                data: {
+                    _token: '{{ csrf_token() }}',
+                    category_id: categoryId
+                },
+                success: function(response) {
+                    select.empty().append(`<option value="">اختر منتج</option>`);
+                    response.data.forEach(item => {
+                        select.append(`<option value="${item.id}">${item.name}</option>`);
+                    });
+                }
+            });
+        }
+        else {
+            select.empty().append(`<option value="">اختر منتج</option>`);
         }
     });
 

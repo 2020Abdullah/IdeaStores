@@ -51,7 +51,7 @@ class SalesController extends Controller
             $data['customer_list'] = Customer::where('user_id', $this->user_id)->get();
         }
         $data['stock_category'] = Stock::where('user_id', $this->user_id)->with('category')->get();
-        $data['exponse_list'] = ExponseItem::all();
+        $data['exponse_list'] = ExponseItem::where('is_profit', 0)->get();
         $data['wallets'] = Wallet::all();
         return view('customer.sales.add', $data);
     }
@@ -60,7 +60,7 @@ class SalesController extends Controller
         $data['invoice'] = CustomerInvoices::findOrFail($id);
         $data['warehouse_list'] = Warehouse::all();
         $data['wallets'] = Wallet::all();
-        $data['exponse_list'] = ExponseItem::all();
+        $data['exponse_list'] = ExponseItem::where('is_profit', 0)->get();
         // جلب الكمية المتاحة لكل منتج من جدول الحركات
         foreach ($data['invoice']->items as $item) {
             $item->stock = Stock::where('user_id', $this->user_id)->where('category_id', $item->category_id)->where('product_id', $item->product_id)->first();

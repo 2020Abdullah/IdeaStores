@@ -113,7 +113,7 @@
                 <tr>
                     <th class="py-1">الصنف</th>
                     <th class="py-1">المنتج</th>
-                    <th class="py-1">العرض</th>
+                    <th class="py-1">المقاس</th>
                     <th class="py-1">العدد / الكمية</th>
                     <th class="py-1">سعر البيع</th>
                     <th class="py-1">الإجمالي</th>

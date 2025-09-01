@@ -66,7 +66,7 @@ class InvoicePurchaseController extends Controller
             $data['suppliers_list'] = Supplier::where('user_id', $this->user_id)->get();
         }
         $data['main_categories'] = Category::whereNull('parent_id')->get();
-        $data['exponse_list'] = ExponseItem::all();
+        $data['exponse_list'] = ExponseItem::where('is_profit', 0)->get();
 
         return view('suppliers.invoices.add', $data);
     }
@@ -678,7 +678,7 @@ class InvoicePurchaseController extends Controller
         $data['products'] = Product::with('category')->get();
         $data['units'] = Unit::all();
         $data['sizes'] = Size::all();
-        $data['exponse_list'] = ExponseItem::all();
+        $data['exponse_list'] = ExponseItem::where('is_profit', 0)->get();
         return view('suppliers.invoices.edit', $data);
     }
 
