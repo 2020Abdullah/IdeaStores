@@ -94,6 +94,20 @@
             }
         })
     </script>
+        <script>
+            document.addEventListener("DOMContentLoaded", function () {
+                // عطّل auto-complete في جميع الفورمات
+                document.querySelectorAll("form").forEach(form => {
+                    form.setAttribute("autocomplete", "off");
+                });
+
+                // عطّل auto-complete في جميع الحقول
+                document.querySelectorAll("input, textarea").forEach(input => {
+                    input.setAttribute("autocomplete", "off");
+                });
+
+            });
+        </script>
     @include('layouts.message')
     @yield('js')
 </html>
