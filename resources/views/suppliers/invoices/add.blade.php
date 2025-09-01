@@ -675,11 +675,10 @@ $(function () {
                 let category = $(row).find('.categorySelect').val();
                 let product = $(row).find('.productSelect').val();
                 let unit = $(row).find('.unitSelect').val();
-                let size = $(row).find('.SizeSelect').val();
                 let quantity = $(row).find('.quantity').val();
                 let purchasePrice = $(row).find('.purchase_price').val();
 
-                if (!category || !product || !unit || !size || quantity <= 0 || purchasePrice <= 0) {
+                if (!category || !product || !unit || quantity <= 0 || purchasePrice <= 0) {
                     isValid = false;
                     message = "تأكد من إدخال جميع البيانات المطلوبة لكل صنف (تصنيف، منتج، وحدة، مقاس، كمية، وسعر الشراء).";
                     return false; // يوقف الـ each
