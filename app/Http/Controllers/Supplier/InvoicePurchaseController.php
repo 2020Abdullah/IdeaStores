@@ -114,7 +114,6 @@ class InvoicePurchaseController extends Controller
                 $stock = Stock::where([
                     'category_id' => $item['category_id'],
                     'product_id' => $item['product_id'],
-                    'size_id' => $item['size_id'],
                 ])->first();
 
                 if($stock){
