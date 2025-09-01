@@ -102,7 +102,7 @@ class InvoicePurchaseController extends Controller
                     'category_id' => $item['category_id'],
                     'product_id' => $item['product_id'],
                     'unit_id' => $item['unit_id'],
-                    'size_id' => $item['size_id'],
+                    'size_id' => $item['size_id'] ?? null,
                     'quantity' => $item['quantity'],
                     'pricePerMeter' => $item['pricePerMeter'],
                     'length' => $item['length'],
