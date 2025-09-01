@@ -52,4 +52,14 @@ class Customer extends Model
         // الرصيد = الفواتير - المدفوعات
         return $totalInvoices - $totalPayments;
     }
+
+    protected static function booted()
+    {
+        static::created(function ($customer) {
+            $customer->account()->create([
+                'name'     => 'حساب عميل: ' . $customer->name,
+                'type' => 'Supplier',
+            ]);
+        });
+    }
 }
