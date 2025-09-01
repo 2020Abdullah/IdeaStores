@@ -174,7 +174,7 @@ class InvoicePurchaseController extends Controller
                     $stock = new Stock();
                     $stock->category_id = $item['category_id'];
                     $stock->product_id = $item['product_id'];
-                    $stock->size_id = $item['size_id'];
+                    $stock->size_id = $item['size_id'] ?? null;
                     $stock->unit_id = $item['unit_id'];
                     $stock->store_house_id = $main_store->id;
                     $stock->date = $request->invoice_date;
