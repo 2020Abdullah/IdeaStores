@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\customer;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Invoices\customerInvoiceRequest;
 use App\Models\Account_transactions;
 use App\Models\App;
 use App\Models\Customer;
@@ -68,7 +69,7 @@ class SalesController extends Controller
         return view('customer.sales.edit', $data);
     }
 
-    public function store(Request $request){
+    public function store(customerInvoiceRequest $request){
         if($request->invoice_type === 'opening_balance'){
             return $this->addOpenBalance($request);
         }
@@ -80,7 +81,7 @@ class SalesController extends Controller
         }
     }
 
-    public function update(Request $request){
+    public function update(customerInvoiceRequest $request){
         if($request->invoice_type === 'opening_balance'){
             return $this->updateOpenBalance($request);
         }
@@ -484,7 +485,7 @@ class SalesController extends Controller
                     'category_id' => $item['category_id'],
                     'product_id' => $item['product_id'],
                     'unit_name' => $item['unit_name'],
-                    'size_id' => $item['size_id'],
+                    'size_id'   => !empty($item['size_id']) ? $item['size_id'] : null,
                     'quantity' => $quantity,
                     'sale_price' => $this->normalizeNumber($item['sale_price']),
                     'total_price' => $this->normalizeNumber($item['total_price']),

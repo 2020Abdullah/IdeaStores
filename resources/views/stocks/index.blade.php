@@ -61,7 +61,7 @@
                                 <td>{{ $stock->date }}</td>
                                 <td>{{ $stock->category->fullPath() }}</td>
                                 <td>{{ $stock->product->name }}</td>
-                                <td>{{ $stock->size->width }}</td>
+                                <td>{{ $stock->size->width ?? '_' }}</td>
                                 <td>
                                     @if ($stock->unit->name === 'سنتيمتر')
                                         {{ $stock->movements->where('type', 'in')->sum('quantity') }} متر

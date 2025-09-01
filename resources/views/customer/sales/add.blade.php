@@ -44,8 +44,8 @@
                 <div class="mb-2">
                     <label class="form-label" for="name">العميل</label>
                     @if (isset($customer))
-                        <input type="hidden" class="form-control" name="customer_id" value="{{ $customer->id }}" required>
-                        <input type="text" class="form-control" value="{{ $customer->name }}" readonly>
+                        <input type="hidden" class="form-control customer_id" name="customer_id" value="{{ $customer->id }}" required>
+                        <input type="text" class="form-control customer_id" value="{{ $customer->name }}" readonly>
                     @else
                         <select name="customer_id" class="form-select CustomerSelect">
                             <option value="">أختر العميل ...</option>
@@ -65,7 +65,7 @@
                 </div>
                 <div class="mb-2">
                     <label class="form-label" for="phone">تاريخ الفاتورة</label>
-                    <input type="date" placeholder="اختر التاريخ" class="form-control dateForm @error('invoice_date') is-invalid @enderror" name="invoice_date" required/>
+                    <input type="date" placeholder="اختر التاريخ" class="form-control dateForm invoice_date @error('invoice_date') is-invalid @enderror" name="invoice_date" required/>
                     @error('invoice_date')
                         <div class="alert alert-danger mt-1" role="alert">
                             <h4 class="alert-heading">خطأ</h4>
@@ -447,8 +447,8 @@ $(document).ready(function(){
                         row.find('.stock_id').val(response.data.id);
                         row.find('.categoryInput').val(response.data.category.full_path ?? '');
                         row.find('.category_id').val(response.data.category_id);
-                        row.find('.width').val(response.data.size.width ?? '');
-                        row.find('.size_id').val(response.data.size.id);
+                        row.find('.width').val(response.data.size?.width ?? 0);
+                        row.find('.size_id').val(response.data.size?.id ?? 0);
                         row.find('.remaining_quantity').val(response.remaining_quantity);
 
                         if(response.data.unit.name === 'سنتيمتر'){
@@ -606,6 +606,19 @@ $(document).ready(function(){
 
         let invoice_type = $(this).find('option:selected').val();
 
+        if(invoice_type != 'opening_balance'){
+            let invoice_date = $(".invoice_date").val();
+            let customer_id = $(".customer_id").val();
+            if(!invoice_date){
+                toastr.info('يجب ملئ حقل التاريخ');
+                return; 
+            }
+            if(!customer_id){
+                toastr.info('يجب اختيار عميل');
+                return; 
+            }
+        }
+
         if (invoice_type === 'opening_balance') {
             let opening_balance_value = $(".opening_balance_value").val();
             if (!opening_balance_value || opening_balance_value == 0) {
@@ -648,7 +661,7 @@ $(document).ready(function(){
                 if (!productSelect || quantity <= 0 || sale_price <= 0) {
                     isValid = false;
                     message = "تأكد من إدخال جميع البيانات المطلوبة لكل صنف (المنتج, سعر البيع, الكمية المطلوبة).";
-                    return false; // يوقف الـ each
+                    return false; 
                 }
             });
 

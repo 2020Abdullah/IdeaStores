@@ -136,8 +136,8 @@
                                                 <input type="text" class="form-control categoryInput" value="{{ $item->category->full_path }}" readonly />
                                             </td>
                                             <td>
-                                                <input type="hidden" name="items[{{$index}}][size_id]" value="{{ $item->size_id }}" class="form-control size_id" />
-                                                <input type="text" class="form-control width" value="{{ $item->size->width }}" readonly />
+                                                <input type="hidden" name="items[{{$index}}][size_id]" value="{{ $item->size_id ?? ''}}" class="form-control size_id" />
+                                                <input type="text" class="form-control width" value="{{ $item->size->width ?? 0}}" readonly />
                                             </td>
                                             <td>
                                                 @if ($item->stock->movements->sum('quantity') <= $item->quantity)
@@ -445,8 +445,8 @@ $(function () {
                     row.find('.stock_id').val(response.data.id);
                     row.find('.categoryInput').val(response.data.category.full_path ?? '');
                     row.find('.category_id').val(response.data.category_id);
-                    row.find('.width').val(response.data.size.width ?? '');
-                    row.find('.size_id').val(response.data.size.id);
+                    row.find('.width').val(response.data.size?.width ?? 0);
+                    row.find('.size_id').val(response.data.size?.id ?? 0);
 
                     if(response.data.unit.name === 'سنتيمتر'){
                         row.find('.unit').val('متر');
