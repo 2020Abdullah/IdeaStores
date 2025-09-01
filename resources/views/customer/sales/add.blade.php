@@ -1,6 +1,7 @@
 @extends('layouts.app')
 
 @section('css')
+<link rel="stylesheet" href="{{ asset('assets/css-rtl/flatpickr.min.css') }}">
 <style>
     .product-item input {
         width: 150px!important;
@@ -64,7 +65,7 @@
                 </div>
                 <div class="mb-2">
                     <label class="form-label" for="phone">تاريخ الفاتورة</label>
-                    <input type="date" class="form-control @error('invoice_date') is-invalid @enderror" name="invoice_date" required/>
+                    <input type="date" placeholder="اختر التاريخ" class="form-control dateForm @error('invoice_date') is-invalid @enderror" name="invoice_date" required/>
                     @error('invoice_date')
                         <div class="alert alert-danger mt-1" role="alert">
                             <h4 class="alert-heading">خطأ</h4>
@@ -179,6 +180,7 @@
 @endsection
 
 @section('js')
+<script src="{{ asset('assets/js/flatpickr.js') }}"></script>
 <script>
 $(document).ready(function(){
     let isFormChanged = false;
@@ -186,6 +188,10 @@ $(document).ready(function(){
     $('.CustomerSelect').select2({
         dir: "rtl",
         width: '100%'
+    });
+
+    flatpickr(".dateForm", {
+        dateFormat: "Y-m-d",
     });
 
     // عند تغيير حقول الإدخال 

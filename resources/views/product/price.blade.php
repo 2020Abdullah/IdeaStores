@@ -55,7 +55,7 @@
                         <td>{{ $stock->product->name }}</td>
                         <td>{{ $stock->initial_quantity }}</td>
                         <td>{{ $stock->unit->name }}</td>
-                        <td>{{ number_format($stock->cost->base_cost) }}</td>
+                        <td>{{ number_format($stock->cost->base_cost)}}</td>
                         <td>{{ number_format($stock->cost->cost_share) }}</td>
                         <td>{{ $stock->cost->rate }} %</td>
                         <td>{{ number_format($stock->cost->suggested_price) ?? 0 }}</td>

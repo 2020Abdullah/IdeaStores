@@ -40,6 +40,15 @@ class Supplier extends Model
         return $totalPayments - $totalInvoices;
     }
 
+    public function dues()
+    {
+        return $this->hasMany(CustomerDue::class, 'customer_id');
+    }
+
+    public function debts(){
+        return $this->morphOne(ExternalDebts::class, 'debtable');
+    }
+
     public function movements(){
         return $this->morphMany(Stock_movement::class, 'related');
     }

@@ -1,6 +1,7 @@
 @extends('layouts.app')
 
 @section('css')
+<link rel="stylesheet" href="{{ asset('assets/css-rtl/flatpickr.min.css') }}">
 <style>
     .product-item input {
         width: 150px!important;
@@ -49,7 +50,7 @@
                 </div>
                 <div class="mb-2">
                     <label class="form-label" for="phone">تاريخ الفاتورة</label>
-                    <input type="date" class="form-control @error('date') is-invalid @enderror" value="{{ $invoice->date }}" name="date" />
+                    <input type="date" class="form-control dateForm @error('date') is-invalid @enderror" value="{{ $invoice->date }}" name="date" />
                     @error('date')
                         <div class="alert alert-danger mt-1" role="alert">
                             <h4 class="alert-heading">خطأ</h4>
@@ -139,15 +140,27 @@
                                                 <input type="text" class="form-control width" value="{{ $item->size->width }}" readonly />
                                             </td>
                                             <td>
-                                                <input type="text" name="items[{{$index}}][remaining_quantity]" 
-                                                class="form-control remaining_quantity" 
-                                                value="{{ $item->quantity }}" readonly />
+                                                @if ($item->stock->movements->sum('quantity') <= $item->quantity)
+                                                    <input type="text" name="items[{{$index}}][remaining_quantity]" 
+                                                    class="form-control remaining_quantity" 
+                                                    value="{{ $item->quantity }}" readonly />
+                                                @else
+                                                    <input type="text" name="items[{{$index}}][remaining_quantity]" 
+                                                    class="form-control remaining_quantity" 
+                                                    value="{{ $item->stock->movements->sum('quantity') }}" readonly />
+                                                @endif
                                             </td>
                                             <td>
                                                 <input type="text" name="items[{{$index}}][unit_name]" class="form-control unit" value="{{ $item->unit_name }}" readonly />
                                             </td>
+                                            @php
+                                            $lastInMovement = $item->stock->movements
+                                                    ->where('type', 'in')
+                                                    ->sortByDesc('created_at')  
+                                                    ->first();
+                                            @endphp
                                             <td>
-                                                <input type="text" name="items[{{$index}}][price_unit_cost]"  class="form-control price_unit_cost" value="{{ number_format($item->stock->cost->cost_share / $item->stock->movements->where('type', 'in')->sum('quantity')) }}" readonly />
+                                                <input type="text" name="items[{{$index}}][price_unit_cost]"  class="form-control price_unit_cost" value="{{ number_format($item->stock->cost->cost_share / $lastInMovement->quantity) }}" readonly />
                                             </td>
                                             <td>
                                                 <input type="text" name="items[{{$index}}][quantity]"  class="form-control quantity" value="{{ $item->quantity }}" />
@@ -238,9 +251,14 @@
 @endsection
 
 @section('js')
+<script src="{{ asset('assets/js/flatpickr.js') }}"></script>
 <script>
 $(function () {
     let isFormChanged = false;
+
+    flatpickr(".dateForm", {
+        dateFormat: "Y-m-d",
+    });
 
     $.get('{{ route("getStockProducts") }}', function(response) {
         const lastProductSelect = $('.productSelect').last();

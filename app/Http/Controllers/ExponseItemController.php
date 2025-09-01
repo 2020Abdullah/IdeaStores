@@ -12,6 +12,21 @@ use Illuminate\Http\Request;
 
 class ExponseItemController extends Controller
 {
+    protected $user_id;
+
+    public function __construct()
+    {
+        $this->middleware(function ($request, $next) {
+            if (auth()->check()) {
+                $this->user_id = auth()->user()->id; 
+            } else {
+                $this->user_id = null;
+                auth()->logout();
+            }
+            return $next($request);
+        });
+    }
+
     public function index(){
         $expenseItems = ExponseItem::with('exponses')->get();
         return view('exponses.index', compact('expenseItems'));
@@ -61,6 +76,7 @@ class ExponseItemController extends Controller
             'amount' => -$request->amount,
             'note' => $request->notes ?? 'مصروفات',
             'date' => now(),
+            'user_id'             => $this->user_id,
         ]);
 
         // 2. إنشاء حركة خزنة 
@@ -72,6 +88,7 @@ class ExponseItemController extends Controller
             'transaction_type' => 'expense',
             'description'      => $request->notes ?? 'مصروفات',
             'date'             => now(),
+            'user_id'             => $this->user_id,
         ]);
 
         return back()->with('success', 'تم إضافة حركة مصروف بنجاح');
