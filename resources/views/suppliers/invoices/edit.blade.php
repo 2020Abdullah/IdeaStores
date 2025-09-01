@@ -269,11 +269,11 @@ $(function () {
 
         // تحقق إذا يحتوي على كلمة "بكر"
         if (categoryText.includes("بكر")) {
-            row.find('.length').val(0).prop('readonly', true);
-            // row.find('.SizeSelect').val('').prop('disabled', true);
+            // row.find('.length').val(0).prop('readonly', true);
+            row.find('.SizeSelect').val('').prop('disabled', true);
         } else {
-            row.find('.length').prop('readonly', false);
-            // row.find('.SizeSelect').prop('disabled', false);
+            // row.find('.length').prop('readonly', false);
+            row.find('.SizeSelect').prop('disabled', false);
         }
 
         if (categoryId) {
