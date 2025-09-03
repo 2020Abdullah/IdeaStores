@@ -49,12 +49,12 @@
             <div class="card-body">
                 <div class="mb-2">
                     <label class="form-label" for="name">المورد</label>
-                    <input type="hidden" value="{{ $invoice->supplier->id }}" name="supplier_id">
+                    <input type="hidden" class="supplier_id" value="{{ $invoice->supplier->id }}" name="supplier_id">
                     <input type="text" class="form-control" value="{{ $invoice->supplier->name }}" readonly>
                 </div>
                 <div class="mb-2">
                     <label class="form-label" for="phone">تاريخ الفاتورة</label>
-                    <input type="date" class="form-control dateForm @error('invoice_date') is-invalid @enderror" value="{{ $invoice->invoice_date }}" name="invoice_date" />
+                    <input type="date" class="form-control invoice_date dateForm @error('invoice_date') is-invalid @enderror" value="{{ $invoice->invoice_date }}" name="invoice_date" />
                     @error('invoice_date')
                         <div class="alert alert-danger mt-1" role="alert">
                             <h4 class="alert-heading">خطأ</h4>
@@ -205,7 +205,7 @@
                                     </select>
                                 </div>
                                 <div class="col-md-4 mb-1">
-                                    <input type="number" name="costs[{{ $index }}][amount]" class="form-control costValue" value="{{ $cost->amount }}" placeholder="القيمة">
+                                    <input type="number" name="costs[{{ $index }}][amount]" class="form-control costValue" value="{{ -$cost->amount }}" placeholder="القيمة">
                                 </div>
                                 <div class="col-md-2 mb-1">
                                     <button type="button" class="btn btn-danger remove-cost">حذف</button>
@@ -615,6 +615,19 @@ $(function () {
         let message = "";
 
         let invoice_type = $('.invoice_type').val();
+
+        if(invoice_type != 'opening_balance'){
+            let invoice_date = $(".invoice_date").val();
+            let supplier_id = $(".supplier_id").val();
+            if(!invoice_date){
+                toastr.info('يجب ملئ حقل التاريخ');
+                return; 
+            }
+            if(!supplier_id){
+                toastr.info('يجب اختيار مورد');
+                return; 
+            }
+        }
 
         if (invoice_type === 'opening_balance') {
             let opening_balance_value = $(".opening_balance").val();

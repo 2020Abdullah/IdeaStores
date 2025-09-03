@@ -13,6 +13,7 @@ return new class extends Migration
     {
         Schema::create('invoice_product_costs', function (Blueprint $table) {
             $table->id();
+            $table->foreignId('supplier_invoice_id')->constrained('supplier_invoices')->cascadeOnDelete()->cascadeOnUpdate();
             $table->foreignId('stock_id')->nullable()->constrained('stocks')->onDelete('SET NULL');
             $table->decimal('base_cost', 10, 2)->comment('السعر الأساسي من المورد');         // السعر الأساسي من المورد
             $table->decimal('cost_share', 10, 2)->comment('سعر التكلفة للصنف');        // نصيب المنتج من التكاليف

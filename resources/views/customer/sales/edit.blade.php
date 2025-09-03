@@ -212,7 +212,7 @@
                                         </select>
                                     </div>
                                     <div class="col-md-4 mb-1">
-                                        <input type="number" name="costs[{{ $index }}][amount]" class="form-control costValue" value="{{ $cost->amount }}" placeholder="القيمة">
+                                        <input type="number" name="costs[{{ $index }}][amount]" class="form-control costValue" value="{{ -$cost->amount }}" placeholder="القيمة">
                                     </div>
                                     <div class="col-md-2 mb-1">
                                         <button type="button" class="btn btn-danger remove-cost">حذف</button>
@@ -447,21 +447,20 @@ $(function () {
                     row.find('.category_id').val(response.data.category_id);
                     row.find('.width').val(response.data.size?.width ?? 0);
                     row.find('.size_id').val(response.data.size?.id ?? 0);
+                    row.find('.remaining_quantity').val(response.remaining_quantity);
 
                     if(response.data.unit.name === 'سنتيمتر'){
                         row.find('.unit').val('متر');
-                        row.find('.remaining_quantity').val(response.initial_quantity / 100);
                     }
                     else {
-                        row.find('.remaining_quantity').val(response.initial_quantity);
                         row.find('.unit').val(response.data.unit.name ?? '');
                     }
 
                     row.find('.price_unit_cost').val(
-                        formatNumberValue(response.data.cost.cost_share / response.initial_quantity)
+                        formatNumberValue(response.cost)
                     );
                     row.find('.sale_price').val(
-                            formatNumberValue(response.data.cost.cost_share / response.initial_quantity)
+                        formatNumberValue(response.cost)
                     );
                 } else {
                     row.find('.categoryInput').val('لم يتم العثور على بيانات');

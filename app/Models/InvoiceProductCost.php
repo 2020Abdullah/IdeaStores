@@ -13,14 +13,10 @@ class InvoiceProductCost extends Model
 
     public function invoice()
     {
-        return $this->belongsTo(Supplier_invoice::class, 'invoice_id');
+        return $this->belongsTo(Supplier_invoice::class, 'supplier_invoice_id');
     }
 
-    public function category(){
-        return $this->belongsTo(Category::class);
-    }
-
-    public function product(){
-        return $this->belongsTo(Product::class);
+    public function stock(){
+        return $this->belongsTo(Stock::class);
     }
 }

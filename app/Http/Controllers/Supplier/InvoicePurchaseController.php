@@ -89,155 +89,116 @@ class InvoicePurchaseController extends Controller
     {
         $invoice_items = $request->input('items');
         $main_store = StoreHouse::latest()->first();
-
+    
         if ($invoice_items && is_array($invoice_items)) {
     
             // 1. حذف الأصناف القديمة
             $invoice->items()->delete();
     
             // 2. إضافة الأصناف الجديدة وتحديث المخزون
-            foreach ($invoice_items as $index => $item) {
+            foreach ($invoice_items as $item) {
+    
+                // حفظ الأصناف في فاتورة المورد
                 $invoice->items()->create([
                     'supplier_invoice_id' => $invoice->id,
-                    'category_id' => $item['category_id'],
-                    'product_id' => $item['product_id'],
-                    'unit_id' => $item['unit_id'],
-                    'size_id'   => !empty($item['size_id']) ? $item['size_id'] : null,
-                    'quantity' => $item['quantity'],
-                    'pricePerMeter' => $item['pricePerMeter'],
-                    'length' => $item['length'],
-                    'purchase_price' => $item['purchase_price'],
-                    'total_price' => $this->normalizeNumber($item['total_price']),
+                    'category_id'         => $item['category_id'],
+                    'product_id'          => $item['product_id'],
+                    'unit_id'             => $item['unit_id'],
+                    'size_id'             => !empty($item['size_id']) ? $item['size_id'] : null,
+                    'quantity'            => $item['quantity'],
+                    'pricePerMeter'       => $item['pricePerMeter'],
+                    'length'              => $item['length'],
+                    'purchase_price'      => $item['purchase_price'],
+                    'total_price'         => $this->normalizeNumber($item['total_price']),
                 ]);
     
-                // تحديث المخزون
+                // البحث عن المخزون
                 $stock = Stock::where([
                     'category_id' => $item['category_id'],
-                    'product_id' => $item['product_id'],
+                    'product_id'  => $item['product_id'],
                 ])->first();
-
-                if($stock){
-                    $unit = Unit::findOrFail($item['unit_id']);
-                    $quantity_to_add = (strtolower($unit->symbol) === 'سم') ? (($item['length'] * $item['quantity'])) : $item['quantity'];
     
-                    // تسجيل أو تحديث حركة المخزن
-                    $stock_movement = Stock_movement::where('source_code', $invoice->invoice_code)
-                        ->where('stock_id', $stock->id)
-                        ->first();
-        
-                    if ($stock_movement) {
-                        $stock_movement->update([
-                            'type' => 'in',
-                            'quantity' => $quantity_to_add,
-                            'note' => 'شراء',
-                            'date' => $invoice->invoice_date,
-                        ]);
-                    } else {
-                        Stock_movement::create([
-                            'related_type' => Supplier::class,
-                            'related_id' => $request->supplier_id,
-                            'stock_id' => $stock->id,
-                            'type' => 'in',
-                            'quantity' => $quantity_to_add,
-                            'note' => 'شراء',
-                            'source_code' => $invoice->invoice_code,
-                            'date' => $invoice->invoice_date,
-                            'user_id'        => $this->user_id,
-                        ]);
-                    }
-        
-                    // حساب نصيب الصنف من التكاليف الإضافية
-                    if ($request->additional_cost > 0) {
-                        $total_invoice_amount = $this->normalizeNumber($request->total_amount_invoice);
-                        $general_cost = $this->normalizeNumber($request->additional_cost);
-                        $item_total_price = $this->normalizeNumber($item['total_price']);
-        
-                        $item_percentage = $item_total_price / $total_invoice_amount;
-                        $cost_share = ($item_percentage * $general_cost) + $item_total_price;
-        
-                        InvoiceProductCost::updateOrCreate([
-                            'stock_id' => $stock->id,
-                        ], [
-                            'base_cost' => $this->normalizeNumber($item['total_price']),
-                            'cost_share' => $this->normalizeNumber($cost_share),
-                        ]);
-                    } else {
-                        InvoiceProductCost::updateOrCreate([
-                            'stock_id' => $stock->id,
-                        ], [
-                            'base_cost' => $this->normalizeNumber($item['total_price']),
-                            'cost_share' => $this->normalizeNumber($item['total_price']),
-                        ]);
-                    }
-                }
-                else {
+                // لو المخزون غير موجود نعمله جديد
+                if (!$stock) {
                     $stock = new Stock();
-                    $stock->category_id = $item['category_id'];
-                    $stock->product_id = $item['product_id'];
-                    $stock->size_id = $item['size_id'] ?? null;
-                    $stock->unit_id = $item['unit_id'];
-                    $stock->store_house_id = $main_store->id;
-                    $stock->date = $request->invoice_date;
-                    $stock->user_id = $this->user_id;
+                    $stock->category_id   = $item['category_id'];
+                    $stock->product_id    = $item['product_id'];
+                    $stock->size_id       = $item['size_id'] ?? null;
+                    $stock->unit_id       = $item['unit_id'];
+                    $stock->store_house_id= $main_store->id;
+                    $stock->date          = $request->invoice_date;
+                    $stock->user_id       = $this->user_id;
                     $stock->save();
-
-                    $unit = Unit::findOrFail($item['unit_id']);
-                    $quantity_to_add = (strtolower($unit->symbol) === 'سم') ? (($item['length'] * $item['quantity'])) : $item['quantity'];
-    
-                    // تسجيل أو تحديث حركة المخزن
-                    $stock_movement = Stock_movement::where('source_code', $invoice->invoice_code)
-                        ->where('stock_id', $stock->id)
-                        ->first();
-        
-                    if ($stock_movement) {
-                        $stock_movement->update([
-                            'type' => 'in',
-                            'quantity' => $quantity_to_add,
-                            'note' => 'شراء',
-                            'date' => $invoice->invoice_date,
-                        ]);
-                    } else {
-                        Stock_movement::create([
-                            'related_type' => Supplier::class,
-                            'related_id' => $request->supplier_id,
-                            'stock_id' => $stock->id,
-                            'type' => 'in',
-                            'quantity' => $quantity_to_add,
-                            'note' => 'شراء',
-                            'source_code' => $invoice->invoice_code,
-                            'date' => $invoice->invoice_date,
-                            'user_id'        => $this->user_id,
-                        ]);
-                    }
-        
-                    // حساب نصيب الصنف من التكاليف الإضافية
-                    if ($request->additional_cost > 0) {
-                        $total_invoice_amount = $this->normalizeNumber($request->total_amount_invoice);
-                        $general_cost = $this->normalizeNumber($request->additional_cost);
-                        $item_total_price = $this->normalizeNumber($item['total_price']);
-        
-                        $item_percentage = $item_total_price / $total_invoice_amount;
-                        $cost_share = ($item_percentage * $general_cost) + $item_total_price;
-        
-                        InvoiceProductCost::updateOrCreate([
-                            'stock_id' => $stock->id,
-                        ], [
-                            'base_cost' => $this->normalizeNumber($item['total_price']),
-                            'cost_share' => $this->normalizeNumber($cost_share),
-                        ]);
-                    } else {
-                        InvoiceProductCost::updateOrCreate([
-                            'stock_id' => $stock->id,
-                        ], [
-                            'base_cost' => $this->normalizeNumber($item['total_price']),
-                            'cost_share' => $this->normalizeNumber($item['total_price']),
-                        ]);
-                    }
                 }
     
+                // حساب الكمية والتكلفة الأساسية
+                $unit = Unit::findOrFail($item['unit_id']);
+    
+                if (strtolower($unit->symbol) === 'سم') {
+                    // الوحدة متر → من خلال الطول × العدد
+                    $quantity_to_add = $item['length'] * $item['quantity'];
+                    $unit_cost       = $this->normalizeNumber($item['total_price']) / $quantity_to_add;
+                } else {
+                    // الوحدة بالعدد
+                    $quantity_to_add = $item['quantity'];
+                    $unit_cost       = $this->normalizeNumber($item['total_price']) / $quantity_to_add;
+                }
+    
+                // تسجيل أو تحديث حركة المخزن
+                $stock_movement = Stock_movement::where('source_code', $invoice->invoice_code)
+                    ->where('stock_id', $stock->id)
+                    ->first();
+    
+                if ($stock_movement) {
+                    $stock_movement->update([
+                        'type'     => 'in',
+                        'quantity' => $quantity_to_add,
+                        'note'     => 'شراء',
+                        'date'     => $invoice->invoice_date,
+                    ]);
+                } else {
+                    Stock_movement::create([
+                        'related_type' => Supplier::class,
+                        'related_id'   => $request->supplier_id,
+                        'stock_id'     => $stock->id,
+                        'type'         => 'in',
+                        'quantity'     => $quantity_to_add,
+                        'note'         => 'شراء',
+                        'source_code'  => $invoice->invoice_code,
+                        'date'         => $invoice->invoice_date,
+                        'user_id'      => $this->user_id,
+                    ]);
+                }
+    
+                // توزيع التكاليف الإضافية
+                if ($request->additional_cost > 0) {
+                    $total_invoice_amount = $this->normalizeNumber($request->total_amount_invoice);
+                    $general_cost         = $this->normalizeNumber($request->additional_cost);
+                    $item_total_price     = $this->normalizeNumber($item['total_price']);
+    
+                    $item_percentage      = $item_total_price / $total_invoice_amount;
+                    $cost_share           = ($item_percentage * $general_cost) + $item_total_price;
+    
+                    $unit_cost_with_share = $cost_share / $quantity_to_add;
+                } else {
+                    $unit_cost_with_share = $unit_cost;
+                }
+    
+                // حفظ تكلفة الصنف
+                InvoiceProductCost::updateOrCreate(
+                    ['supplier_invoice_id' => $invoice->id],
+                    [
+                        'stock_id'   => $stock->id,
+                        'base_cost'  => $this->normalizeNumber($unit_cost),
+                        'cost_share' => $this->normalizeNumber($unit_cost_with_share),
+                        'supplier_invoice_id' => $invoice->id,
+                        'source_code' => $invoice->invoice_code,
+                    ]
+                );
             }
         }
     }
+    
     
     protected function credit($request){
         DB::beginTransaction();

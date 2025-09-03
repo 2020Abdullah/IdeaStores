@@ -124,9 +124,9 @@
                     <tr>
                         <td>{{ $item->product->category->full_path }}</td>
                         <td>{{ $item->product->name }}</td>
-                        <td>{{ $item->size->width }}</td>
+                        <td>{{ $item->size->width ?? 0}}</td>
                         @if ($item->unit_name === 'متر')
-                            <td>{{ $item->quantity / 100}} متر</td>                                        
+                            <td>{{ $item->quantity }} متر</td>                                        
                         @else
                             <td>{{ $item->quantity }} {{ $item->unit_name }}</td>                                        
                         @endif
@@ -137,7 +137,7 @@
             </tbody>
         </table>
     
-        <p class="total">إجمالي الفاتورة: {{ number_format($invoice->total_amount - $invoice->cost_price) }} EGP</p>
+        <p class="total">إجمالي الفاتورة: {{ number_format($invoice->total_amount) }} EGP</p>
     
         <!-- Note -->
         <div class="note">

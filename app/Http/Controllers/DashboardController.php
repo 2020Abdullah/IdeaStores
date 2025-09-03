@@ -65,23 +65,39 @@ class DashboardController extends Controller
 
     public function salesChart(Request $request)
     {
-        $start = $request->input('start');
-        $end = $request->input('end');
-    
-        // تحقق من أن start و end مرسلين بشكل صحيح
-        if (!$start || !$end) {
-            return response()->json([]);
+        try {
+            $start = $request->input('start');
+            $end = $request->input('end');
+        
+            $query = DB::table('customer_invoices')
+                ->selectRaw('DATE(date) as day, SUM(total_amount) as total_sales, SUM(total_profit) as total_profit')
+                ->groupBy('day')
+                ->orderBy('day', 'ASC');
+        
+            if ($start && $end) {
+                $query->whereBetween('date', [$start, $end]);
+            }
+        
+            $salesData = $query->get();
+        
+            $chartData = $salesData->map(function($item) {
+                $profitRatio = $item->total_sales > 0 ? ($item->total_profit / $item->total_sales) * 100 : 0;
+                return [
+                    'day' => $item->day,
+                    'total_sales' => $item->total_sales,
+                    'net_profit' => $item->total_profit,
+                    'profit_ratio' => round($profitRatio, 2),
+                ];
+            });
+        
+            return response()->json($chartData);
+        } catch (\Exception $e) {
+            return response()->json(['error' => $e->getMessage()], 500);
         }
-    
-        $data = DB::table('customer_invoices')
-            ->whereBetween('date', [$start, $end])  // مهم جدًا
-            ->selectRaw('DATE(date) as day, SUM(total_amount) as total_sales, SUM(total_profit) as total_profit')
-            ->groupBy('day')
-            ->orderBy('day', 'ASC')
-            ->get();
-    
-        return response()->json($data);
     }
+    
+    
+    
     public function profitLossChart(Request $request)
     {
         $start = $request->start ?? null;

@@ -88,7 +88,7 @@
                                 <tr>
                                     <th class="py-1">الصنف</th>
                                     <th class="py-1">المنتج</th>
-                                    <th class="py-1">العرض</th>
+                                    <th class="py-1">المقاس</th>
                                     <th class="py-1">العدد / الكمية</th>
                                     <th class="py-1">سعر البيع</th>
                                     <th class="py-1">الإجمالي</th>
@@ -99,9 +99,9 @@
                                     <tr>
                                         <td>{{ $item->product->category->full_path }}</td>
                                         <td>{{ $item->product->name }}</td>
-                                        <td>{{ $item->size->width }}</td>
+                                        <td>{{ $item->size->width ?? 0}}</td>
                                         @if ($item->unit_name === 'متر')
-                                            <td>{{ $item->quantity / 100}} متر</td>                                        
+                                            <td>{{ $item->quantity }} متر</td>                                        
                                         @else
                                             <td>{{ $item->quantity }} {{ $item->unit_name }}</td>                                        
                                         @endif
@@ -120,7 +120,7 @@
                 <hr class="invoice-spacing">
 
                 <div class="invoice_total text-center">
-                    <p class="total">إجمالي الفاتورة: {{ number_format($invoice->total_amount - $invoice->cost_price) }} EGP</p>
+                    <p class="total">إجمالي الفاتورة: {{ number_format($invoice->total_amount) }} EGP</p>
                 </div>
 
                 <hr class="invoice-spacing">

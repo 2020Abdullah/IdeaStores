@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\InvoiceProductCost;
 use App\Models\Stock;
 use App\Models\Stock_movement;
 use Illuminate\Http\Request;
@@ -48,16 +49,51 @@ class StockController extends Controller
         ]);
     }
 
-    public function getStocks(Request $request){
-        $stocks = Stock::with('category', 'size', 'unit', 'cost', 'movements')->findOrFail($request->stock_id);
-        $initial_quantity = $stocks->movements()->where('type', 'in')->sum('quantity');
-        $remaining_quantity = $stocks->movements()->sum('quantity');
-
+    public function getStocks(Request $request)
+    {
+        $stock = Stock::with('category', 'size', 'unit')
+            ->findOrFail($request->stock_id);
+    
+        // إجمالي الكمية المتبقية
+        $remaining_quantity = $stock->movements()->sum('quantity');
+    
+        // هات كل الشحنات in لهذا المخزون بالترتيب التنازلي
+        $shipments = $stock->movements()
+            ->where('type', 'in')
+            ->orderByDesc('id')
+            ->get();
+    
+        $lastCost = 0;
+    
+        foreach ($shipments as $in) {
+            // إجمالي الكمية الواردة
+            $inQty = $in->quantity;
+    
+            // إجمالي الكمية الخارجة اللي تخص نفس الفاتورة
+            $outQty = $stock->movements()
+                ->where('type', 'out')
+                ->where('source_code', $in->source_code)
+                ->sum('quantity');
+    
+            // الرصيد المتبقي من الشحنة
+            $balance = $inQty - abs($outQty);
+    
+            if ($balance > 0) {
+                // جلب التكلفة من جدول التكاليف
+                $lastCost = InvoiceProductCost::where('source_code', $in->source_code)
+                    ->value('cost_share') ?? 0;
+                break; // أول شحنة نلاقيها فيها رصيد = هي اللي نوقف عندها
+            }
+        }
+    
         return response()->json([
             'status' => true,
-            'data' => $stocks,
-            'initial_quantity' => $initial_quantity,
+            'data' => $stock,
+            'cost' => $lastCost,
             'remaining_quantity' => $remaining_quantity
         ]);
     }
+    
+    
+    
 }

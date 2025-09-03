@@ -77,13 +77,13 @@ class ProductController extends Controller
     }
 
     public function showPrice(){
-        $stocks = Stock::with('cost')->paginate(100);
-        return view('product.price', compact('stocks'));
+        $ProductCost = InvoiceProductCost::paginate(100);
+        return view('product.price', compact('ProductCost'));
     }
 
     public function updatePrice(Request $request){
         $rate = $request->rate / 100;
-        $price_sale = InvoiceProductCost::where('stock_id', $request->stock_id)->first();
+        $price_sale = InvoiceProductCost::where('id', $request->id)->first();
     
         if ($price_sale) {
             $price_sale->rate = $request->rate; // تخزن النسبة كما هي (مثلاً 20)

@@ -147,117 +147,91 @@ $(function() {
     let ctx = document.getElementById('salesChart').getContext('2d');
     let chart;
 
-    // تهيئة Flatpickr
+    // Flatpickr لتحديد المدة
     flatpickr("#dateRange", {
         mode: "range",
         dateFormat: "Y-m-d",
         defaultDate: [new Date(new Date().setDate(new Date().getDate() - 6)), new Date()],
         onChange: function(selectedDates) {
             if (selectedDates.length === 2) {
-                let start = selectedDates[0].toLocaleDateString('en-CA'); 
-                let end = selectedDates[1].toLocaleDateString('en-CA');
+                let start = selectedDates[0].toISOString().split('T')[0];
+                let end = selectedDates[1].toISOString().split('T')[0];
                 loadChart(start, end);
             }
         }
     });
 
-    // تحميل افتراضي عند الدخول
-    let defaultStart = new Date(new Date().setDate(new Date().getDate() - 6)).toLocaleDateString('en-CA');
-    let defaultEnd = new Date().toLocaleDateString('en-CA');
+    // تحميل افتراضي
+    let defaultStart = new Date(new Date().setDate(new Date().getDate() - 6)).toISOString().split('T')[0];
+    let defaultEnd = new Date().toISOString().split('T')[0];
     loadChart(defaultStart, defaultEnd);
 
     function loadChart(start, end) {
         fetch(`/dashboard/sales-chart?start=${start}&end=${end}`)
-            .then(response => response.json())
-            .then(data => {
-                let labels = data.map(item => item.day);
-                let sales = data.map(item => parseFloat(item.total_sales));
-                let profit = data.map(item => parseFloat(item.total_profit));
+        .then(res => res.json())
+        .then(data => {
+            let labels = data.map(d => d.day);
+            let sales = data.map(d => d.total_sales);
+            let netProfit = data.map(d => d.net_profit);
+            let profitRatio = data.map(d => d.profit_ratio);
 
-                // حساب النسبة لكل يوم
-                let profitRatio = sales.map((s, i) => {
-                    return s > 0 ? ((profit[i] / s) * 100).toFixed(2) : 0;
-                });
+            if (chart) chart.destroy();
 
-                if (chart) {
-                    chart.destroy();
-                }
-
-                chart = new Chart(ctx, {
-                    type: 'bar',
-                    data: {
-                        labels: labels,
-                        datasets: [
-                            {
-                                label: 'المبيعات',
-                                data: sales,
-                                backgroundColor: '#4e73df',
-                                yAxisID: 'y'
-                            },
-                            {
-                                label: 'الأرباح',
-                                data: profit,
-                                backgroundColor: '#1cc88a',
-                                yAxisID: 'y'
-                            },
-                            {
-                                label: 'نسبة الربحية %',
-                                data: profitRatio,
-                                type: 'line',
-                                borderColor: '#f6c23e',
-                                backgroundColor: '#f6c23e',
-                                yAxisID: 'y1',
-                                tension: 0.4,
-                                pointBackgroundColor: '#f6c23e',
-                                fill: false
-                            }
-                        ]
-                    },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        plugins: {
-                            legend: { position: 'top' },
-                            title: {
-                                display: true,
-                                text: `إحصائيات من ${start} إلى ${end}`
-                            },
-                            tooltip: {
-                                callbacks: {
-                                    label: function(context) {
-                                        if (context.dataset.label === 'نسبة الربحية %') {
-                                            return context.parsed.y + '%';
-                                        }
-                                        return context.dataset.label + ': ' + context.parsed.y;
-                                    }
-                                }
-                            }
+            chart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [
+                        {
+                            label: 'المبيعات',
+                            data: sales,
+                            backgroundColor: '#4e73df',
+                            yAxisID: 'y'
                         },
-                        scales: {
-                            y: {
-                                beginAtZero: true,
-                                position: 'left',
-                                title: {
-                                    display: true,
-                                    text: 'المبيعات والأرباح'
-                                }
-                            },
-                            y1: {
-                                beginAtZero: true,
-                                position: 'right',
-                                title: {
-                                    display: true,
-                                    text: 'النسبة %'
-                                },
-                                grid: {
-                                    drawOnChartArea: false
+                        {
+                            label: 'صافي الربح',
+                            data: netProfit,
+                            backgroundColor: '#1cc88a',
+                            yAxisID: 'y'
+                        },
+                        {
+                            label: 'نسبة الربحية %',
+                            data: profitRatio,
+                            type: 'line',
+                            borderColor: '#f6c23e',
+                            backgroundColor: '#f6c23e',
+                            yAxisID: 'y1',
+                            tension: 0.4,
+                            pointBackgroundColor: '#f6c23e',
+                            fill: false
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { position: 'top' },
+                        title: { display: true, text: `إحصائيات من ${start} إلى ${end}` },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    if (context.dataset.label === 'نسبة الربحية %') return context.parsed.y + '%';
+                                    return context.dataset.label + ': ' + context.parsed.y;
                                 }
                             }
                         }
+                    },
+                    scales: {
+                        y: { beginAtZero: true, position: 'left', title: { display: true, text: 'القيمة' } },
+                        y1: { beginAtZero: true, position: 'right', title: { display: true, text: 'النسبة %' }, grid: { drawOnChartArea: false } }
                     }
-                });
+                }
             });
+        })
+        .catch(err => console.error('Error loading chart:', err));
     }
+
 
 
     // let chartInstance = null;

@@ -198,7 +198,6 @@ $(document).ready(function(){
     $(document).on('input', '.quantity, .sale_price, .profit', function(){
         let row = $(this).closest('tr');
         calculateTotalPrice(row);
-        calculateProfit(row);
         calculateTotalProfit(row);
         calculateTotalInvoice();
         calculateTotalProfitInvoice();
@@ -220,23 +219,29 @@ $(document).ready(function(){
         $('#total-cost').val(costtotal);
     }
 
-    // حساب هامش الربح 
-    function calculateProfit(row){
-        let profit_price = 0;
-        let price_unit_cost = parseFloat(row.find('.price_unit_cost').val()) || 0;
-        let sale_price = parseFloat(row.find('.sale_price').val()) || 0;
-        profit_price = sale_price - price_unit_cost;
-        row.find('.profit').val(formatNumberValue(profit_price));
-    }
-
     // حساب مجموع هامش الربح للصنف
     function calculateTotalProfit(row){
         let total_profit = 0;
-        let profit = parseFloat(row.find('.profit').val()) || 0;
-        let quantity = parseFloat(row.find('.quantity').val()) || 0;
-        total_profit = profit * quantity;
-        row.find('.total_profit').val(formatNumberValue(total_profit));
+
+        $('tr.product-item').each(function() {
+            let row = $(this);
+
+            // جلب القيم مباشرة بدون الاعتماد على الحقل .profit المنسق
+            let price_unit_cost = parseFloat(row.find('.price_unit_cost').val().replace(/,/g, '')) || 0;
+            let sale_price = parseFloat(row.find('.sale_price').val().replace(/,/g, '')) || 0;
+            let quantity = parseFloat(row.find('.quantity').val()) || 0;
+
+            let profit = sale_price - price_unit_cost;
+            let row_profit = profit * quantity;
+
+            total_profit += row_profit;
+
+            // تحديث الحقول
+            row.find('.profit').val(formatNumberValue(profit));          // هامش الربح للوحدة
+            row.find('.total_profit').val(formatNumberValue(row_profit)); // هامش الربح الإجمالي للصف
+        });
     }
+
 
     // حساب مجموع هامش الربح للفاتورة بالكامل
     function calculateTotalProfitInvoice(){
@@ -443,6 +448,7 @@ $(document).ready(function(){
                     _token: $('meta[name="csrf-token"]').attr('content') // تأكد من وجود الميتا في <head>
                 },
                 success: function (response) {
+                    console.log(response);
                     if (response.status && response.data) {
                         row.find('.stock_id').val(response.data.id);
                         row.find('.categoryInput').val(response.data.category.full_path ?? '');
@@ -459,10 +465,10 @@ $(document).ready(function(){
                         }
 
                         row.find('.price_unit_cost').val(
-                            formatNumberValue(response.data.cost.cost_share / response.initial_quantity)
+                            formatNumberValue(response.cost)
                         );
                         row.find('.sale_price').val(
-                            formatNumberValue(response.data.cost.cost_share / response.initial_quantity)
+                            formatNumberValue(response.cost)
                         );
                     } else {
                         row.find('.categoryInput').val('لم يتم العثور على بيانات');
@@ -558,7 +564,6 @@ $(document).ready(function(){
         } else {
             errorSpan.hide(); // إخفاء رسالة الخطأ إذا كان السعر صحيح
             calculateTotalPrice(row);
-            calculateProfit(row);
             calculateTotalProfit(row);
             calculateTotalInvoice();
             calculateTotalProfitInvoice();

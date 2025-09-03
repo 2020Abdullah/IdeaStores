@@ -85,8 +85,8 @@
                                 <tr>
                                     <th class="py-1">الصنف</th>
                                     <th class="py-1">المنتج</th>
-                                    <th class="py-1">العدد / الكمية</th>
                                     <th class="py-1">المقاس</th>
+                                    <th class="py-1">العدد / الكمية</th>
                                     <th class="py-1">الطول / القطر</th>
                                     <th class="py-1">سعر الشراء</th>
                                     <th class="py-1">الإجمالي</th>
@@ -97,9 +97,14 @@
                                     <tr>
                                         <td>{{ $item->product->category->full_path }}</td>
                                         <td>{{ $item->product->name }}</td>
+                                        <td>{{ $item->size->width ?? 0 }}</td>
                                         <td>{{ $item->quantity }}</td>
-                                        <td>{{ $item->size->width }}</td>
-                                        <td>{{ $item->length }}</td>
+                                        @if ($item->size_id == null)
+                                            <td>{{ $item->length }} بوصة</td>                                            
+                                        @else
+                                            <td>{{ $item->length }} متر</td>                                            
+                                        @endif
+
                                         <td>{{ number_format($item->purchase_price) }} EGP</td>
                                         <td>{{ number_format($item->total_price) }} EGP</td>
                                     </tr>

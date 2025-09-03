@@ -39,9 +39,9 @@
         <div class="table-responsive">
             <table class="table table-bordered">
                 <tr>
+                    <th>رقم الشحنة</th>
                     <th>التصنيف</th>
                     <th>المنتج</th>
-                    <th>الكمية</th>
                     <th>الوحدة</th>
                     <th>سعر الشراء الأساسي</th>
                     <th>سعر تكلفة الصنف</th>
@@ -49,18 +49,24 @@
                     <th>سعر البيع المقترح</th>
                     <th>تعديل النسبة</th>
                 </tr>
-                @forelse ($stocks as $stock)
+                @forelse ($ProductCost as $cost)
                     <tr>
-                        <td>{{ $stock->category->full_path }}</td>
-                        <td>{{ $stock->product->name }}</td>
-                        <td>{{ $stock->initial_quantity }}</td>
-                        <td>{{ $stock->unit->name }}</td>
-                        <td>{{ number_format($stock->cost->base_cost)}}</td>
-                        <td>{{ number_format($stock->cost->cost_share) }}</td>
-                        <td>{{ $stock->cost->rate }} %</td>
-                        <td>{{ number_format($stock->cost->suggested_price) ?? 0 }}</td>
+                        <td>{{ $loop->iteration }}</td>
+                        <td>{{ $cost->stock->category->full_path }}</td>
+                        <td>{{ $cost->stock->product->name }}</td>
                         <td>
-                            <a href="#" data-bs-toggle="modal" data-cost_price="{{ $stock->cost->cost_share }}" data-stock_id="{{ $stock->id }}" data-bs-target="#editPrice" data-id="{{ $stock->id }}" class="btn btn-icon btn-success waves-effect waves-float waves-light editPriceBtn">
+                            @if ($cost->stock->unit->name === 'سنتيمتر')
+                                متر
+                            @else
+                                {{ $cost->stock->unit->name }}
+                            @endif
+                        </td>
+                        <td>{{ number_format($cost->base_cost)}}</td>
+                        <td>{{ number_format($cost->cost_share) }}</td>
+                        <td>{{ $cost->rate }} %</td>
+                        <td>{{ number_format($cost->suggested_price) ?? 0 }}</td>
+                        <td>
+                            <a href="#" data-bs-toggle="modal" data-cost_price="{{ $cost->cost_share }}" data-id="{{ $cost->id }}" data-bs-target="#editPrice" data-id="{{ $cost->id }}" class="btn btn-icon btn-success waves-effect waves-float waves-light editPriceBtn">
                                 <i data-feather='edit'></i>
                                 <span>تعديل سعر البيع</span>
                             </a>
@@ -86,7 +92,7 @@
             </div>
             <form action="{{ route('product.Price.update') }}" method="POST">
                 @csrf
-                <input type="hidden" name="stock_id" class="stock_id">
+                <input type="hidden" name="id" class="id">
                 <input type="hidden" name="cost_price" class="cost_price">
                 <div class="modal-body">
                     <label class="form-label">النسبة</label>
@@ -109,9 +115,9 @@
 <script>
     $(function(){
         $(document).on('click', '.editPriceBtn', function(){
-            let stock_id = $(this).attr('data-stock_id');
+            let id = $(this).attr('data-id');
             let cost_price = $(this).attr('data-cost_price');
-            $("#editPrice input[name='stock_id']").val(stock_id);
+            $("#editPrice input[name='id']").val(id);
             $("#editPrice input[name='cost_price']").val(cost_price);
         });
     })

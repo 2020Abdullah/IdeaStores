@@ -45,10 +45,10 @@
                 <div class="mb-2">
                     <label class="form-label" for="name">المورد</label>
                     @if (isset($supplier))
-                        <input type="hidden" class="form-control" name="supplier_id" value="{{ $supplier->id }}" required>
+                        <input type="hidden" class="form-control supplier_id" name="supplier_id" value="{{ $supplier->id }}" required>
                         <input type="text" class="form-control" value="{{ $supplier->name }}" readonly>
                     @else
-                        <select name="supplier_id" class="form-select SupplierSelect">
+                        <select name="supplier_id" class="form-select supplier_id SupplierSelect">
                             <option value="">أختر المورد ...</option>
                             @foreach ($suppliers_list as $supplier)
                                 <option value="{{ $supplier->id }}">{{ $supplier->name }}</option>
@@ -66,7 +66,7 @@
                 </div>
                 <div class="mb-2">
                     <label class="form-label" for="phone">تاريخ الفاتورة</label>
-                    <input type="date" placeholder="تاريخ الفاتورة" class="form-control dateForm @error('invoice_date') is-invalid @enderror" name="invoice_date" required/>
+                    <input type="date" placeholder="تاريخ الفاتورة" class="form-control invoice_date dateForm @error('invoice_date') is-invalid @enderror" name="invoice_date" required/>
                     @error('invoice_date')
                         <div class="alert alert-danger mt-1" role="alert">
                             <h4 class="alert-heading">خطأ</h4>
@@ -656,6 +656,19 @@ $(function () {
         let message = "";
 
         let invoice_type = $(this).find('option:selected').val();
+
+        if(invoice_type != 'opening_balance'){
+            let invoice_date = $(".invoice_date").val();
+            let supplier_id = $(".supplier_id").val();
+            if(!invoice_date){
+                toastr.info('يجب ملئ حقل التاريخ');
+                return; 
+            }
+            if(!supplier_id){
+                toastr.info('يجب اختيار مورد');
+                return; 
+            }
+        }
 
         if (invoice_type === 'opening_balance') {
             let opening_balance_value = $(".opening_balance_value").val();
