@@ -31,16 +31,20 @@
                     <table class="table table-bordered">
                         <tr>
                             <th>التاريخ</th>
-                            <th>المورد</th>
+                            <th>الجهة</th>
                             <th>نوع الحركة</th>
                             <th>الكمية المحركة</th>
                             <th>البيان</th>
                             <th>المرجع</th>
                         </tr>
                         @foreach ($stock_movments as $move)
+                            @php
+                                $typeName = class_basename($move->related_type);
+                            @endphp
                             <tr>
                                 <td>{{ $move->date }}</td>
-                                <td>{{ $move->supplier->name }}</td>
+x                                @if (auth()->user()->type == 1)
+                                @endif
                                 <td>
                                     @if ($move->type == 'in')
                                         وارد

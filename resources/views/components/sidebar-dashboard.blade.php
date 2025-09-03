@@ -111,13 +111,13 @@
                             <span class="menu-title text-truncate">مستحقاتنا</span>
                         </a>
                     </li>
-                    <li class="nav-item">
-                        <a class="d-flex align-items-center" href="{{ route('warehouse.index') }}">
-                            <i data-feather='credit-card'></i>
-                            <span class="menu-title text-truncate">الخزن</span>
-                        </a>
-                    </li>
                     @if (auth()->user()->type == 1)
+                        <li class="nav-item">
+                            <a class="d-flex align-items-center" href="{{ route('warehouse.index') }}">
+                                <i data-feather='credit-card'></i>
+                                <span class="menu-title text-truncate">الخزن</span>
+                            </a>
+                        </li>
                         <li class="nav-item">
                             <a class="d-flex align-items-center" href="{{ route('wallets.index') }}">
                                 <i data-feather='credit-card'></i>

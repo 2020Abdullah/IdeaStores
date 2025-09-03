@@ -53,6 +53,10 @@ class Supplier extends Model
         return $this->morphMany(Stock_movement::class, 'related');
     }
 
+    public function related(){
+        return $this->morphOne(Stock_movement::class, 'related');
+    }
+
     protected static function booted()
     {
         static::created(function ($Supplier) {
