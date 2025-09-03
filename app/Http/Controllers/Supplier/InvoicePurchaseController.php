@@ -657,6 +657,9 @@ class InvoicePurchaseController extends Controller
     }    
 
     public function show($code){
+        if(auth()->user()->type !== 1){
+            return back()->with('warning', 'غير مسموح لك بالدخول لهذه الصفحة');
+        }
         $invoice = Supplier_invoice::with('supplier')->where('invoice_code', $code)->first();
         $app = App::latest()->first();
         return view('suppliers.invoices.show', compact('invoice', 'app'));

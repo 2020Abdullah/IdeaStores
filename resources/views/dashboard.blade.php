@@ -45,26 +45,28 @@
                 </div>
             </div> 
         </div>
-        <div class="col-md-4">
-            <div class="card">
-                <a href="{{ route('supplier.index') }}">
-                    <div class="card-body">
-                        <h4 class="mb-2">الموردين</h4>
-                        <h3>{{ $suppliersCount }}</h3>
-                    </div>
-                </a>
+        @if (auth()->user()->type == 1)
+            <div class="col-md-4">
+                <div class="card">
+                    <a href="{{ route('supplier.index') }}">
+                        <div class="card-body">
+                            <h4 class="mb-2">الموردين</h4>
+                            <h3>{{ $suppliersCount }}</h3>
+                        </div>
+                    </a>
+                </div>
             </div>
-        </div>
-        <div class="col-md-4">
-            <div class="card">
-                <a href="{{ route('supplier.invoice.index') }}">
-                    <div class="card-body">
-                        <h4 class="mb-2">فواتير الموردين</h4>
-                        <h3>{{ $invoicesCount }}</h3>
-                    </div>
-                </a>
+            <div class="col-md-4">
+                <div class="card">
+                    <a href="{{ route('supplier.invoice.index') }}">
+                        <div class="card-body">
+                            <h4 class="mb-2">فواتير الموردين</h4>
+                            <h3>{{ $invoicesCount }}</h3>
+                        </div>
+                    </a>
+                </div>
             </div>
-        </div>
+        @endif
         <div class="col-md-4">
             <div class="card">
                 <a href="{{ route('customer.index') }}">
@@ -125,16 +127,18 @@
                 </a>
             </div>
         </div>
-        <div class="col-md-4">
-            <div class="card">
-                <a href="{{ route('expenses.items') }}">
-                    <div class="card-body">
-                        <h4 class="mb-2">المصروفات</h4>
-                        <h3>{{ number_format($totalExpenses) }}</h3>
-                    </div>
-                </a>
+        @if (auth()->user()->type == 1)
+            <div class="col-md-4">
+                <div class="card">
+                    <a href="{{ route('expenses.items') }}">
+                        <div class="card-body">
+                            <h4 class="mb-2">المصروفات</h4>
+                            <h3>{{ number_format($totalExpenses) }}</h3>
+                        </div>
+                    </a>
+                </div>
             </div>
-        </div>
+        @endif
     </div>    
 </div>
 @endsection
