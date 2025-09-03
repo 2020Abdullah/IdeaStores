@@ -65,7 +65,7 @@
                 </div>
                 <div class="mb-2">
                     <label class="form-label" for="phone">تاريخ الفاتورة</label>
-                    <input type="date" placeholder="اختر التاريخ" class="form-control dateForm invoice_date @error('invoice_date') is-invalid @enderror" name="invoice_date" required/>
+                    <input type="date" placeholder="تاريخ الفاتورة" class="form-control dateForm invoice_date @error('invoice_date') is-invalid @enderror" name="invoice_date" required/>
                     @error('invoice_date')
                         <div class="alert alert-danger mt-1" role="alert">
                             <h4 class="alert-heading">خطأ</h4>
@@ -212,12 +212,30 @@ $(document).ready(function(){
 
     function calculateTotalCost(){
         let costtotal = 0;
-        $('.costValue').each(function() {
-            let costValue = parseInt($(this).val());
-            costtotal += costValue;
+        let invoiceAmount = 0;
+
+        // إجمالي الفاتورة بدون تكاليف
+        $('tr.product-item').each(function () {
+            let price = parseFloat($(this).find('.total_price').val().replace(/,/g, '')) || 0;
+            invoiceAmount += price;
         });
-        $('#total-cost').val(costtotal);
+
+        $('.cost-item').each(function() {
+            let type = $(this).find('.costType').val();
+            let amount = parseFloat($(this).find('.costValue').val()) || 0;
+
+            if (type === 'percent') {
+                // لو نسبة
+                costtotal += (invoiceAmount * amount / 100);
+            } else {
+                // لو قيمة
+                costtotal += amount;
+            }
+        });
+
+        $('#total-cost').val(formatNumberValue(costtotal));
     }
+
 
     // حساب مجموع هامش الربح للصنف
     function calculateTotalProfit(row){
@@ -274,22 +292,22 @@ $(document).ready(function(){
     function calculateTotalInvoice() {
         let total_amount = 0;
         let all_total = 0;
-        // جمع إجماليات كل صنف
+
+        // جمع إجماليات الأصناف
         $('tr.product-item').each(function () {
             let price = parseFloat($(this).find('.total_price').val().replace(/,/g, '')) || 0;
-            total_amount += price;
             all_total += price;
         });
 
-        // جمع التكلفة الإضافية
-        let additionalCost = parseInt($('.additional_cost').val()) || 0;
-        total_amount += additionalCost;
+        // جمع التكاليف (قيمة أو نسبة)
+        let additionalCost = parseFloat($('#total-cost').val().replace(/,/g, '')) || 0;
+        total_amount = all_total + additionalCost;
 
-        // عرض النتيجة
         $('.total_amount').val(formatNumberValue(total_amount));
         $('.all_total strong').text(formatNumberValue(all_total));
         $('.all_total .total_amount_invoice').val(formatNumberValue(all_total));
     }
+
 
     function formatNumberValue(value) {
         // إزالة الفواصل
@@ -329,8 +347,14 @@ $(document).ready(function(){
                         ${options}
                     </select>
                 </div>
-                <div class="col-md-4 mb-1">
-                    <input type="number" name="costs[${costIndex}][amount]" class="form-control costValue" placeholder="القيمة">
+                <div class="col-md-3 mb-1">
+                    <select name="costs[${costIndex}][type]" class="form-select costType">
+                        <option value="value">قيمة ثابتة</option>
+                        <option value="percent">نسبة %</option>
+                    </select>
+                </div>
+                <div class="col-md-3 mb-1">
+                    <input type="number" name="costs[${costIndex}][amount]" class="form-control costValue" placeholder="ادخل القيمة أو النسبة">
                 </div>
                 <div class="col-md-2 mb-1">
                     <button type="button" class="btn btn-danger remove-cost">حذف</button>

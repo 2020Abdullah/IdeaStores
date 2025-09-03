@@ -44,13 +44,13 @@
             <input type="hidden" value="{{ $invoice->code }}" name="code">
             <div class="card-body">
                 <div class="mb-2">
-                    <label class="form-label" for="name">العميل</label>
+                    <label class="form-label">العميل</label>
                     <input type="hidden" value="{{ $invoice->customer->id }}" name="customer_id">
                     <input type="text" class="form-control" value="{{ $invoice->customer->name }}" readonly>
                 </div>
                 <div class="mb-2">
-                    <label class="form-label" for="phone">تاريخ الفاتورة</label>
-                    <input type="date" class="form-control dateForm @error('date') is-invalid @enderror" value="{{ $invoice->date }}" name="date" />
+                    <label class="form-label">تاريخ الفاتورة</label>
+                    <input type="date" class="form-control invoice_date dateForm @error('date') is-invalid @enderror" value="{{ $invoice->date }}" name="date" />
                     @error('date')
                         <div class="alert alert-danger mt-1" role="alert">
                             <h4 class="alert-heading">خطأ</h4>
@@ -71,23 +71,6 @@
                         <input type="text" class="form-control" value="رصيد افتتاحي" readonly>                        
                     @endif
                 </div>
-                {{-- @if ($invoice->type === 'cash')
-                    <!-- warehouse -->
-                    <div class="cash-options" style="display: none;">
-                        <label>اختر الخزنة:</label>
-                        <div class="d-flex gap-1 mb-1">
-                            @foreach($warehouse_list as $warehouse)
-                                <button type="button" class="btn btn-outline-primary select-warehouse"
-                                    data-warehouse="{{ $warehouse->type }}">
-                                    {{ $warehouse->name }}
-                                </button>
-                            @endforeach
-                        </div>
-                    
-                        <!-- الحقول ستظهر هنا عند اختيار الخزنة -->
-                        <div class="warehouse-fields"></div>
-                    </div>
-                @endif --}}
             
                 @if ($invoice->type === 'opening_balance')
                     <div class="mb-1 opening_balance_container">
@@ -318,8 +301,14 @@ $(function () {
                         ${options}
                     </select>
                 </div>
-                <div class="col-md-4 mb-1">
-                    <input type="number" name="costs[${costIndex}][amount]" class="form-control costValue" placeholder="القيمة">
+                <div class="col-md-3 mb-1">
+                    <select name="costs[${costIndex}][type]" class="form-select costType">
+                        <option value="value">قيمة ثابتة</option>
+                        <option value="percent">نسبة %</option>
+                    </select>
+                </div>
+                <div class="col-md-3 mb-1">
+                    <input type="number" name="costs[${costIndex}][amount]" class="form-control costValue" placeholder="ادخل القيمة أو النسبة">
                 </div>
                 <div class="col-md-2 mb-1">
                     <button type="button" class="btn btn-danger remove-cost">حذف</button>
@@ -490,11 +479,28 @@ $(function () {
 
     function calculateTotalCost(){
         let costtotal = 0;
-        $('.costValue').each(function() {
-            let costValue = parseInt($(this).val());
-            costtotal += costValue;
+        let invoiceAmount = 0;
+
+        // إجمالي الفاتورة بدون تكاليف
+        $('tr.product-item').each(function () {
+            let price = parseFloat($(this).find('.total_price').val().replace(/,/g, '')) || 0;
+            invoiceAmount += price;
         });
-        $('.additional_cost').val(costtotal);
+
+        $('.cost-item').each(function() {
+            let type = $(this).find('.costType').val();
+            let amount = parseFloat($(this).find('.costValue').val()) || 0;
+
+            if (type === 'percent') {
+                // لو نسبة
+                costtotal += (invoiceAmount * amount / 100);
+            } else {
+                // لو قيمة
+                costtotal += amount;
+            }
+        });
+
+        $('#total-cost').val(formatNumberValue(costtotal));
     }
 
     function formatNumberValue(value) {
@@ -569,18 +575,17 @@ $(function () {
     function calculateTotalInvoice() {
         let total_amount = 0;
         let all_total = 0;
-        // جمع إجماليات كل صنف
+
+        // جمع إجماليات الأصناف
         $('tr.product-item').each(function () {
             let price = parseFloat($(this).find('.total_price').val().replace(/,/g, '')) || 0;
-            total_amount += price;
             all_total += price;
         });
 
-        // جمع التكلفة الإضافية
-        let additionalCost = parseInt($('.additional_cost').val()) || 0;
-        total_amount += additionalCost;
+        // جمع التكاليف (قيمة أو نسبة)
+        let additionalCost = parseFloat($('#total-cost').val().replace(/,/g, '')) || 0;
+        total_amount = all_total + additionalCost;
 
-        // عرض النتيجة
         $('.total_amount').val(formatNumberValue(total_amount));
         $('.all_total strong').text(formatNumberValue(all_total));
         $('.all_total .total_amount_invoice').val(formatNumberValue(all_total));
