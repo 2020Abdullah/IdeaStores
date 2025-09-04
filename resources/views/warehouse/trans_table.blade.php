@@ -39,7 +39,7 @@
     <td>{{ $t->description ?? '-' }}</td>
     <td>
         @if ($t->source_code !== null)
-            @if ($typeName === 'Supplier_invoice')
+            @if ($typeName === 'Supplier_invoice' || $typeName === 'Supplier')
                 <a href="{{ route('supplier.invoice.show', $t->source_code) }}">
                     {{ $t->source_code }}
                 </a>
