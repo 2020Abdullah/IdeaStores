@@ -20,29 +20,14 @@ class SettingController extends Controller
 
     public function setting(){
         $app = App::latest()->first();
-        return view('setting.profile', compact('app'));
+        return view('setting.company', compact('app'));
     }
-    public function updateProfile(Request $request){
-        $request->validate([
-            'email' => [
-                'required',
-                'email',
-                Rule::unique('users')->ignore(auth()->id()),
-            ],
-        ], [
-            'email.unique' => 'هذا البريد الإلكتروني مستخدم من قبل، الرجاء استخدام بريد مختلف.',
-            'email.required' => 'حقل البريد الإلكتروني مطلوب.',
-            'email.email' => 'يرجى إدخال بريد إلكتروني صالح.',
-        ]);
 
-        $user = User::where('id', auth()->user()->id)->first();
-        $user->name = $request->name;
-        $user->email = $request->email;
-        if($request->password){
-            $user->password = Hash::make($request->password);
-        }
-        $user->save();
+    public function profile(){
+        return view('setting.profile');
+    }
 
+    public function updateSetting(Request $request){
         $app = App::latest()->first();
 
         $imagePath = '';
@@ -64,6 +49,28 @@ class SettingController extends Controller
             'Tax_number'     => $request->Tax_number,
         ]);
 
+        return back()->with('success', 'تم تحديث البيانات بنجاح');
+    }
+    public function updateProfile(Request $request){
+        $request->validate([
+            'email' => [
+                'required',
+                'email',
+                Rule::unique('users')->ignore(auth()->id()),
+            ],
+        ], [
+            'email.unique' => 'هذا البريد الإلكتروني مستخدم من قبل، الرجاء استخدام بريد مختلف.',
+            'email.required' => 'حقل البريد الإلكتروني مطلوب.',
+            'email.email' => 'يرجى إدخال بريد إلكتروني صالح.',
+        ]);
+
+        $user = User::where('id', auth()->user()->id)->first();
+        $user->name = $request->name;
+        $user->email = $request->email;
+        if($request->password){
+            $user->password = Hash::make($request->password);
+        }
+        $user->save();
         return back()->with('success', 'تم تحديث البيانات بنجاح');
     }
 }

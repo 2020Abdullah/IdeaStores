@@ -120,8 +120,34 @@
                 <hr class="invoice-spacing">
 
                 <div class="invoice_total text-center">
-                    <p class="total">إجمالي الفاتورة: {{ number_format($invoice->total_amount) }} EGP</p>
+                    @if ($invoice->invoice_type !== 'opening_balance')
+                        <p><strong>إجمالي الفاتورة :</strong> {{ number_format($invoice->total_amount) }} EGP</p>
+                
+                        @if($invoice->discount_value > 0)
+                        <p><strong>الخصم :</strong>
+                            @if($invoice->discount_type == 'percent')
+                                {{ number_format($invoice->discount_value) }} %
+                                ({{ number_format($invoice->total_amount * $invoice->discount_value / 100) }} EGP)
+                            @else
+                                {{ number_format($invoice->discount_value) }} EGP
+                            @endif
+                        </p>
+                    
+                        <p><strong>الإجمالي بعد الخصم :</strong>
+                            {{ number_format(
+                                $invoice->discount_type == 'percent' 
+                                    ? $invoice->total_amount - ($invoice->total_amount * $invoice->discount_value / 100) 
+                                    : $invoice->total_amount - $invoice->discount_value
+                            ) }} EGP
+                        </p>
+                    @endif
+                    
+                
+                    @else
+                        <p><strong>إجمالي الرصيد الإفتتاحي :</strong> {{ number_format($invoice->total_amount) }} EGP</p>
+                    @endif
                 </div>
+                
 
                 <hr class="invoice-spacing">
 

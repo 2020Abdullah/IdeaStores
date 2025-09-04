@@ -133,7 +133,7 @@
                     <a href="{{ route('expenses.items') }}">
                         <div class="card-body">
                             <h4 class="mb-2">المصروفات</h4>
-                            <h3>{{ number_format($totalExpenses) }}</h3>
+                            <h3>{{ number_format(-$totalExpenses) }}</h3>
                         </div>
                     </a>
                 </div>

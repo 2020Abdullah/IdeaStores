@@ -149,7 +149,11 @@ Route::group(['middleware' => ['auth', 'CheckAppActive']], function(){
 
     // setting 
     Route::get('setting', [SettingController::class, 'setting'])->name('setting.show');
-    Route::post('Profile/update', [SettingController::class, 'updateProfile'])->name('setting.update');
+    Route::post('setting/update', [SettingController::class, 'updateSetting'])->name('setting.update');
+    
+    // profile 
+    Route::get('profile/view', [SettingController::class, 'profile'])->name('profile.view');
+    Route::post('profile/update', [SettingController::class, 'updateProfile'])->name('profile.update');
 
     // sizes
     Route::get('sizes/index', [SizeController::class, 'index'])->name('size.index');

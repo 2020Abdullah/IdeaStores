@@ -7,6 +7,7 @@
         <th>إجمالي الفاتورة</th>
         <th>المبلغ المدفوع</th>
         <th>حالة الفاتورة</th>
+        <th>تم الإضافة بواسطة</th>
         <th>إجراء</th>
     </tr>
     @foreach ($invoices_list as $inv)
@@ -42,6 +43,7 @@
                     <span class="badge badge-glow bg-success">مدفوعة</span>
                 @endif
             </td>
+            <td>{{ $inv->user->name }}</td>
             <td>
                 <a href="{{ route('customer.invoice.edit', $inv->id) }}"
                     class="btn btn-icon btn-success waves-effect waves-float waves-light editBtn"

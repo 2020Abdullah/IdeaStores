@@ -35,4 +35,9 @@ class CustomerInvoices extends Model
         return $this->morphOne(ExternalDebts::class, 'debtable');
     }
 
+    public function user(){
+        return $this->belongsTo(User::class);
+    }
+
+
 }

@@ -116,11 +116,12 @@
 
                 <div class="invoice_total text-center">
                     @if ($invoice->invoice_type !== 'opening_balance')
-                        <p><strong>إجمالي الفاتورة :</strong> {{ number_format($invoice->total_amount) }} EGP</p>
+                        <p><strong>إجمالي الفاتورة :</strong> {{ number_format($invoice->total_amount) }} EGP</p>     
                     @else
                         <p><strong>إجمالي الرصيد الإفتتاحي :</strong> {{ number_format($invoice->total_amount) }} EGP</p>
                     @endif
                 </div>
+                
 
                 <hr class="invoice-spacing">
 

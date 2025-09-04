@@ -175,6 +175,18 @@
                                 <span class="menu-item text-truncate">عرض الأسعار</span>
                             </a>
                         </li>
+                        <li>
+                            <a class="d-flex align-items-center" href="{{ route('units.index') }}">
+                                <i data-feather='circle'></i>
+                                <span class="menu-item text-truncate">وحدات القياس</span>
+                            </a>
+                        </li>
+                        <li>
+                            <a class="d-flex align-items-center" href="{{ route('size.index') }}">
+                                <i data-feather='circle'></i>
+                                <span class="menu-item text-truncate">المقاسات</span>
+                            </a>
+                        </li>
                     </ul>
                 </li>
                 
@@ -239,31 +251,11 @@
                     </ul>
                 </li>
 
-                <li class="nav-item has-sub">
-                    <a class="d-flex align-items-center" href="#">
+                <li class="nav-item">
+                    <a class="d-flex align-items-center" href="{{ route('setting.show') }}">
                         <i data-feather='settings'></i>
-                        <span class="menu-title text-truncate">الضبط العام</span>
+                        <span class="menu-title text-truncate">إعدادات الشركة</span>
                     </a>
-                    <ul class="menu-content">
-                        <li>
-                            <a class="d-flex align-items-center" href="{{ route('units.index') }}">
-                                <i data-feather='circle'></i>
-                                <span class="menu-item text-truncate">وحدات القياس</span>
-                            </a>
-                        </li>
-                        <li>
-                            <a class="d-flex align-items-center" href="{{ route('size.index') }}">
-                                <i data-feather='circle'></i>
-                                <span class="menu-item text-truncate">المقاسات</span>
-                            </a>
-                        </li>
-                        <li>
-                            <a class="d-flex align-items-center" href="{{ route('setting.show') }}">
-                                <i data-feather='circle'></i>
-                                <span class="menu-item text-truncate">إعدادات الشركة</span>
-                            </a>
-                        </li>
-                    </ul>
                 </li>
 
                 <li class="nav-item">
@@ -273,6 +265,13 @@
                     </a>
                 </li>
             @endif
+
+            <li class="nav-item">
+                <a class="d-flex align-items-center" href="{{ route('profile.view') }}">
+                    <i data-feather='user'></i>
+                    <span class="menu-title text-truncate">الملف الشخصي</span>
+                </a>
+            </li>
 
         </ul>
     </div>

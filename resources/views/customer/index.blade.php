@@ -52,6 +52,7 @@
                 <tr>
                     <th>اسم العميل</th>
                     <th>الرصيد</th>
+                    <th>تم الإضافة بواسطة</th>
                     <th>إجراء</th>
                 </tr>
                 @forelse ($customer_list as $c)
@@ -62,6 +63,7 @@
                             </a>
                         </td>
                         <td>{{ number_format($c->balance ) }}</td>
+                        <td>{{ $c->user->name }}</td>
                         <td>
                             <a href="{{ route('customer.edit', $c->id) }}" class="btn btn-success waves-effect">
                                 <i data-feather='edit'></i>
