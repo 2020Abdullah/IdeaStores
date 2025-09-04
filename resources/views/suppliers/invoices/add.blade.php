@@ -426,11 +426,9 @@ $(function () {
                     </select>
                 </td> 
                 <td>
-                    <select class="select2 SizeSelect" name="items[${index}][size_id]">
-                        <option value="">اختر المقاس</option>
-                    </select>
+                    <input type="number" name="items[${index}][size]" class="form-control size" step="any">
                 </td>
-                <td><input type="text" name="items[${index}][purchase_price]"  class="form-control purchase_price" step="any"></td>
+                <td><input type="text" name="items[${index}][purchase_price]" class="form-control purchase_price" step="any"></td>
                 <td><input type="text" name="items[${index}][pricePerMeter]" value="0"  class="form-control pricePerMeter" step="any" readonly></td>
                 <td><input type="text" name="items[${index}][length]"class="form-control length" value="0" step="any"></td>
                 <td><input type="text" name="items[${index}][quantity]"class="form-control quantity" value="1" step="any"></td>

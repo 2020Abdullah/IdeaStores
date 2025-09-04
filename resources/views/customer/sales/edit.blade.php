@@ -119,7 +119,7 @@
                                                 <input type="text" class="form-control categoryInput" value="{{ $item->category->full_path }}" readonly />
                                             </td>
                                             <td>
-                                                <input type="hidden" name="items[{{$index}}][size_id]" value="{{ $item->size_id ?? ''}}" class="form-control size_id" />
+                                                <input type="hidden" name="items[{{$index}}][size]" value="{{ $item->size ?? ''}}" class="form-control size" />
                                                 <input type="text" class="form-control width" value="{{ $item->size->width ?? 0}}" readonly />
                                             </td>
                                             <td>
@@ -390,7 +390,7 @@ $(function () {
                     <input type="text" class="form-control categoryInput" readonly />
                 </td>
                 <td>
-                    <input type="hidden" name="items[${index}][size_id]" class="form-control size_id" />
+                    <input type="hidden" name="items[${index}][size]" class="form-control size" />
                     <input type="text" class="form-control width" readonly />
                 </td>
                 <td>
@@ -474,7 +474,7 @@ $(function () {
                     row.find('.categoryInput').val(response.data.category.full_path ?? '');
                     row.find('.category_id').val(response.data.category_id);
                     row.find('.width').val(response.data.size?.width ?? 0);
-                    row.find('.size_id').val(response.data.size?.id ?? 0);
+                    row.find('.size').val(response.data.size?.id ?? 0);
                     row.find('.remaining_quantity').val(response.remaining_quantity);
 
                     if(response.data.unit.name === 'سنتيمتر'){

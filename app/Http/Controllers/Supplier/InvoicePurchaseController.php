@@ -104,7 +104,7 @@ class InvoicePurchaseController extends Controller
                     'category_id'         => $item['category_id'],
                     'product_id'          => $item['product_id'],
                     'unit_id'             => $item['unit_id'],
-                    'size_id'             => !empty($item['size_id']) ? $item['size_id'] : null,
+                    'size'             => !empty($item['size']) ? $item['size'] : null,
                     'quantity'            => $item['quantity'],
                     'pricePerMeter'       => $item['pricePerMeter'],
                     'length'              => $item['length'],
@@ -123,7 +123,7 @@ class InvoicePurchaseController extends Controller
                     $stock = new Stock();
                     $stock->category_id   = $item['category_id'];
                     $stock->product_id    = $item['product_id'];
-                    $stock->size_id       = $item['size_id'] ?? null;
+                    $stock->size       = $item['size'] ?? null;
                     $stock->unit_id       = $item['unit_id'];
                     $stock->store_house_id= $main_store->id;
                     $stock->date          = $request->invoice_date;

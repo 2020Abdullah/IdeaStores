@@ -142,18 +142,7 @@
                                                 </select>
                                             </td> 
                                             <td>
-                                                <select class="select2 SizeSelect" name="items[{{$index}}][size_id]" id="size_{{$index}}">
-                                                    <option value="0" 
-                                                        {{ (isset($item) && (is_null($item->size_id) || $item->size_id == 0)) ? 'selected' : '' }}>
-                                                        0
-                                                    </option>
-                                                    @foreach ($sizes as $size)
-                                                        <option value="{{ $size->id }}" 
-                                                            {{ (isset($item) && $item->size_id == $size->id) ? 'selected' : '' }}>
-                                                            {{ $size->width }}
-                                                        </option>
-                                                    @endforeach
-                                                </select>                                                
+                                                <input type="number" name="items[{{$index}}][size]" class="form-control size" value="{{ $item->size }}" step="any">                                              
                                             </td>
 
                                             <td><input type="text" name="items[{{$index}}][purchase_price]" value="{{ $item->purchase_price }}" class="form-control purchase_price" step="any"></td>
@@ -438,17 +427,17 @@ $(function () {
         $('.all_total .total_amount_invoice').val(formatNumberValue(all_total));
     }
 
-    // إلغاء الحقل size_id عند فحص البكر
+    // إلغاء الحقل size عند فحص البكر
     function handleSizeField(row) {
-        const sizeVal = row.find('.SizeSelect').val();
+        const sizeVal = row.find('.size').val();
 
         if (!sizeVal) {
             // مفيش مقاس -> خلي الحقول مقفولة
-            row.find('.SizeSelect').prop('disabled', true).val('');
+            row.find('.size').prop('disabled', true).val('');
             row.find('.length').val(0).prop('readonly', true);
         } else {
             // فيه مقاس -> خلي الحقول مفتوحة
-            row.find('.SizeSelect').prop('disabled', false);
+            row.find('.size').prop('disabled', false);
             row.find('.length').prop('readonly', false);
         }
     }
@@ -518,9 +507,7 @@ $(function () {
                     </select>
                 </td> 
                 <td>
-                    <select class="select2 SizeSelect" name="items[${index}][size_id]">
-                        <option value="">اختر المقاس</option>
-                    </select>
+                    <input type="number" name="items[${index}][size]" class="form-control size" step="any">
                 </td>
                 <td><input type="text" name="items[${index}][purchase_price]" class="form-control purchase_price" step="any"></td>
                 <td><input type="text" name="items[${index}][pricePerMeter]"  value="0"  class="form-control pricePerMeter" step="any" readonly></td>

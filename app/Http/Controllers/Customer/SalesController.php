@@ -492,7 +492,7 @@ class SalesController extends Controller
                     'category_id' => $item['category_id'],
                     'product_id' => $item['product_id'],
                     'unit_name' => $item['unit_name'],
-                    'size_id'   => !empty($item['size_id']) ? $item['size_id'] : null,
+                    'size'   => !empty($item['size']) ? $item['size'] : null,
                     'quantity' => $quantity,
                     'sale_price' => $this->normalizeNumber($item['sale_price']),
                     'total_price' => $this->normalizeNumber($item['total_price']),
