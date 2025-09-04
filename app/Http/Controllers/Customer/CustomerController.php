@@ -35,7 +35,7 @@ class CustomerController extends Controller
     }
 
     public function index(){
-        $customer_list = Customer::where('user_id', $this->user_id)->get();
+        $customer_list = Customer::all();
         return view('customer.index', compact('customer_list'));
     }
 
@@ -44,7 +44,7 @@ class CustomerController extends Controller
     }
 
     public function edit($id){
-        $customer = Customer::where('id', $id)->where('user_id', $this->user_id)->firstOrFail();
+        $customer = Customer::where('id', $id)->firstOrFail();
         return view('customer.edit', compact('customer'));
     }
 
@@ -79,7 +79,6 @@ class CustomerController extends Controller
         DB::beginTransaction();
         try {
             $customer = Customer::where('id', $request->id)
-                                ->where('user_id', $this->user_id)
                                 ->firstOrFail();
 
             $customer->name = $request->name;
@@ -106,11 +105,9 @@ class CustomerController extends Controller
     public function showAccount($id){
         $data['warehouse_list'] = Warehouse::all();
         $data['customer'] = Customer::where('id', $id)
-                                    ->where('user_id', $this->user_id)
                                     ->firstOrFail();
         $data['payments'] = $data['customer']->paymentTransactions()->paginate(100);
         $data['invoices_list'] = CustomerInvoices::where('customer_id', $id)
-                                                ->where('user_id', $this->user_id)
                                                 ->orderBy('date', 'desc')
                                                 ->paginate(100);
         return view('customer.Account', $data);
@@ -123,15 +120,12 @@ class CustomerController extends Controller
                             ->firstOrFail();
 
         $invoices = CustomerInvoices::where('customer_id', $request->customer_id)
-                                    ->where('user_id', $this->user_id)
                                     ->latest()
                                     ->get();
 
         $firstInvoice = CustomerInvoices::where('customer_id', $request->customer_id)
-                                        ->where('user_id', $this->user_id)
                                         ->first();
         $lastInvoice = CustomerInvoices::where('customer_id', $request->customer_id)
-                                       ->where('user_id', $this->user_id)
                                        ->latest()
                                        ->first();
 

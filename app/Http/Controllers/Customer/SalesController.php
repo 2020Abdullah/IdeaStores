@@ -39,7 +39,6 @@ class SalesController extends Controller
 
     public function index(){
         $data['invoices_list'] = CustomerInvoices::orderBy('date', 'desc')
-        ->where('user_id', $this->user_id)
         ->paginate(100);
         return view('customer.sales.index', $data);
     }
@@ -49,9 +48,9 @@ class SalesController extends Controller
             $data['customer'] = Customer::findOrFail($id);
         }
         else {
-            $data['customer_list'] = Customer::where('user_id', $this->user_id)->get();
+            $data['customer_list'] = Customer::all();
         }
-        $data['stock_category'] = Stock::where('user_id', $this->user_id)->with('category')->get();
+        $data['stock_category'] = Stock::with('category')->get();
         $data['exponse_list'] = ExponseItem::where('is_profit', 0)->get();
         $data['wallets'] = Wallet::all();
         return view('customer.sales.add', $data);
@@ -64,7 +63,7 @@ class SalesController extends Controller
         $data['exponse_list'] = ExponseItem::where('is_profit', 0)->get();
         // جلب الكمية المتاحة لكل منتج من جدول الحركات
         foreach ($data['invoice']->items as $item) {
-            $item->stock = Stock::where('user_id', $this->user_id)->where('category_id', $item->category_id)->where('product_id', $item->product_id)->first();
+            $item->stock = Stock::where('category_id', $item->category_id)->where('product_id', $item->product_id)->first();
         }
         return view('customer.sales.edit', $data);
     }
@@ -696,7 +695,7 @@ class SalesController extends Controller
     }  
 
     public function filter(Request $request){
-        $query = CustomerInvoices::query()->where('user_id', $this->user_id);
+        $query = CustomerInvoices::query();
 
         if ($request->filled('searchText')) {
             $searchText = $request->searchText;
@@ -724,7 +723,7 @@ class SalesController extends Controller
     public function filterByCustomer(Request $request)
     {
         $query = CustomerInvoices::query()
-            ->where('customer_id', $request->customer_id)->where('user_id', $this->user_id); // شرط العميل ثابت
+            ->where('customer_id', $request->customer_id); // شرط العميل ثابت
     
         if ($request->filled('searchCode')) {
             $query->where('code', $request->searchCode);
@@ -774,7 +773,7 @@ class SalesController extends Controller
         DB::beginTransaction();
         try {
             $invoice = CustomerInvoices::findOrFail($request->id);
-            $customer = Customer::where('user_id', $this->user_id)->findOrFail($request->customer_id);
+            $customer = Customer::findOrFail($request->customer_id);
     
             if ($invoice->dues()->exists()) {
                 // فاتورة آجل: حذف المستحقات فقط
@@ -812,7 +811,7 @@ class SalesController extends Controller
     }
 
     public function returnedInvoices(){
-        $invoices_list = CustomerInvoices::onlyTrashed()->where('user_id', $this->user_id)->orderBy('deleted_at', 'desc')->paginate(100);
+        $invoices_list = CustomerInvoices::onlyTrashed()->orderBy('deleted_at', 'desc')->paginate(100);
         return view('customer.sales.returned', compact('invoices_list'));
     }
 
