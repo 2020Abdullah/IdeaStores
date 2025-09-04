@@ -39,5 +39,9 @@ class CustomerInvoices extends Model
         return $this->belongsTo(User::class);
     }
 
+    public function related()
+    {
+        return $this->morphOne(Account_transactions::class, 'related');
+    }
 
 }
