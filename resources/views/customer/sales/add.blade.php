@@ -282,6 +282,7 @@ $(document).ready(function(){
 
     $(document).on('input', '.discount_value', function(){
         calculateTotalInvoice();
+        calculateTotalProfitInvoice();
     })
 
 

@@ -640,6 +640,7 @@ $(function () {
 
     $(document).on('input', '.discount_value', function(){
         calculateTotalInvoice();
+        calculateTotalProfitInvoice();
     })
 
     // حساب إجمالي الفاتورة
