@@ -233,7 +233,7 @@ class InvoicePurchaseController extends Controller
             DB::commit();
     
             return redirect()->route('supplier.account.show', $supplier->id)
-                ->with('success', 'تم إنشاء الفاتورة وتحديث الرصيد بنجاح.');
+                ->with('success', 'تم إنشاء الفاتورة بنجاح.');
     
         } catch (\Exception $e) {
             DB::rollBack();
@@ -426,7 +426,7 @@ class InvoicePurchaseController extends Controller
     
             DB::commit();
             return redirect()->route('supplier.index')
-                ->with('success', 'تم عمل رصيد افتتاحي للمورد وتحديث حالات الدفع والرصيد بنجاح');
+                ->with('success', 'تم عمل رصيد افتتاحي للمورد');
         } catch (\Exception $e) {
             DB::rollBack();
             return redirect()->back()->with('error', 'حدث خطأ: ' . $e->getMessage());
@@ -570,7 +570,7 @@ class InvoicePurchaseController extends Controller
             $this->updateStock($request, $invoice);
 
             DB::commit();
-            return redirect()->route('supplier.index')->with('success', 'تم تعديل الفاتورة وتحديث حالات الدفع والرصيد بنجاح.');
+            return redirect()->route('supplier.index')->with('success', 'تم تحديث الفاتورة بنجاح.');
 
         } catch (Exception $e) {
             DB::rollBack();
@@ -623,7 +623,7 @@ class InvoicePurchaseController extends Controller
             $this->updateStock($request, $invoice);
     
             DB::commit();
-            return redirect()->route('supplier.index')->with('success', 'تم تعديل فاتورة المورد الكاش بنجاح');
+            return redirect()->route('supplier.index')->with('success', 'تم تحديث فاتورة المورد بنجاح');
         } catch (\Exception $e) {
             DB::rollBack();
             return redirect()->back()->with('error', 'حدث خطأ: ' . $e->getMessage());

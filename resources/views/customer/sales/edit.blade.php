@@ -50,7 +50,7 @@
                 </div>
                 <div class="mb-2">
                     <label class="form-label">تاريخ الفاتورة</label>
-                    <input type="date" class="form-control invoice_date dateForm @error('date') is-invalid @enderror" value="{{ $invoice->date }}" name="date" />
+                    <input type="date" class="form-control date dateForm @error('date') is-invalid @enderror" value="{{ $invoice->date }}" name="date" />
                     @error('date')
                         <div class="alert alert-danger mt-1" role="alert">
                             <h4 class="alert-heading">خطأ</h4>
@@ -209,13 +209,36 @@
                         <input type="text" class="form-control additional_cost"  name="additional_cost" value="{{ $invoice->cost_price }}" readonly>
                     </div>
                     <div class="mb-2">
-                        <label class="form-label">إجمالي الفاتورة شامل سعر التكلفة</label>
+                        <label class="form-label">إجمالي الفاتورة بعد خصم سعر التكلفة والخصم إن وجد</label>
                         <input type="hidden" class="form-control" name="total_amount_old" value="{{ $invoice->total_amount }}">
                         <input type="text" class="form-control total_amount"  name="total_amount" value="{{ number_format($invoice->total_amount) }}" readonly>
                     </div>
                     <div class="mb-2">
                         <label class="form-label">صافي الربح</label>
                         <input type="text" class="form-control total_profit_inv" value="{{ number_format($invoice->items->sum('total_profit')) }}" name="total_profit_inv" readonly>
+                    </div>
+
+                    <div class="mb-2">
+                        <label class="form-label">تطبيق خصم على الفاتورة؟</label>
+                        <select id="apply_discount" class="form-select">
+                            <option value="no" {{ $invoice->discount_type === null ? 'selected' : '' }}>لا</option>
+                            <option value="yes" {{ $invoice->discount_type !== null ? 'selected' : '' }}>نعم</option>
+                        </select>
+                    </div>
+                    
+                    <div id="discount_fields" style="{{ $invoice->discount_type === null ? 'display:none;' : '' }}">
+                        <div class="mb-2">
+                            <label class="form-label">نوع الخصم</label>
+                            <select name="discount_type" class="form-select">
+                                <option value="percent" {{ $invoice->discount_type === 'percent' ? 'selected' : '' }}>نسبة مئوية %</option>
+                                <option value="value" {{ $invoice->discount_type === 'value' ? 'selected' : '' }}>قيمة ثابتة</option>
+                            </select>
+                        </div>
+                        <div class="mb-2">
+                            <label class="form-label">قيمة الخصم</label>
+                            <input type="number" name="discount_value" class="form-control discount_value" 
+                                   value="{{ $invoice->discount_value ?? 0 }}">
+                        </div>
                     </div>
                 @endif
                 <div class="mb-2">
@@ -270,6 +293,22 @@ $(function () {
     $('.product-item .select2').select2({
         dir: "rtl",
         width: '200px'
+    });
+
+    // السماح بالأرقام فقط (مع النقطة العشرية) على الحقول المطلوبة
+    $(document).on('input', '.quantity, .sale_price', function() {
+        let value = $(this).val();
+
+        // إزالة أي حرف غير الأرقام أو النقطة
+        value = value.replace(/[^0-9.]/g, '');
+
+        // التأكد من وجود نقطة واحدة فقط
+        const parts = value.split('.');
+        if (parts.length > 2) {
+            value = parts[0] + '.' + parts[1];
+        }
+
+        $(this).val(value);
     });
 
 
@@ -571,6 +610,21 @@ $(function () {
         }
     }
 
+    // إظهار أو إخفاء حقول الخصم حسب الاختيار
+    $('#apply_discount').on('change', function() {
+        if ($(this).val() === 'yes') {
+            $('#discount_fields').slideDown();
+        } else {
+            $('#discount_fields').slideUp();
+            $('#discount_fields').find('input, select').val(''); // مسح القيم
+            calculateTotalInvoice(); // إعادة الحساب بدون الخصم
+        }
+    });
+
+    $(document).on('input', '.discount_value', function(){
+        calculateTotalInvoice();
+    })
+
     // حساب إجمالي الفاتورة
     function calculateTotalInvoice() {
         let total_amount = 0;
@@ -583,9 +637,22 @@ $(function () {
         });
 
         // جمع التكاليف (قيمة أو نسبة)
-        let additionalCost = parseFloat($('#total-cost').val().replace(/,/g, '')) || 0;
-        total_amount = all_total + additionalCost;
+        let additionalCost = parseFloat($('#total-cost').val()) || 0;
+        total_amount = all_total - additionalCost;
 
+        // تطبيق الخصم
+        let discountType = $('select[name="discount_type"]').val();
+        let discountValue = parseFloat($('input[name="discount_value"]').val()) || 0;
+
+        if ($('#apply_discount').val() === 'yes') {
+            if (discountType === 'percent') {
+                total_amount -= total_amount * (discountValue / 100);
+            } else {
+                total_amount -= discountValue;
+            }
+        }
+
+        // تحديث الحقول
         $('.total_amount').val(formatNumberValue(total_amount));
         $('.all_total strong').text(formatNumberValue(all_total));
         $('.all_total .total_amount_invoice').val(formatNumberValue(all_total));

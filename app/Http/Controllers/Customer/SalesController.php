@@ -125,6 +125,8 @@ class SalesController extends Controller
             $invoice->total_amount = $this->normalizeNumber($request->total_amount_invoice);
             $invoice->notes = $request->notes;
             $invoice->cost_price = $request->additional_cost;
+            $invoice->discount_type = $request->discount_type;
+            $invoice->discount_value = $request->discount_value;
             $invoice->save();
 
             // 2. تحديث الإستوك
@@ -164,6 +166,8 @@ class SalesController extends Controller
                 'total_profit' => $total_profit_inv,
                 'cost_price' => $request->additional_cost,
                 'notes' => $request->notes ?? '',
+                'discount_type' => $request->discount_type ?? '',
+                'discount_value' => $request->discount_value,
             ]);
 
 
@@ -184,7 +188,7 @@ class SalesController extends Controller
 
             DB::commit();
             return redirect()->route('customer.account.show', $request->customer_id)
-                ->with('success', 'تم تعديل الفاتورة بنجاح.');
+                ->with('success', 'تم تحديث الفاتورة بنجاح.');
         }
         catch(Exception $e){
             DB::rollBack();
@@ -352,6 +356,8 @@ class SalesController extends Controller
                 'paid_amount' => 0,
                 'staute' => 0, 
                 'notes' => $request->notes,
+                'discount_type' => $request->discount_type,
+                'discount_value' => $request->discount_value,
                 'user_id' => $this->user_id,
             ]);
 
@@ -394,6 +400,8 @@ class SalesController extends Controller
                 'paid_amount' => $total_amount_invoice,
                 'staute' => 1, 
                 'notes' => $request->notes,
+                'discount_type' => $request->discount_type,
+                'discount_value' => $request->discount_value,
                 'user_id' => $this->user_id,
             ]);
 

@@ -65,8 +65,8 @@
                 </div>
                 <div class="mb-2">
                     <label class="form-label" for="phone">تاريخ الفاتورة</label>
-                    <input type="date" placeholder="تاريخ الفاتورة" class="form-control dateForm invoice_date @error('invoice_date') is-invalid @enderror" name="invoice_date" required/>
-                    @error('invoice_date')
+                    <input type="date" placeholder="تاريخ الفاتورة" class="form-control dateForm date @error('date') is-invalid @enderror" name="date" required/>
+                    @error('date')
                         <div class="alert alert-danger mt-1" role="alert">
                             <h4 class="alert-heading">خطأ</h4>
                             <div class="alert-body">
@@ -157,13 +157,36 @@
                     <input type="text" id="total-cost" class="form-control additional_cost" value="0" name="additional_cost" readonly>
                 </div>
                 <div class="mb-2">
-                    <label class="form-label">إجمالي الفاتورة شامل سعر التكلفة</label>
+                    <label class="form-label">إجمالي الفاتورة بعد خصم سعر التكلفة والخصم إن وجد</label>
                     <input type="text" class="form-control total_amount" value="0" name="total_amount" readonly>
                 </div>
                 <div class="mb-2">
                     <label class="form-label">صافي الربح</label>
                     <input type="text" class="form-control total_profit_inv" value="0" name="total_profit_inv" readonly>
                 </div>
+
+                <div class="mb-2">
+                    <label class="form-label">تطبيق خصم على الفاتورة؟</label>
+                    <select id="apply_discount" class="form-select">
+                        <option value="no">لا</option>
+                        <option value="yes">نعم</option>
+                    </select>
+                </div>
+                
+                <div id="discount_fields" style="display:none;">
+                    <div class="mb-2">
+                        <label class="form-label">نوع الخصم</label>
+                        <select name="discount_type" class="form-select">
+                            <option value="percent">نسبة مئوية %</option>
+                            <option value="value">قيمة ثابتة</option>
+                        </select>
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label">قيمة الخصم</label>
+                        <input type="number" name="discount_value" class="form-control discount_value" value="0">
+                    </div>
+                </div>                
+
                 <div class="mb-2">
                     <label class="form-label">ملاحظات (اختيارى)</label>
                     <textarea class="form-control" cols="5" rows="5" name="notes"></textarea>
@@ -195,13 +218,23 @@ $(document).ready(function(){
     });
 
     // عند تغيير حقول الإدخال 
-    $(document).on('input', '.quantity, .sale_price, .profit', function(){
+    $(document).on('input', '.sale_price', function(){
         let row = $(this).closest('tr');
         calculateTotalPrice(row);
         calculateTotalProfit(row);
         calculateTotalInvoice();
         calculateTotalProfitInvoice();
     })
+
+    // عند إدخال كمية
+    $(document).on('input', '.quantity', function(){
+        let row = $(this).closest('tr');
+        calculateTotalPrice(row);
+        calculateTotalProfit(row);
+        calculateTotalInvoice();
+        calculateTotalProfitInvoice();
+    });
+
 
     // حساب التكلفة ووضع الإجمالي
     $(document).on('input', '.costValue', function () {
@@ -235,6 +268,21 @@ $(document).ready(function(){
 
         $('#total-cost').val(formatNumberValue(costtotal));
     }
+
+    // إظهار أو إخفاء حقول الخصم حسب الاختيار
+    $('#apply_discount').on('change', function() {
+        if ($(this).val() === 'yes') {
+            $('#discount_fields').slideDown();
+        } else {
+            $('#discount_fields').slideUp();
+            $('#discount_fields').find('input, select').val(''); // مسح القيم
+            calculateTotalInvoice(); // إعادة الحساب بدون الخصم
+        }
+    });
+
+    $(document).on('input', '.discount_value', function(){
+        calculateTotalInvoice();
+    })
 
 
     // حساب مجموع هامش الربح للصنف
@@ -273,19 +321,20 @@ $(document).ready(function(){
     }
 
     // حساب الإجمالي للصنف
-    function calculateTotalPrice(row){
-        let total_price = 0;
+    function calculateTotalPrice(row) {
         let remaining_quantity = parseFloat(row.find('.remaining_quantity').val()) || 0;
         let quantity = parseFloat(row.find('.quantity').val()) || 0;
-        let sale_price = parseFloat(row.find('.sale_price').val()) || 0;
-        if(quantity <= remaining_quantity){
-            total_price = sale_price * quantity;
-            row.find('.total_price').val(formatNumberValue(total_price));
-        }
-        else {
+
+        let sale_price = parseFloat(row.find('input.sale_price').val()) || 0;
+
+        if (quantity > remaining_quantity) {
             toastr.info('الكمية أكبر من المسموح بها');
-            row.find('.quantity').val(remaining_quantity)
+            quantity = remaining_quantity;
+            row.find('.quantity').val(quantity);
         }
+
+        let total_price = sale_price * quantity;
+        row.find('.total_price').val(formatNumberValue(total_price));
     }
 
     // حساب إجمالي الفاتورة
@@ -301,8 +350,21 @@ $(document).ready(function(){
 
         // جمع التكاليف (قيمة أو نسبة)
         let additionalCost = parseFloat($('#total-cost').val().replace(/,/g, '')) || 0;
-        total_amount = all_total + additionalCost;
+        total_amount = all_total - additionalCost;
 
+        // تطبيق الخصم
+        let discountType = $('select[name="discount_type"]').val();
+        let discountValue = parseFloat($('input[name="discount_value"]').val()) || 0;
+
+        if ($('#apply_discount').val() === 'yes') {
+            if (discountType === 'percent') {
+                total_amount -= total_amount * (discountValue / 100);
+            } else {
+                total_amount -= discountValue;
+            }
+        }
+
+        // تحديث الحقول
         $('.total_amount').val(formatNumberValue(total_amount));
         $('.all_total strong').text(formatNumberValue(all_total));
         $('.all_total .total_amount_invoice').val(formatNumberValue(all_total));
@@ -368,6 +430,22 @@ $(document).ready(function(){
             dir: "rtl",
             width: '100%'
         });
+    });
+
+    // السماح بالأرقام فقط (مع النقطة العشرية) على الحقول المطلوبة
+    $(document).on('input', '.quantity, .sale_price', function() {
+        let value = $(this).val();
+
+        // إزالة أي حرف غير الأرقام أو النقطة
+        value = value.replace(/[^0-9.]/g, '');
+
+        // التأكد من وجود نقطة واحدة فقط
+        const parts = value.split('.');
+        if (parts.length > 2) {
+            value = parts[0] + '.' + parts[1];
+        }
+
+        $(this).val(value);
     });
 
     // حذف التكلفة
@@ -472,7 +550,6 @@ $(document).ready(function(){
                     _token: $('meta[name="csrf-token"]').attr('content') // تأكد من وجود الميتا في <head>
                 },
                 success: function (response) {
-                    console.log(response);
                     if (response.status && response.data) {
                         row.find('.stock_id').val(response.data.id);
                         row.find('.categoryInput').val(response.data.category.full_path ?? '');
@@ -491,9 +568,7 @@ $(document).ready(function(){
                         row.find('.price_unit_cost').val(
                             formatNumberValue(response.cost)
                         );
-                        row.find('.sale_price').val(
-                            formatNumberValue(response.cost)
-                        );
+
                     } else {
                         row.find('.categoryInput').val('لم يتم العثور على بيانات');
                     }
@@ -524,12 +599,14 @@ $(document).ready(function(){
         if(invoice_type === 'cash'){
             $(".addItems").attr('disabled', false);
             $("#add-cost").attr('disabled', false);
+            $("#apply_discount").attr('disabled', false);
             $('.cash-options').show();
             $(".opening_balance_container").hide(500);
         }
         else if(invoice_type === 'credit') {
             $(".addItems").attr('disabled', false);
             $("#add-cost").attr('disabled', false);
+            $("#apply_discount").attr('disabled', false);
             $(".opening_balance_container").hide(500);
             $('.cash-options').hide();
             $('.warehouse-fields').empty();
@@ -538,6 +615,9 @@ $(document).ready(function(){
         else {
             $(".addItems").attr('disabled', true);
             $("#add-cost").attr('disabled', true);
+            $("#apply_discount").attr('disabled', true);
+            $("#apply_discount").val('');
+            $("#discount_fields").hide(500);
             $(".opening_balance_container").show(500);
             $(".warehouse_list").hide(500);
             $('.table-items tbody').empty();
@@ -636,7 +716,7 @@ $(document).ready(function(){
         let invoice_type = $(this).find('option:selected').val();
 
         if(invoice_type != 'opening_balance'){
-            let invoice_date = $(".invoice_date").val();
+            let invoice_date = $(".date").val();
             let customer_id = $(".customer_id").val();
             if(!invoice_date){
                 toastr.info('يجب ملئ حقل التاريخ');

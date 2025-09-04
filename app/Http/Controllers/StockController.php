@@ -82,6 +82,8 @@ class StockController extends Controller
                 // جلب التكلفة من جدول التكاليف
                 $lastCost = InvoiceProductCost::where('source_code', $in->source_code)
                     ->value('cost_share') ?? 0;
+                $lastSale = InvoiceProductCost::where('source_code', $in->source_code)
+                    ->value('suggested_price');
                 break; // أول شحنة نلاقيها فيها رصيد = هي اللي نوقف عندها
             }
         }
@@ -90,6 +92,7 @@ class StockController extends Controller
             'status' => true,
             'data' => $stock,
             'cost' => $lastCost,
+            'suggested_price' => $lastSale,
             'remaining_quantity' => $remaining_quantity
         ]);
     }

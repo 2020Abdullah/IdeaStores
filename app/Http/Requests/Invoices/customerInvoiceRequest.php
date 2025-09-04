@@ -23,7 +23,7 @@ class customerInvoiceRequest extends FormRequest
     {
         $rules = [
             'customer_id' => 'required',
-            'invoice_date' => 'required|date',
+            'date' => 'required|date',
             'invoice_type' => 'required',
             'notes' => ['nullable', 'string'],
         ];
@@ -32,7 +32,11 @@ class customerInvoiceRequest extends FormRequest
             $rules['items'] = ['required', 'array', 'min:1'];
             $rules['items.*.category_id'] = ['required', 'exists:categories,id'];
             $rules['items.*.quantity'] = ['required', 'numeric', 'min:1'];
-            $rules['items.*.sale_price'] = ['required', 'numeric', 'min:0'];
+            $rules['items.*.sale_price'] = [
+                'required',
+                'regex:/^\d+([.,]\d+)?$/', 
+                'min:0'
+            ];
         }
         return $rules;
     }
@@ -41,7 +45,7 @@ class customerInvoiceRequest extends FormRequest
     {
         return [
             'customer_id.required' => 'يجب اختيار العميل !',
-            'invoice_date.required' => 'يجب كتابة تاريخ الفاتورة !',
+            'date.required' => 'يجب كتابة تاريخ الفاتورة !',
             'invoice_type.required' => 'يجب اختيار نوع الفاتورة !',
             'items.required' => 'يجب إضافة أصناف إلى الفاتورة.',
             'items.min' => 'يجب أن تحتوي الفاتورة على صنف واحد على الأقل.',
@@ -55,9 +59,10 @@ class customerInvoiceRequest extends FormRequest
             'items.*.quantity.min' => 'يجب أن تكون الكمية على الأقل 1.',
 
             // sale_price
-            'items.*.sale_price.required' => 'يجب إدخال سعر الشراء لكل صنف.',
-            'items.*.sale_price.numeric' => 'سعر الشراء يجب أن يكون رقمًا.',
-            'items.*.sale_price.min' => 'سعر الشراء لا يمكن أن يكون سالبًا.',
+            'items.*.sale_price.required' => 'يجب إدخال سعر البيع لكل صنف.',
+            'items.*.sale_price.numeric' => 'سعر البيع يجب أن يكون رقمًا.',
+            'items.*.sale_price.regex' => 'سعر البيع يجب أن يكون رقمًا ويمكن أن يحتوي على فاصلة عشرية.',
+            'items.*.sale_price.min' => 'سعر البيع لا يمكن أن يكون سالبًا.',
 
             // notes
             'items.*.notes.string' => 'الملاحظات يجب أن تكون نصًا.',
