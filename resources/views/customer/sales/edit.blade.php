@@ -586,12 +586,29 @@ $(function () {
     // حساب مجموع هامش الربح للفاتورة بالكامل
     function calculateTotalProfitInvoice(){
         let total_profit_inv = 0;
-        let additionalCost = parseInt($('.additional_cost').val()) || 0;
+        let additionalCost = parseFloat($('.additional_cost').val().replace(/,/g, '')) || 0;
+        
         $('tr.product-item').each(function () {
-            let total_profit = parseFloat($(this).find('.total_profit').val().replace(/,/g, ''));
-            total_profit_inv += total_profit;
+            let row_profit = parseFloat($(this).find('.total_profit').val().replace(/,/g, '')) || 0;
+            total_profit_inv += row_profit;
         });
-        $('.total_profit_inv').val(formatNumberValue(total_profit_inv - additionalCost));
+
+        // خصم الفاتورة إذا تم تفعيله
+        if ($('#apply_discount').val() === 'yes') {
+            let discountType = $('select[name="discount_type"]').val();
+            let discountValue = parseFloat($('input[name="discount_value"]').val()) || 0;
+
+            if (discountType === 'percent') {
+                total_profit_inv -= total_profit_inv * (discountValue / 100);
+            } else {
+                total_profit_inv -= discountValue;
+            }
+        }
+
+        // خصم التكاليف الإضافية
+        total_profit_inv -= additionalCost;
+
+        $('.total_profit_inv').val(formatNumberValue(total_profit_inv));
     }
 
     // حساب الإجمالي للصنف
