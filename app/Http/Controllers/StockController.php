@@ -57,14 +57,15 @@ class StockController extends Controller
         // إجمالي الكمية المتبقية
         $remaining_quantity = $stock->movements()->sum('quantity');
     
-        // هات كل الشحنات in لهذا المخزون بالترتيب التنازلي
+        // بيع تنازلي
         $shipments = $stock->movements()
             ->where('type', 'in')
-            ->orderByDesc('id')
+            ->orderBy('id', 'asc') 
             ->get();
     
         $lastCost = 0;
-    
+        $lastSale = 0;
+
         foreach ($shipments as $in) {
             // إجمالي الكمية الواردة
             $inQty = $in->quantity;
