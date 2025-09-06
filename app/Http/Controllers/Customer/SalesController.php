@@ -318,7 +318,7 @@ class SalesController extends Controller
             $invoice = CustomerInvoices::create([
                 'customer_id' => $request->customer_id,
                 'code' => $this->generateNum(),
-                'date' => $request->invoice_date,
+                'date' => $request->date,
                 'type' => $request->invoice_type,
                 'staute' => 0, 
                 'total_amount' => $total_amount_invoice,
@@ -347,7 +347,7 @@ class SalesController extends Controller
             $invoice = CustomerInvoices::create([
                 'customer_id' => $request->customer_id,
                 'code' => $this->generateNum(),
-                'date' => $request->invoice_date,
+                'date' => $request->date,
                 'type' => $request->invoice_type,
                 'total_amount' => $total_amount_invoice,
                 'total_profit' => $total_profit_inv,
@@ -391,7 +391,7 @@ class SalesController extends Controller
             $invoice = CustomerInvoices::create([
                 'customer_id' => $request->customer_id,
                 'code' => $this->generateNum(),
-                'date' => $request->invoice_date,
+                'date' => $request->date,
                 'type' => $request->invoice_type,
                 'total_amount' => $total_amount_invoice,
                 'total_profit' => $total_profit_inv,

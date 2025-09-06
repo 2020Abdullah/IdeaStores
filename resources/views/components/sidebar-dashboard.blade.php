@@ -181,12 +181,6 @@
                                 <span class="menu-item text-truncate">وحدات القياس</span>
                             </a>
                         </li>
-                        <li>
-                            <a class="d-flex align-items-center" href="{{ route('size.index') }}">
-                                <i data-feather='circle'></i>
-                                <span class="menu-item text-truncate">المقاسات</span>
-                            </a>
-                        </li>
                     </ul>
                 </li>
                 

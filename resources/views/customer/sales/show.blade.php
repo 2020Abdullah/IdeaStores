@@ -64,7 +64,17 @@
                                         @forelse ($nonProfitCosts as $cost)
                                             <tr>
                                                 <td>{{ $cost->expenseItem->name }}</td>
-                                                <td>{{ number_format($cost->amount) }} EGP</td>
+                                                <td>
+                                                    @if ($invoice->discount_type !== null)
+                                                        @if($invoice->discount_type == 'percent')
+                                                            {{ number_format($invoice->total_amount * $invoice->discount_value / 100) }} EGP
+                                                        @else
+                                                            {{ number_format($invoice->discount_value) }} EGP
+                                                        @endif
+                                                    @else 
+                                                        {{ number_format($invoice->amount) }} EGP
+                                                    @endif
+                                                </td>
                                             </tr>
                                         @empty
                                             <tr>

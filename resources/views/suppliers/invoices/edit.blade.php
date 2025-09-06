@@ -158,7 +158,7 @@
 
                                             <td><input type="text" name="items[{{$index}}][quantity]"class="form-control quantity" value="{{ $item->quantity }}" step="any"></td>
 
-                                            <td><input type="text" name="items[{{$index}}][total_price]" value="{{ $item->total_price }}" class="form-control total_price" step="any" readonly></td>
+                                            <td><input type="text" name="items[{{$index}}][total_price]" value="{{ number_format($item->total_price) }}" class="form-control total_price" step="any" readonly></td>
 
                                             <td>
                                                 <button type="button" class="btn btn-danger btn-sm remove-row">
@@ -324,7 +324,7 @@ $(function () {
         calculateTotalInvoice();
     });
 
-    $(document).on('input', '.additional_cost, .unitSelect, .quantity, .length ,.purchase_price, .SizeSelect', function () {
+    $(document).on('input', '.additional_cost, .unitSelect, .quantity, .length ,.purchase_price, .size', function () {
         let row = $(this).closest('tr');
         calculateTotalPerMM(row);
         calculateTotalPrice(row);
@@ -376,7 +376,7 @@ $(function () {
         let quantity = parseFloat(row.find('.quantity').val()) || 0;
         let length = parseFloat(row.find('.length').val()) || 0;
         let purchase_price = parseFloat(row.find('.purchase_price').val()) || 0;
-        let size = parseFloat(row.find('.SizeSelect option:selected').text()) || 0;
+        let size = parseFloat(row.find('.size').val()) || 0;
 
         if(symbol === 'سنتيمتر'){
             pricePerMM = size * purchase_price;
@@ -446,7 +446,7 @@ $(function () {
         handleSizeField($(this));
     });
 
-    $(document).on('change', '.SizeSelect', function () {
+    $(document).on('change', '.size', function () {
         const row = $(this).closest('tr');
         handleSizeField(row);
     });
@@ -554,18 +554,6 @@ $(function () {
             }
         });
 
-        // جلب المقاسات
-        $.get('{{ route("getSizes") }}', function(response) {
-            lastSizeSelect = $(".SizeSelect").last();
-            if (response.status) {
-                lastSizeSelect.empty().append(`<option value="">اختر المقاس</option>`);
-                response.data.forEach(item => {
-                    lastSizeSelect.append(`<option value="${item.id}" data-width="${item.width}">${item.width}</option>`);
-                });
-            } else {
-                lastSizeSelect.html('<option>حدث خطأ في جلب المقاسات</option>');
-            }
-        });
 
         $('.table-responsive tbody .select2').select2({
             dir: "rtl",
@@ -647,6 +635,24 @@ $(function () {
             if (!isValid) {
                 toastr.info(message);
                 return;
+            }
+
+            // تحقق من وجود تكاليف
+            if ($('.cost-item').length > 0) {
+                let hasEmptyCost = false;
+
+                $('.cost-item').each(function() {
+                    let val = parseFloat($(this).find('.costValue').val()) || 0;
+                    if (val <= 0) {
+                        hasEmptyCost = true;
+                        return false; // يوقف اللوب
+                    }
+                });
+
+                if (hasEmptyCost) {
+                    toastr.info("يجب إدخال قيمة صحيحة لكل بند تكلفة قبل حفظ الفاتورة.");
+                    return;
+                }
             }
         }
 

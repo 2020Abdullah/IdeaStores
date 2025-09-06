@@ -164,7 +164,7 @@
                 </div>
                 <div class="mb-2">
                     <label class="form-label">مجموع التكاليف</label>
-                    <input type="text" id="total-cost" class="form-control additional_cost" value="0" name="additional_cost" readonly>
+                    <input type="text" class="form-control additional_cost" value="0" name="additional_cost" readonly>
                 </div>
                 <div class="mb-2">
                     <label class="form-label">إجمالي الفاتورة شامل سعر التكلفة</label>
@@ -244,7 +244,7 @@ $(function () {
 
         $('#costs-wrapper').append(newCost);
         costIndex++;
-        $('.select2').select2({
+        $('.cost-select').select2({
             dir: "rtl",
             width: '100%'
         });
@@ -268,10 +268,10 @@ $(function () {
         // تحقق إذا يحتوي على كلمة "بكر"
         if (categoryText.includes("بكر")) {
             // row.find('.length').val(0).prop('readonly', true);
-            row.find('.SizeSelect').val('').prop('disabled', true);
+            row.find('.size').val('').prop('disabled', true);
         } else {
             // row.find('.length').prop('readonly', false);
-            row.find('.SizeSelect').prop('disabled', false);
+            row.find('.size').prop('disabled', false);
         }
 
         if (categoryId) {
@@ -295,7 +295,7 @@ $(function () {
         }
     });
 
-    $(document).on('input', '.additional_cost, .unitSelect , .quantity, .length ,.purchase_price, .SizeSelect', function () {
+    $(document).on('input', '.additional_cost, .unitSelect , .quantity, .length ,.purchase_price, .size', function () {
         let row = $(this).closest('tr');
         calculateTotalPerMM(row);
         calculateTotalPrice(row);
@@ -330,7 +330,7 @@ $(function () {
             let costValue = parseInt($(this).val());
             costtotal += costValue;
         });
-        $('#total-cost').val(costtotal);
+        $('.additional_cost').val(costtotal);
         calculateTotalInvoice();
     }
 
@@ -348,7 +348,7 @@ $(function () {
         let quantity = parseFloat(row.find('.quantity').val()) || 0;
         let length = parseFloat(row.find('.length').val()) || 0;
         let purchase_price = parseFloat(row.find('.purchase_price').val()) || 0;
-        let size = parseFloat(row.find('.SizeSelect option:selected').text()) || 0;
+        let size = parseFloat(row.find('.size').val()) || 0;
 
         if(symbol === 'سنتيمتر'){
             pricePerMM = size * purchase_price;
@@ -472,19 +472,6 @@ $(function () {
                 });
             } else {
                 lastUnitSelect.html('<option>حدث خطأ في جلب الوحدات</option>');
-            }
-        });
-
-        // جلب المقاسات
-        $.get('{{ route("getSizes") }}', function(response) {
-            lastSizeSelect = $(".SizeSelect").last();
-            if (response.status) {
-                lastSizeSelect.empty().append(`<option value="">اختر المقاس</option>`);
-                response.data.forEach(item => {
-                    lastSizeSelect.append(`<option value="${item.id}" data-width="${item.width}">${item.width}</option>`);
-                });
-            } else {
-                lastSizeSelect.html('<option>حدث خطأ في جلب المقاسات</option>');
             }
         });
 
@@ -700,6 +687,25 @@ $(function () {
                 toastr.info(message);
                 return;
             }
+
+            // تحقق من وجود تكاليف
+            if ($('.cost-item').length > 0) {
+                let hasEmptyCost = false;
+
+                $('.cost-item').each(function() {
+                    let val = parseFloat($(this).find('.costValue').val()) || 0;
+                    if (val <= 0) {
+                        hasEmptyCost = true;
+                        return false; // يوقف اللوب
+                    }
+                });
+
+                if (hasEmptyCost) {
+                    toastr.info("يجب إدخال قيمة صحيحة لكل بند تكلفة قبل حفظ الفاتورة.");
+                    return;
+                }
+            }
+
         }
 
         // لو كل شيء تمام، اعرض التأكيد

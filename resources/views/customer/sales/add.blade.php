@@ -154,7 +154,7 @@
                 </div>
                 <div class="mb-2">
                     <label class="form-label">مجموع التكاليف</label>
-                    <input type="text" id="total-cost" class="form-control additional_cost" value="0" name="additional_cost" readonly>
+                    <input type="text" class="form-control additional_cost" value="0" name="additional_cost" readonly>
                 </div>
                 <div class="mb-2">
                     <label class="form-label">إجمالي الفاتورة بعد خصم سعر التكلفة والخصم إن وجد</label>
@@ -243,30 +243,35 @@ $(document).ready(function(){
         calculateTotalProfitInvoice();
     });
 
-    function calculateTotalCost(){
+    function calculateTotalCost() {
         let costtotal = 0;
         let invoiceAmount = 0;
 
-        // إجمالي الفاتورة بدون تكاليف
+        // ✅ حساب إجمالي الفاتورة بدون التكاليف الإضافية
         $('tr.product-item').each(function () {
             let price = parseFloat($(this).find('.total_price').val().replace(/,/g, '')) || 0;
             invoiceAmount += price;
         });
 
-        $('.cost-item').each(function() {
-            let type = $(this).find('.costType').val();
-            let amount = parseFloat($(this).find('.costValue').val()) || 0;
+        // ✅ التكاليف الإضافية (قيمة أو نسبة)
+        let costItems = $('.cost-item');
+        if (costItems.length > 0) {
+            costItems.each(function () {
+                let type = $(this).find('.costType').val();
+                let amount = parseFloat($(this).find('.costValue').val()) || 0;
 
-            if (type === 'percent') {
-                // لو نسبة
-                costtotal += (invoiceAmount * amount / 100);
-            } else {
-                // لو قيمة
-                costtotal += amount;
-            }
-        });
+                if (type === 'percent') {
+                    costtotal += (invoiceAmount * amount / 100);
+                } else {
+                    costtotal += amount;
+                }
+            });
+        } else {
+            costtotal = 0; // ✅ لو مفيش أي تكلفة موجودة
+        }
 
-        $('#total-cost').val(formatNumberValue(costtotal));
+        // ✅ تحديث الحقل مباشرة (حتى لو صفر)
+        $('.additional_cost').val(formatNumberValue(costtotal));
     }
 
     // إظهار أو إخفاء حقول الخصم حسب الاختيار
@@ -367,7 +372,7 @@ $(document).ready(function(){
         });
 
         // جمع التكاليف (قيمة أو نسبة)
-        let additionalCost = parseFloat($('#total-cost').val().replace(/,/g, '')) || 0;
+        let additionalCost = parseFloat($('.additional_cost').val().replace(/,/g, '')) || 0;
         total_amount = all_total - additionalCost;
 
         // تطبيق الخصم
@@ -743,6 +748,38 @@ $(document).ready(function(){
             if(!customer_id){
                 toastr.info('يجب اختيار عميل');
                 return; 
+            }
+            // تحقق من التكاليف الإضافية
+            if ($('.cost-item').length > 0) {
+                let hasError = false;
+
+                $('.cost-item').each(function () {
+                    let expSelect = $(this).find('.cost-select').val();
+                    let costVal = parseFloat($(this).find('.costValue').val()) || 0;
+
+                    if (!expSelect) {
+                        toastr.info("يجب اختيار بند تكلفة لكل تكلفة مضافة.");
+                        hasError = true;
+                        return false;
+                    }
+
+                    if (costVal <= 0) {
+                        toastr.info("يجب إدخال قيمة صحيحة لكل بند تكلفة.");
+                        hasError = true;
+                        return false;
+                    }
+                });
+
+                if (hasError) return; // يوقف الحفظ
+            }
+
+            // تحقق من الخصم
+            if ($('#apply_discount').val() === 'yes') {
+                let discountVal = parseFloat($('.discount_value').val()) || 0;
+                if (discountVal <= 0) {
+                    toastr.info("يجب إدخال قيمة الخصم قبل الحفظ.");
+                    return;
+                }
             }
         }
 
