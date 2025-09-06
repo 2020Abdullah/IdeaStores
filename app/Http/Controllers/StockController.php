@@ -54,49 +54,51 @@ class StockController extends Controller
         $stock = Stock::with('category', 'size', 'unit')
             ->findOrFail($request->stock_id);
     
-        // إجمالي الكمية المتبقية
+        // إجمالي الكمية المتبقية لجميع الشحنات
         $remaining_quantity = $stock->movements()->sum('quantity');
     
-        // بيع تنازلي
+        // الشحنات التصاعدية (FIFO) حسب أول دخول
         $shipments = $stock->movements()
             ->where('type', 'in')
-            ->orderBy('id', 'asc') 
+            ->orderBy('id', 'asc') // أقدم شحنة أولاً
             ->get();
     
-        $lastCost = 0;
-        $lastSale = 0;
-
+        $firstAvailableQty = 0;
+        $firstCost = 0;
+        $firstSuggestedPrice = 0;
+    
         foreach ($shipments as $in) {
-            // إجمالي الكمية الواردة
             $inQty = $in->quantity;
     
-            // إجمالي الكمية الخارجة اللي تخص نفس الفاتورة
+            // إجمالي الكمية الخارجة التي تخص نفس الشحنة
             $outQty = $stock->movements()
                 ->where('type', 'out')
                 ->where('source_code', $in->source_code)
                 ->sum('quantity');
     
-            // الرصيد المتبقي من الشحنة
             $balance = $inQty - abs($outQty);
     
             if ($balance > 0) {
-                // جلب التكلفة من جدول التكاليف
-                $lastCost = InvoiceProductCost::where('source_code', $in->source_code)
+                // وجدنا أول شحنة بها رصيد
+                $firstAvailableQty = $balance;
+                $firstCost = InvoiceProductCost::where('source_code', $in->source_code)
                     ->value('cost_share') ?? 0;
-                $lastSale = InvoiceProductCost::where('source_code', $in->source_code)
-                    ->value('suggested_price');
-                break; // أول شحنة نلاقيها فيها رصيد = هي اللي نوقف عندها
+                $firstSuggestedPrice = InvoiceProductCost::where('source_code', $in->source_code)
+                    ->value('suggested_price') ?? 0;
+                break; // نوقف عند أول شحنة متاحة
             }
         }
     
         return response()->json([
             'status' => true,
             'data' => $stock,
-            'cost' => $lastCost,
-            'suggested_price' => $lastSale,
+            'available_qty' => $firstAvailableQty,
+            'cost' => $firstCost,
+            'suggested_price' => $firstSuggestedPrice,
             'remaining_quantity' => $remaining_quantity
         ]);
     }
+    
     
     
     
