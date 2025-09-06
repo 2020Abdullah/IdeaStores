@@ -193,6 +193,7 @@ class InvoicePurchaseController extends Controller
                         'cost_share' => $this->normalizeNumber($unit_cost_with_share),
                         'supplier_invoice_id' => $invoice->id,
                         'source_code' => $invoice->invoice_code,
+                        'date' => $invoice->invoice_date,
                     ]
                 );
             }
