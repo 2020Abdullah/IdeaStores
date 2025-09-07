@@ -29,9 +29,9 @@
         @if (auth()->user()->type == 1)
             <div class="col-md-12">
                 <div class="card">
-                    <div class="card-header">
+                    {{-- <div class="card-header">
                         <input type="text" class="form-control datefilter" placeholder="اختر الفترة" style="width: 250px;">
-                    </div>
+                    </div> --}}
                     <div class="card-body">
                         <canvas id="profitLossChart" width="200" height="200"></canvas>
                     </div>
@@ -139,136 +139,144 @@
 <script src="{{ asset('assets/js/flatpickr.js') }}"></script>
 <script src="{{ asset('assets/js/chart.js') }}"></script>
 @if (auth()->user()->type == 1)
-    <script>
+<script>
     $(function() {
-        // ================== Sales Chart ==================
-        let ctx = document.getElementById('salesChart')?.getContext('2d');
-        let chart;
+    // ================== Sales Chart ==================
+    let ctx = document.getElementById('salesChart')?.getContext('2d');
+    let chart;
 
-        if (ctx) {
-            flatpickr("#dateRange", {
-                mode: "range",
-                dateFormat: "Y-m-d",
-                defaultDate: [new Date(new Date().setDate(new Date().getDate() - 6)), new Date()],
-                onChange: function(selectedDates) {
-                    if (selectedDates.length === 2) {
-                        let start = selectedDates[0].toISOString().split('T')[0];
-                        let end = selectedDates[1].toISOString().split('T')[0];
-                        loadChart(start, end);
+    if (ctx) {
+        // flatpickr لتحديد المدى
+        flatpickr("#dateRange", {
+            mode: "range",
+            dateFormat: "Y-m-d", // YYYY-MM-DD مناسب للداتابيز
+            onClose: function(selectedDates, dateStr, instance) {
+                if (!dateStr) return;
+
+                let dates = dateStr.split(" to ");
+                if (dates.length === 2) {
+                    let start = dates[0];
+                    let end = dates[1];
+
+                    loadChart(start, end); // عند اختيار التاريخ
+                }
+            }
+        });
+
+        // عرض افتراضي عند فتح الصفحة بدون فلتر
+        loadChart(); 
+    }
+
+    function loadChart(start = null, end = null) {
+        // إعداد الرابط مع التأكد من وجود start و end
+        let url = '/dashboard/sales-chart';
+        if (start && end) {
+            url += `?start=${start}&end=${end}`;
+        }
+
+        fetch(url)
+        .then(res => res.json())
+        .then(data => {
+            if (!ctx) return;
+
+            let labels = data.map(d => d.day);
+            let costs = data.map(d => d.total_costs);
+            let netProfit = data.map(d => d.net_profit);
+            let profitRatio = data.map(d => d.profit_ratio);
+
+            if (chart) chart.destroy();
+
+            chart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [
+                        { label: 'إجمالي التكاليف', data: costs, backgroundColor: '#4e73df', yAxisID: 'y' },
+                        { label: 'صافي الربح', data: netProfit, backgroundColor: '#1cc88a', yAxisID: 'y' },
+                        { label: 'نسبة الربحية %', data: profitRatio, type: 'line', borderColor: '#f6c23e', backgroundColor: '#f6c23e', yAxisID: 'y1', tension: 0.4, pointBackgroundColor: '#f6c23e', fill: false }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { position: 'top' },
+                        title: { display: true, text: start && end ? `إحصائيات من ${start} إلى ${end}` : 'إحصائيات آخر البيانات' },
+                        tooltip: { 
+                            callbacks: { 
+                                label: function(context) { 
+                                    return context.dataset.label === 'نسبة الربحية %' 
+                                        ? context.parsed.y + '%' 
+                                        : context.dataset.label + ': ' + context.parsed.y; 
+                                } 
+                            } 
+                        }
+                    },
+                    scales: {
+                        y: { beginAtZero: true, position: 'left', title: { display: true, text: 'القيمة' } },
+                        y1: { beginAtZero: true, position: 'right', title: { display: true, text: 'النسبة %' }, grid: { drawOnChartArea: false } }
                     }
                 }
             });
+        })
+        .catch(err => console.error('Error loading chart:', err));
+    }
 
-            let defaultStart = new Date(new Date().setDate(new Date().getDate() - 6)).toISOString().split('T')[0];
-            let defaultEnd = new Date().toISOString().split('T')[0];
-            loadChart(defaultStart, defaultEnd);
-        }
+    // ================== Profit/Loss Chart ==================
+    let chartInstance = null;
+    let ctx2 = document.getElementById("profitLossChart")?.getContext("2d");
 
-        function loadChart(start, end) {
-            fetch(`/dashboard/sales-chart?start=${start}&end=${end}`)
-            .then(res => res.json())
-            .then(data => {
-                if (!ctx) return;
+    if (ctx2) {
+        // تحميل الرسم البياني مباشرة بدون فلتر
+        loadProfitLossChart();
+    }
 
-                let labels = data.map(d => d.day);
-                let costs = data.map(d => d.total_costs);
-                let netProfit = data.map(d => d.net_profit);
-                let profitRatio = data.map(d => d.profit_ratio);
+    function loadProfitLossChart() {
+        $.ajax({
+            url: "{{ route('profit.loss.chart') }}",
+            method: "POST",
+            headers: {'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')},
+            data: {}, // بدون start أو end
+            success: function(response) {
+                if (!ctx2) return;
 
-                if (chart) chart.destroy();
+                let data = response.pie_chart ?? response;
 
-                chart = new Chart(ctx, {
-                    type: 'bar',
-                    data: {
-                        labels: labels,
-                        datasets: [
-                            { label: 'إجمالي التكاليف', data: costs, backgroundColor: '#4e73df', yAxisID: 'y' },
-                            { label: 'صافي الربح', data: netProfit, backgroundColor: '#1cc88a', yAxisID: 'y' },
-                            { label: 'نسبة الربحية %', data: profitRatio, type: 'line', borderColor: '#f6c23e', backgroundColor: '#f6c23e', yAxisID: 'y1', tension: 0.4, pointBackgroundColor: '#f6c23e', fill: false }
-                        ]
-                    },
+                if (chartInstance) chartInstance.destroy();
+
+                chartInstance = new Chart(ctx2, {
+                    type: "doughnut",
+                    data: data,
                     options: {
                         responsive: true,
                         maintainAspectRatio: false,
+                        cutout: "65%",
                         plugins: {
-                            legend: { position: 'top' },
-                            title: { display: true, text: `إحصائيات من ${start} إلى ${end}` },
-                            tooltip: { callbacks: { label: function(context) { return context.dataset.label === 'نسبة الربحية %' ? context.parsed.y + '%' : context.dataset.label + ': ' + context.parsed.y; } } }
-                        },
-                        scales: {
-                            y: { beginAtZero: true, position: 'left', title: { display: true, text: 'القيمة' } },
-                            y1: { beginAtZero: true, position: 'right', title: { display: true, text: 'النسبة %' }, grid: { drawOnChartArea: false } }
-                        }
-                    }
-                });
-            })
-            .catch(err => console.error('Error loading chart:', err));
-        }
-
-        // ================== Profit/Loss Chart ==================
-        let chartInstance = null;
-        let ctx2 = document.getElementById("profitLossChart")?.getContext("2d");
-        if (ctx2) loadProfitLossChart();
-
-        function loadProfitLossChart(start = null, end = null) {
-            $.ajax({
-                url: "{{ route('profit.loss.chart') }}",
-                method: "POST",
-                headers: {'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')},
-                data: { start: start, end: end },
-                success: function (response) {
-                    if (!ctx2) return;
-
-                    let data = response.pie_chart ?? response;
-                    let summary = response.summary ?? null;
-
-                    if (chartInstance) chartInstance.destroy();
-
-                    chartInstance = new Chart(ctx2, {
-                        type: "doughnut",
-                        data: data,
-                        options: {
-                            responsive: true,
-                            maintainAspectRatio: false,
-                            cutout: "65%",
-                            plugins: {
-                                legend: { position: "bottom" },
-                                title: { display: true, text: "مقارنة صافي الربح بإجمالي التكاليف" },
-                                tooltip: {
-                                    callbacks: {
-                                        label: function(context) {
-                                            let value = context.parsed;
-                                            let dataset = context.dataset.data;
-                                            let total = dataset.reduce((sum, val) => sum + (Number(val) || 0), 0);
-                                            let percent = total ? ((value / total) * 100).toFixed(2) : 0;
-                                            return context.label + ': ' + value + ' (' + percent + '%)';
-                                        }
+                            legend: { position: "bottom" },
+                            title: { display: true, text: `مقارنة صافي الربح بإجمالي التكاليف` },
+                            tooltip: {
+                                callbacks: {
+                                    label: function(context) {
+                                        let value = context.parsed;
+                                        let dataset = context.dataset.data;
+                                        let total = dataset.reduce((sum, val) => sum + (Number(val) || 0), 0);
+                                        let percent = total ? ((value / total) * 100).toFixed(2) : 0;
+                                        return context.label + ': ' + value + ' (' + percent + '%)';
                                     }
                                 }
                             }
                         }
-                    });
-                },
-                error: function(xhr){
-                    console.error("Error loading profit/loss chart:", xhr.responseText || xhr.statusText);
-                }
-            });
-        }
-
-        flatpickr(".datefilter", {
-            mode: "range",
-            dateFormat: "Y-m-d",
-            onChange: function(selectedDates) {
-                if (selectedDates.length === 2) {
-                    let start = selectedDates[0].toISOString().slice(0,10);
-                    let end = selectedDates[1].toISOString().slice(0,10);
-                    loadProfitLossChart(start, end);
-                } else {
-                    loadProfitLossChart();
-                }
+                    }
+                });
+            },
+            error: function(xhr){
+                console.error("Error loading profit/loss chart:", xhr.responseText || xhr.statusText);
             }
         });
+    }
+
+
     });
-    </script>
+</script>
 @endif
 @endsection

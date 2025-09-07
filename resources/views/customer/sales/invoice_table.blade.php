@@ -4,7 +4,9 @@
         <th>تاريخ الفاتورة</th>
         <th>اسم العميل</th>
         <th>نوع الفاتورة</th>
-        <th>إجمالي الفاتورة</th>
+        <th>إجمالي الفاتورة قبل الخصم</th>
+        <th>الخصم</th>
+        <th>إجمالي الفاتورة بعد الخصم</th>
         <th>المبلغ المدفوع</th>
         <th>حالة الفاتورة</th>
         <th>تم الإضافة بواسطة</th>
@@ -32,7 +34,32 @@
                     <span>رصيد افتتاحي</span>
                 @endif
             </td>
-            <td>{{ number_format($inv->total_amount) }} EGP</td>
+            <td>{{ number_format($inv->total_amount_without_discount) }} EGP</td>
+            <td>
+                @if ($inv->discount_type && $inv->discount_value)
+                    @if ($inv->discount_type === 'percent')
+                        {{ $inv->discount_value }}%
+                    @else
+                        {{ number_format($inv->discount_value) }} 
+                    @endif
+                @else
+                    0 
+                @endif
+            </td>
+            <td>
+                @php
+                    $discountValue = 0;
+                    if ($inv->discount_type && $inv->discount_value) {
+                        if ($inv->discount_type === 'percent') {
+                            $discountValue = $inv->total_amount_without_discount * $inv->discount_value / 100;
+                        } else {
+                            $discountValue = $inv->discount_value;
+                        }
+                    }
+                    $totalAfterDiscount = $inv->total_amount_without_discount - $discountValue;
+                @endphp
+                {{ number_format($totalAfterDiscount) }} EGP
+            </td>
             <td>{{ number_format($inv->paid_amount) }} EGP</td>
             <td>
                 @if ($inv->staute == 0)

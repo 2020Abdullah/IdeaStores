@@ -13,14 +13,20 @@ return new class extends Migration
     {
         Schema::create('invoice_product_costs', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('supplier_invoice_id')->constrained('supplier_invoices')->cascadeOnDelete()->cascadeOnUpdate();
-            $table->foreignId('stock_id')->nullable()->constrained('stocks')->onDelete('SET NULL');
-            $table->decimal('base_cost', 10, 2)->comment('السعر الأساسي من المورد');         // السعر الأساسي من المورد
-            $table->decimal('cost_share', 10, 2)->comment('سعر التكلفة للصنف');        // نصيب المنتج من التكاليف
-            $table->decimal('suggested_price', 10, 2)->nullable()->comment('سعر البيع المقترح'); 
-            $table->integer('rate')->default(0)->comment('النسبة لعمل البيع المقترح'); 
+            $table->unsignedBigInteger('supplier_invoice_id');
+            $table->unsignedBigInteger('stock_id');
+            $table->decimal('base_cost', 10, 2)->comment('السعر الأساسي من المورد');
+            $table->decimal('cost_share', 10, 2)->comment('سعر التكلفة للصنف');
+            $table->decimal('suggested_price', 10, 2)->nullable()->comment('سعر البيع المقترح');
+            $table->integer('rate')->default(0)->comment('النسبة لعمل البيع المقترح');
+            $table->string('source_code')->nullable();
+            $table->date('date')->nullable();
             $table->timestamps();
+        
+            // المفتاح الفريد المركب مباشرة
+            $table->unique(['supplier_invoice_id', 'stock_id']);
         });
+        
     }
 
     /**

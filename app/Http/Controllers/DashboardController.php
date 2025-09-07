@@ -67,17 +67,15 @@ class DashboardController extends Controller
     {
         try {
             $user = auth()->user();
-
-            // السماح بالوصول فقط للـ Admin
+    
             if ($user->type != 1) {
-                return response()->json([
-                    'error' => 'غير مسموح بعرض الإحصائيات البيانية',
-                ], 403);
+                return response()->json(['error' => 'غير مسموح بعرض الإحصائيات البيانية'], 403);
             }
+    
             $start = $request->input('start');
             $end = $request->input('end');
     
-            // صافي الربح من فواتير العملاء
+            // استعلام فواتير العملاء
             $profitQuery = DB::table('customer_invoices')
                 ->selectRaw('DATE(date) as day, SUM(total_profit) as total_profit')
                 ->groupBy('day')
@@ -87,12 +85,13 @@ class DashboardController extends Controller
                 $profitQuery->whereBetween('date', [$start, $end]);
             }
     
-            $profitData = $profitQuery->get();
+            $profitData = $profitQuery->get()->keyBy('day');
     
-            // إجمالي التكاليف من فواتير الموردين (مبلغ الفاتورة بدون تكاليف + التكاليف)
+            // استعلام فواتير الموردين
             $costsQuery = DB::table('supplier_invoices')
                 ->selectRaw('DATE(invoice_date) as day, SUM(total_amount_invoice + cost_price) as total_costs')
-                ->groupBy('day');
+                ->groupBy('day')
+                ->orderBy('day', 'ASC');
     
             if ($start && $end) {
                 $costsQuery->whereBetween('invoice_date', [$start, $end]);
@@ -100,15 +99,17 @@ class DashboardController extends Controller
     
             $costsData = $costsQuery->get()->keyBy('day');
     
-            // دمج النتائج
-            $chartData = $profitData->map(function($item) use ($costsData) {
-                $costs = $costsData[$item->day]->total_costs ?? 0;
-                $netProfit = $item->total_profit;
-                $profitRatio = $costs > 0 ? ($netProfit / $costs) * 100 : 0;
+            // دمج جميع الأيام من الاثنين
+            $allDays = collect(array_unique(array_merge($profitData->keys()->toArray(), $costsData->keys()->toArray())))->sort();
+    
+            $chartData = $allDays->map(function($day) use ($profitData, $costsData) {
+                $totalCosts = isset($costsData[$day]) ? $costsData[$day]->total_costs : 0;
+                $netProfit = isset($profitData[$day]) ? $profitData[$day]->total_profit : 0;
+                $profitRatio = $totalCosts > 0 ? ($netProfit / $totalCosts) * 100 : 0;
     
                 return [
-                    'day' => $item->day,
-                    'total_costs' => (float) $costs,
+                    'day' => $day,
+                    'total_costs' => (float) $totalCosts,
                     'net_profit' => (float) $netProfit,
                     'profit_ratio' => round($profitRatio, 2),
                 ];
@@ -121,65 +122,51 @@ class DashboardController extends Controller
         }
     }
     
-    public function profitLossChart(Request $request)
+    public function profitLossChart()
     {
         $user = auth()->user();
-
-        // السماح بالوصول فقط للـ Admin
+    
         if ($user->type != 1) {
-            return response()->json([
-                'error' => 'غير مسموح بعرض الإحصائيات البيانية',
-            ], 403);
-        }
-
-        $start = $request->start ?? null;
-        $end = $request->end ?? null;
-    
-        $applyDate = function($table, $dateCol = 'invoice_date') use ($start, $end) {
-            $q = DB::table($table);
-            return ($start && $end) ? $q->whereBetween($dateCol, [$start, $end]) : $q;
-        };
-    
-        // اجمالي المشتريات (الفاتورة بدون تكاليف + التكاليف)
-        $purchases = 0.0;
-        if (Schema::hasTable('supplier_invoices')) {
-            $purchases = (float) $applyDate('supplier_invoices')
-                ->selectRaw('SUM(total_amount_invoice + cost_price) as total_costs')
-                ->value('total_costs');
+            return response()->json(['error' => 'غير مسموح بعرض الإحصائيات البيانية'], 403);
         }
     
-        // المصروفات
-        $expenses = 0.0;
-        if (Schema::hasTable('expenses')) {
-            $expenses = (float) $applyDate('expenses', 'date')->sum('amount');
-        }
+        // إجمالي المشتريات (فاتورة المورد + التكاليف)
+        $totalPurchases = Schema::hasTable('supplier_invoices')
+            ? (float) DB::table('supplier_invoices')->selectRaw('SUM(total_amount_invoice + cost_price) as total')->value('total')
+            : 0;
     
-        // إجمالي التكاليف
-        $totalCosts = $purchases + $expenses;
+        // المصروفات (نجعلها بالسالب)
+        $totalExpenses = Schema::hasTable('expenses')
+            ? -(float) DB::table('expenses')->sum('amount') // السالب هنا
+            : 0;
     
-        // صافي الربح من فواتير المبيعات
-        $netProfit = 0.0;
-        if (Schema::hasTable('customer_invoices') && Schema::hasColumn('customer_invoices', 'total_profit')) {
-            $netProfit = (float) $applyDate('customer_invoices', 'invoice_date')->sum('total_profit');
-        }
+        $totalCosts = $totalPurchases + $totalExpenses; // الآن التكاليف الإجمالية تشمل المصروفات بالسالب
     
-        // بيانات الرسم
+        // صافي الربح من المبيعات
+        $netProfit = (Schema::hasTable('customer_invoices') && Schema::hasColumn('customer_invoices', 'total_profit'))
+            ? (float) DB::table('customer_invoices')->sum('total_profit')
+            : 0;
+    
+        // بيانات الرسم البياني
         $pieData = [
             'labels' => ['إجمالي التكاليف', 'صافي الربح'],
             'datasets' => [[
-                'data' => [round($totalCosts,2), round($netProfit,2)],
-                'backgroundColor' => ['#f87171', '#34d399'] // ألوان (تكاليف أحمر / ربح أخضر)
+                'data' => [round($totalCosts, 2), round($netProfit, 2)],
+                'backgroundColor' => ['#f87171', '#34d399'] // أحمر للتكاليف / أخضر للربح
             ]]
         ];
     
         return response()->json([
             'summary' => [
-                'period' => ($start && $end) ? "$start إلى $end" : 'حتى الآن',
-                'total_costs' => round($totalCosts,2),
-                'net_profit' => round($netProfit,2),
+                'period' => 'حتى الآن',
+                'total_costs' => round($totalCosts, 2),
+                'net_profit' => round($netProfit, 2),
             ],
             'pie_chart' => $pieData,
         ]);
     }
+    
+    
+    
     
 }

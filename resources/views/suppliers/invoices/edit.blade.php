@@ -78,8 +78,7 @@
                 @if ($invoice->invoice_type === 'opening_balance')
                     <div class="mb-2">
                         <label class="form-label">رصيد افتتاحي</label>
-                        <input type="hidden" class="form-control" name="opening_balance_old" value="{{ number_format($invoice->total_amount_invoice, 2) }}">
-                        <input type="number" class="form-control opening_balance" name="opening_balance" value="{{ number_format($invoice->total_amount_invoice, 2) }}">
+                        <input type="text" class="form-control opening_balance" name="opening_balance" value="{{ number_format($invoice->total_amount_invoice, 2) }}">
                     </div>
                 @else   
                     <div class="mb-2">
@@ -220,7 +219,7 @@
                 </div>
             </div>
             <div class="card-footer">
-                <button type="submit" class="btn btn-relief-success">حفظ الفاتورة</button>
+                <button type="submit" class="btnSubmit btn btn-relief-success">حفظ الفاتورة</button>
             </div>
         </form>
     </div>
@@ -588,6 +587,9 @@ $(function () {
         e.preventDefault();
         let isValid = true;
         let message = "";
+        let form = $(this);
+        let formData = new FormData(this);
+
 
         let invoice_type = $('.invoice_type').val();
 
@@ -656,9 +658,45 @@ $(function () {
             }
         }
 
-        // لو كل شيء تمام، اعرض التأكيد
         if (confirm("هل أنت متأكد من حفظ البيانات؟")) {
-            this.submit();
+            $.ajax({
+                    url: form.attr('action'),
+                    method: "POST",
+                    data: formData,
+                    contentType: false,
+                    processData: false,
+                    success: function(response) {
+                        $("#loading-excute").hide();
+                        $(".btnSubmit").prop("disabled", false);
+
+                        if(response.success){
+                            toastr.success(response.message);
+                            // لو عايز بعد الحفظ تروح لصفحة تانية
+                            if(response.redirect){
+                                window.location.href = response.redirect;
+                            }
+                            // أو تعمل reset للفورم
+                            else {
+                                form[0].reset();
+                                $('.table tbody').empty(); // تفريغ الأصناف
+                            }
+                        } else {
+                            toastr.error(response.message || "حدث خطأ أثناء حفظ الفاتورة");
+                        }
+                    },
+                    error: function(xhr) {
+                        $("#loading-excute").hide();
+                        $(".btnSubmit").prop("disabled", false);
+
+                        if(xhr.responseJSON && xhr.responseJSON.errors){
+                            $.each(xhr.responseJSON.errors, function(key, error){
+                                toastr.error(error[0]);
+                            });
+                        } else {
+                            toastr.error("فشل الاتصال بالسيرفر");
+                        }
+                    }
+            });
         }
     });
 

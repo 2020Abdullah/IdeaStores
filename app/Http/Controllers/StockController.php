@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\InvoiceProductCost;
 use App\Models\Stock;
 use App\Models\Stock_movement;
+use App\Models\Supplier_invoice;
 use Illuminate\Http\Request;
 
 class StockController extends Controller
@@ -53,53 +54,56 @@ class StockController extends Controller
     {
         $stock = Stock::with('category', 'size', 'unit')
             ->findOrFail($request->stock_id);
-    
-        // إجمالي الكمية المتبقية لجميع الشحنات
-        $remaining_quantity = $stock->movements()->sum('quantity');
-    
-        // الشحنات التصاعدية (FIFO) حسب أول دخول
-        $shipments = $stock->movements()
+
+        // إجمالي OUT (لو OUT بالسالب، ناخد القيمة المطلقة)
+        $totalOut = abs($stock->movements()->where('type', 'out')->sum('quantity'));
+
+        // شحنات IN بالترتيب الأقدم أولاً
+        $ins = $stock->movements()
             ->where('type', 'in')
-            ->orderBy('id', 'asc') // أقدم شحنة أولاً
-            ->get();
-    
-        $firstAvailableQty = 0;
-        $firstCost = 0;
-        $firstSuggestedPrice = 0;
-    
-        foreach ($shipments as $in) {
-            $inQty = $in->quantity;
-    
-            // إجمالي الكمية الخارجة التي تخص نفس الشحنة
-            $outQty = $stock->movements()
-                ->where('type', 'out')
-                ->where('source_code', $in->source_code)
-                ->sum('quantity');
-    
-            $balance = $inQty - abs($outQty);
-    
-            if ($balance > 0) {
-                // وجدنا أول شحنة بها رصيد
-                $firstAvailableQty = $balance;
-                $firstCost = InvoiceProductCost::where('source_code', $in->source_code)
-                    ->value('cost_share') ?? 0;
-                $firstSuggestedPrice = InvoiceProductCost::where('source_code', $in->source_code)
-                    ->value('suggested_price') ?? 0;
-                break; // نوقف عند أول شحنة متاحة
+            ->orderBy('id', 'asc')
+            ->get(['id','quantity','source_code']);
+
+        $availableQty = 0;
+        $cost = 0;
+        $suggested = 0;
+        $batchRef = null; // لمعرفة الشحنة الحالية (مثلاً SU-20252)
+
+        foreach ($ins as $in) {
+            $inQty = (int) $in->quantity;
+
+            // لو إجمالي الخارج حتى الآن يغطي الشحنة بالكامل → انتقل للي بعدها
+            if ($totalOut >= $inQty) {
+                $totalOut -= $inQty;
+                continue;
             }
+
+            // هنا الشحنة دي لسه فيها جزء متاح
+            $availableQty = $inQty - $totalOut; // المتبقي بعد خصم اللي اتصرف قبلها
+            $batchRef = $in->source_code;
+
+            // هات تكلفة نفس الشحنة
+            // الخيار 1: لو عندك عمود source_code في جدول التكاليف
+            $costRow = InvoiceProductCost::where('source_code', $batchRef)
+                        ->where('stock_id', $stock->id)
+                        ->first();
+
+            $cost = $costRow->cost_share ?? 0;
+            $suggested = $costRow->suggested_price ?? 0;
+
+            break; // وقف عند أول شحنة متاحة
         }
-    
+
+        // لو مافيـش أي شحنة متاحة → كله صفر
         return response()->json([
-            'status' => true,
-            'data' => $stock,
-            'available_qty' => $firstAvailableQty,
-            'cost' => $firstCost,
-            'suggested_price' => $firstSuggestedPrice,
-            'remaining_quantity' => $remaining_quantity
+            'status'           => true,
+            'data'             => $stock,
+            'batch_ref'        => $batchRef,        // كود الشحنة الحالية (للتوضيح في الواجهة)
+            'available_qty'    => (int) $availableQty,
+            'cost'             => (float) $cost,
+            'suggested_price'  => (float) $suggested,
         ]);
     }
-    
-    
-    
+
     
 }

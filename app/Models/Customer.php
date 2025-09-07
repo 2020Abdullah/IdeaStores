@@ -47,15 +47,30 @@ class Customer extends Model
 
     public function getBalanceAttribute()
     {
-        // مجموع كل الفواتير (total_amount_invoice)
-        $totalInvoices = (float) $this->invoices()->where('type', '!=' , 'cash')->sum('total_amount');
-
-        // مجموع كل المدفوعات (نجعل القيم موجبة)
+        // مجموع الفواتير بعد الخصم (غير الكاش) مباشرة في قاعدة البيانات
+        $totalInvoices = $this->invoices()
+            ->where('type', '!=', 'cash')
+            ->selectRaw("
+                SUM(
+                    CASE 
+                        WHEN discount_type = 'percent' THEN total_amount_without_discount - (total_amount_without_discount * discount_value / 100)
+                        WHEN discount_type = 'value' THEN total_amount_without_discount - discount_value
+                        ELSE total_amount_without_discount
+                    END
+                ) as total_after_discount
+            ")
+            ->value('total_after_discount');
+    
+        $totalInvoices = (float) ($totalInvoices ?? 0);
+    
+        // مجموع المدفوعات
         $totalPayments = (float) $this->paymentTransactions()->sum('amount');
-
-        // الرصيد = الفواتير - المدفوعات
+    
+        // الرصيد = الفواتير بعد الخصم - المدفوعات
         return $totalInvoices - $totalPayments;
     }
+    
+
 
     protected static function booted()
     {

@@ -176,7 +176,7 @@
                 </div>
             </div>
             <div class="card-footer">
-                <button type="submit" class="btn btn-relief-success">حفظ الفاتورة</button>
+                <button type="submit" class="btnSubmit btn btn-relief-success">حفظ الفاتورة</button>
             </div>
         </form>
     </div>
@@ -637,6 +637,13 @@ $(function () {
 
     $('#invoiceForm').on('submit', function(e) {
         e.preventDefault();
+        let form = $(this);
+        let formData = new FormData(this);
+
+        // إظهار التحميل وإيقاف الزر
+        $("#loading-excute").show();
+        $(".btnSubmit").prop("disabled", true);
+
         let isValid = true;
         let message = "";
 
@@ -710,7 +717,44 @@ $(function () {
 
         // لو كل شيء تمام، اعرض التأكيد
         if (confirm("هل أنت متأكد من حفظ البيانات؟")) {
-            this.submit();
+            $.ajax({
+                    url: form.attr('action'),
+                    method: "POST",
+                    data: formData,
+                    contentType: false,
+                    processData: false,
+                    success: function(response) {
+                        $("#loading-excute").hide();
+                        $(".btnSubmit").prop("disabled", false);
+
+                        if(response.success){
+                            toastr.success(response.message);
+                            // لو عايز بعد الحفظ تروح لصفحة تانية
+                            if(response.redirect){
+                                window.location.href = response.redirect;
+                            }
+                            // أو تعمل reset للفورم
+                            else {
+                                form[0].reset();
+                                $('.table tbody').empty(); // تفريغ الأصناف
+                            }
+                        } else {
+                            toastr.error(response.message || "حدث خطأ أثناء حفظ الفاتورة");
+                        }
+                    },
+                    error: function(xhr) {
+                        $("#loading-excute").hide();
+                        $(".btnSubmit").prop("disabled", false);
+
+                        if(xhr.responseJSON && xhr.responseJSON.errors){
+                            $.each(xhr.responseJSON.errors, function(key, error){
+                                toastr.error(error[0]);
+                            });
+                        } else {
+                            toastr.error("فشل الاتصال بالسيرفر");
+                        }
+                    }
+            });
         }
     });
 

@@ -173,10 +173,9 @@
                         </div>
                         <div class="all_total">
                             <span>إجمالي الفاتورة :</span>
-                            <strong>{{ number_format($invoice->total_amount - $invoice->cost_price) }}</strong> 
+                            <strong>{{ number_format($invoice->total_amount_without_discount) }}</strong> 
                             <span>EGP</span>
-                            <input type="hidden" name="total_amount_invoice_old" value="{{ $invoice->total_amount }}">
-                            <input type="hidden" class="total_amount_invoice" value="{{ $invoice->total_amount }}" name="total_amount_invoice">
+                            <input type="hidden" class="total_amount_without_discount" value="{{ $invoice->total_amount_without_discount }}" name="total_amount_without_discount">
                         </div>
                     </div>
                     <div id="costs-wrapper">
@@ -184,7 +183,7 @@
                         @foreach ($invoice->costs as $index => $cost)
                             @if($cost->expenseItem && $cost->expenseItem->is_profit != 1)
                                 <div class="row cost-item mb-1">
-                                    <div class="col-md-6 mb-1">
+                                    <div class="col-md-3 mb-1">
                                         <select name="costs[{{ $index }}][exponse_id]" class="select2 cost-select">
                                             @foreach ($exponse_list as $ex_item)
                                                 <option value="{{ $ex_item->id }}" 
@@ -194,10 +193,16 @@
                                             @endforeach
                                         </select>
                                     </div>
-                                    <div class="col-md-4 mb-1">
+                                    <div class="col-md-3 mb-1">
+                                        <select name="costs[{{$index}}][type]" class="form-select costType">
+                                            <option value="value" {{ ( $cost->type ?? '') == 'value' ? 'selected' : '' }}>قيمة ثابتة</option>
+                                            <option value="percent" {{ ($cost->type ?? '') == 'percent' ? 'selected' : '' }}>نسبة %</option>
+                                        </select>                                       
+                                    </div>
+                                    <div class="col-md-3 mb-1">
                                         <input type="number" name="costs[{{ $index }}][amount]" class="form-control costValue" value="{{ -$cost->amount }}" placeholder="القيمة">
                                     </div>
-                                    <div class="col-md-2 mb-1">
+                                    <div class="col-md-3 mb-1">
                                         <button type="button" class="btn btn-danger remove-cost">حذف</button>
                                     </div>
                                 </div>
@@ -249,7 +254,7 @@
                 </div>
             </div>
             <div class="card-footer">
-                <button type="submit" class="btn btn-relief-success">حفظ الفاتورة</button>
+                <button type="submit" class="btnSubmit btn btn-relief-success">حفظ الفاتورة</button>
             </div>
         </form>
     </div>
@@ -335,7 +340,7 @@ $(function () {
 
         const newCost = `
             <div class="row cost-item mb-1">
-                <div class="col-md-6 mb-1">
+                <div class="col-md-3 mb-1">
                     <select name="costs[${costIndex}][exponse_id]" class="select2 cost-select">
                         ${options}
                     </select>
@@ -348,8 +353,9 @@ $(function () {
                 </div>
                 <div class="col-md-3 mb-1">
                     <input type="number" name="costs[${costIndex}][amount]" class="form-control costValue" placeholder="ادخل القيمة أو النسبة">
+                    <input type="hidden" name="costs[${costIndex}][calculated_amount]" class="calculatedCost">
                 </div>
-                <div class="col-md-2 mb-1">
+                <div class="col-md-3 mb-1">
                     <button type="button" class="btn btn-danger remove-cost">حذف</button>
                 </div>
             </div>
@@ -518,35 +524,38 @@ $(function () {
     });
 
     function calculateTotalCost() {
-        let costtotal = 0;
-        let invoiceAmount = 0;
+    let costtotal = 0;
+    let invoiceAmount = 0;
 
-        // ✅ حساب إجمالي الفاتورة بدون التكاليف الإضافية
-        $('tr.product-item').each(function () {
-            let price = parseFloat($(this).find('.total_price').val().replace(/,/g, '')) || 0;
-            invoiceAmount += price;
-        });
+    // إجمالي الفاتورة قبل التكاليف
+    $('tr.product-item').each(function () {
+        let price = parseFloat($(this).find('.total_price').val().replace(/,/g, '')) || 0;
+        invoiceAmount += price;
+    });
 
-        // ✅ التكاليف الإضافية (قيمة أو نسبة)
-        let costItems = $('.cost-item');
-        if (costItems.length > 0) {
-            costItems.each(function () {
-                let type = $(this).find('.costType').val();
-                let amount = parseFloat($(this).find('.costValue').val()) || 0;
+    // المرور على التكاليف
+    $('.cost-item').each(function () {
+        let type = $(this).find('.costType').val();
+        let amount = parseFloat($(this).find('.costValue').val()) || 0;
+        let finalValue = 0;
 
-                if (type === 'percent') {
-                    costtotal += (invoiceAmount * amount / 100);
-                } else {
-                    costtotal += amount;
-                }
-            });
+        if (type === 'percent') {
+            finalValue = (invoiceAmount * amount / 100);
         } else {
-            costtotal = 0; // ✅ لو مفيش أي تكلفة موجودة
+            finalValue = amount;
         }
 
-        // ✅ تحديث الحقل مباشرة (حتى لو صفر)
-        $('.additional_cost').val(formatNumberValue(costtotal));
-    }
+        // وضع القيمة الفعلية في الحقل المخفي
+        $(this).find('.calculatedCost').val(finalValue);
+
+        // جمعها في الإجمالي
+        costtotal += finalValue;
+    });
+
+    // تحديث مجموع التكاليف
+    $('.additional_cost').val(formatNumberValue(costtotal));
+}
+
 
 
 
@@ -668,7 +677,7 @@ $(function () {
 
         // تطبيق الخصم
         let discountType = $('select[name="discount_type"]').val();
-        let discountValue = parseFloat($('input[name="discount_value"]').val()) || 0;
+        let discountValue = parseInt($('input[name="discount_value"]').val()) || 0;
 
         if ($('#apply_discount').val() === 'yes') {
             if (discountType === 'percent') {
@@ -739,6 +748,13 @@ $(function () {
     // عند عمل تسجيل للفاتورة 
     $('#invoiceForm').on('submit', function(e) {
         e.preventDefault();
+        let form = $(this);
+        let formData = new FormData(this);
+
+        // إظهار التحميل وإيقاف الزر
+        $("#loading-excute").show();
+        $(".btnSubmit").prop("disabled", true);
+
         let isValid = true;
         let message = "";
 
@@ -811,7 +827,45 @@ $(function () {
 
         // لو كل شيء تمام، اعرض التأكيد
         if (confirm("هل أنت متأكد من حفظ البيانات؟")) {
-            this.submit();
+            $.ajax({
+                url: form.attr('action'),
+                method: "POST",
+                data: formData,
+                contentType: false,
+                processData: false,
+                success: function(response) {
+                    console.log(response);
+                    $("#loading-excute").hide();
+                    $(".btnSubmit").prop("disabled", false);
+
+                    if(response.success){
+                        toastr.success(response.message);
+                        // لو عايز بعد الحفظ تروح لصفحة تانية
+                        if(response.redirect){
+                            window.location.href = response.redirect;
+                        }
+                        // أو تعمل reset للفورم
+                        else {
+                            form[0].reset();
+                            $('.table tbody').empty(); // تفريغ الأصناف
+                        }
+                    } else {
+                        toastr.error(response.message);
+                    }
+                },
+                error: function(xhr) {
+                    $("#loading-excute").hide();
+                    $(".btnSubmit").prop("disabled", false);
+
+                    if(xhr.responseJSON && xhr.responseJSON.errors){
+                        $.each(xhr.responseJSON.errors, function(key, error){
+                            toastr.error(error[0]);
+                        });
+                    } else {
+                        toastr.error("فشل الاتصال بالسيرفر");
+                    }
+                }
+            });
         }
     });
 });

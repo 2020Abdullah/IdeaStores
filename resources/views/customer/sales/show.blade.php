@@ -58,27 +58,27 @@
                                 <table class="table table-bordered">
                                     <thead>
                                         <th>وصف التكلفة</th>
-                                        <th>سعر التكلفة</th>
+                                        <th>نوع القيمة</th>
+                                        <th>قيمة التكلفة</th>
                                     </thead>
                                     <tbody>
                                         @forelse ($nonProfitCosts as $cost)
                                             <tr>
                                                 <td>{{ $cost->expenseItem->name }}</td>
                                                 <td>
-                                                    @if ($invoice->discount_type !== null)
-                                                        @if($invoice->discount_type == 'percent')
-                                                            {{ number_format($invoice->total_amount * $invoice->discount_value / 100) }} EGP
-                                                        @else
-                                                            {{ number_format($invoice->discount_value) }} EGP
-                                                        @endif
-                                                    @else 
-                                                        {{ number_format($invoice->amount) }} EGP
+                                                    @if ($cost->type == 'percent')
+                                                        نسبة مئوية
+                                                    @else
+                                                        قيمة ثابتة
                                                     @endif
+                                                </td>
+                                                <td>
+                                                    {{ number_format(abs($cost->amount))}} {{ $cost->type == 'percent' ? '%' : '' }}
                                                 </td>
                                             </tr>
                                         @empty
                                             <tr>
-                                                <td colspan="2" class="text-center">لا توجد تكاليف</td>
+                                                <td colspan="3" class="text-center">لا توجد تكاليف</td>
                                             </tr>
                                         @endforelse
                                     </tbody>
@@ -130,29 +130,23 @@
                 <hr class="invoice-spacing">
 
                 <div class="invoice_total text-center">
-                    @if ($invoice->invoice_type !== 'opening_balance')
-                        <p><strong>إجمالي الفاتورة :</strong> {{ number_format($invoice->total_amount) }} EGP</p>
-                
+                    @if ($invoice->invoice_type !== 'opening_balance')                
                         @if($invoice->discount_value > 0)
-                        <p><strong>الخصم :</strong>
-                            @if($invoice->discount_type == 'percent')
-                                {{ number_format($invoice->discount_value) }} %
-                                ({{ number_format($invoice->total_amount * $invoice->discount_value / 100) }} EGP)
-                            @else
-                                {{ number_format($invoice->discount_value) }} EGP
-                            @endif
-                        </p>
-                    
-                        <p><strong>الإجمالي بعد الخصم :</strong>
-                            {{ number_format(
-                                $invoice->discount_type == 'percent' 
-                                    ? $invoice->total_amount - ($invoice->total_amount * $invoice->discount_value / 100) 
-                                    : $invoice->total_amount - $invoice->discount_value
-                            ) }} EGP
-                        </p>
-                    @endif
-                    
-                
+                            <p><strong>الخصم :</strong>
+                                @if($invoice->discount_type == 'percent')
+                                    {{ $invoice->discount_value }} %
+                                    ({{ number_format($invoice->total_amount_without_discount * ($invoice->discount_value / 100)) }} EGP)
+                                @else
+                                    {{ number_format($invoice->discount_value) }} EGP
+                                @endif
+                            </p>
+                        
+                            <p><strong>الإجمالي بعد الخصم :</strong>
+                                {{ number_format($invoice->total_amount)}} EGP
+                            </p>
+                        @else 
+                            <p><strong>إجمالي الفاتورة :</strong> {{ number_format($invoice->total_amount) }} EGP</p>
+                        @endif
                     @else
                         <p><strong>إجمالي الرصيد الإفتتاحي :</strong> {{ number_format($invoice->total_amount) }} EGP</p>
                     @endif

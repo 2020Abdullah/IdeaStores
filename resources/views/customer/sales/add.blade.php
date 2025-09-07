@@ -93,13 +93,12 @@
                     @enderror
                 </div>
                 
-                <!-- warehouse -->
                 <div class="cash-options" style="display: none;">
                     <label>اختر الخزنة:</label>
                     <div class="d-flex gap-1 mb-1">
                         @foreach($warehouse_list as $warehouse)
                             <button type="button" class="btn btn-outline-primary select-warehouse"
-                                data-warehouse="{{ $warehouse->type }}">
+                                data-id="{{ $warehouse->id }}" data-name="{{ $warehouse->name }}">
                                 {{ $warehouse->name }}
                             </button>
                         @endforeach
@@ -108,6 +107,7 @@
                     <!-- الحقول ستظهر هنا عند اختيار الخزنة -->
                     <div class="warehouse-fields"></div>
                 </div>
+                
 
                 <!-- opening balance -->
                 <div class="mb-1 opening_balance_container" style="display: none;">
@@ -146,7 +146,7 @@
                         <span>إجمالي الفاتورة :</span>
                         <strong>0</strong> 
                         <span>EGP</span>
-                        <input type="hidden" class="total_amount_invoice" name="total_amount_invoice">
+                        <input type="hidden" class="total_amount_without_discount" name="total_amount_without_discount">
                     </div>
                 </div>
                 <div id="costs-wrapper">
@@ -193,7 +193,7 @@
                 </div>
             </div>
             <div class="card-footer">
-                <button type="submit" class="btn btn-relief-success">حفظ الفاتورة</button>
+                <button type="submit" class="btnSubmit btn btn-relief-success">حفظ الفاتورة</button>
             </div>
         </form>
     </div>
@@ -345,7 +345,7 @@ $(document).ready(function(){
 
     // حساب الإجمالي للصنف
     function calculateTotalPrice(row) {
-        let remaining_quantity = parseFloat(row.find('.remaining_quantity').val()) || 0;
+        let remaining_quantity = parseInt(row.find('.remaining_quantity').val()) || 0;
         let quantity = parseFloat(row.find('.quantity').val()) || 0;
 
         let sale_price = parseFloat(row.find('input.sale_price').val()) || 0;
@@ -372,12 +372,12 @@ $(document).ready(function(){
         });
 
         // جمع التكاليف (قيمة أو نسبة)
-        let additionalCost = parseFloat($('.additional_cost').val().replace(/,/g, '')) || 0;
+        let additionalCost = parseInt($('.additional_cost').val().replace(/,/g, '')) || 0;
         total_amount = all_total - additionalCost;
 
         // تطبيق الخصم
         let discountType = $('select[name="discount_type"]').val();
-        let discountValue = parseFloat($('input[name="discount_value"]').val()) || 0;
+        let discountValue = parseInt($('input[name="discount_value"]').val()) || 0;
 
         if ($('#apply_discount').val() === 'yes') {
             if (discountType === 'percent') {
@@ -390,7 +390,7 @@ $(document).ready(function(){
         // تحديث الحقول
         $('.total_amount').val(formatNumberValue(total_amount));
         $('.all_total strong').text(formatNumberValue(all_total));
-        $('.all_total .total_amount_invoice').val(formatNumberValue(all_total));
+        $('.all_total .total_amount_without_discount').val(formatNumberValue(all_total));
     }
 
 
@@ -427,7 +427,7 @@ $(document).ready(function(){
 
         const newCost = `
             <div class="row cost-item mb-1">
-                <div class="col-md-6 mb-1">
+                <div class="col-md-3 mb-1">
                     <select name="costs[${costIndex}][exponse_id]" class="select2 cost-select">
                         ${options}
                     </select>
@@ -441,7 +441,7 @@ $(document).ready(function(){
                 <div class="col-md-3 mb-1">
                     <input type="number" name="costs[${costIndex}][amount]" class="form-control costValue" placeholder="ادخل القيمة أو النسبة">
                 </div>
-                <div class="col-md-2 mb-1">
+                <div class="col-md-3 mb-1">
                     <button type="button" class="btn btn-danger remove-cost">حذف</button>
                 </div>
             </div>
@@ -579,7 +579,7 @@ $(document).ready(function(){
                         row.find('.category_id').val(response.data.category_id);
                         row.find('.width').val(response.data.size?.width ?? 0);
                         row.find('.size').val(response.data.size?.id ?? 0);
-                        row.find('.remaining_quantity').val(response.remaining_quantity);
+                        row.find('.remaining_quantity').val(response.available_qty);
 
                         if(response.data.unit.name === 'سنتيمتر'){
                             row.find('.unit').val('متر');
@@ -652,32 +652,38 @@ $(document).ready(function(){
 
     // عند اختيار خزنة
     $(document).on('click', '.select-warehouse', function() {
-        let warehouseType = $(this).data('warehouse');
+    let warehouseId = $(this).data('id');
+    let warehouseName = $(this).data('name');
 
-        if ($(this).hasClass('active')) {
-            // إذا كانت مختارة بالفعل → قم بإلغاء الاختيار
-            $(this).removeClass('active btn-primary').addClass('btn-outline-primary');
-            selectedWarehouses = selectedWarehouses.filter(item => item !== warehouseType);
-            $(`.warehouse-field[data-warehouse="${warehouseType}"]`).remove();
-        } else {
-            // اختيار جديد
-            $(this).addClass('active btn-primary').removeClass('btn-outline-primary');
-            selectedWarehouses.push(warehouseType);
+    if ($(this).hasClass('active')) {
+        // إلغاء الاختيار
+        $(this).removeClass('active btn-primary').addClass('btn-outline-primary');
+        selectedWarehouses = selectedWarehouses.filter(item => item.id !== warehouseId);
+        $(`.warehouse-field[data-id="${warehouseId}"]`).remove();
+    } else {
+        // اختيار جديد
+        $(this).addClass('active btn-primary').removeClass('btn-outline-primary');
+        selectedWarehouses.push({ id: warehouseId, name: warehouseName });
 
-            let optionsHtml = '<option value="">اختر محفظة...</option>';
-            wallets.forEach(wallet => {
-                optionsHtml += `<option value="${wallet.id}">${wallet.name}</option>`;
-            });
+        // إنشاء خيارات المحفظة
+        let optionsHtml = '<option value="">اختر محفظة...</option>';
+        wallets.forEach(wallet => {
+            optionsHtml += `<option value="${wallet.id}">${wallet.name}</option>`;
+        });
 
-            let fieldHtml = `
-                <div class="mb-2 warehouse-field" data-warehouse="${warehouseType}">
-                    <label>محفظة ${warehouseType}:</label>
-                    <select name="wallet_${warehouseType}" class="form-select mb-1">${optionsHtml}</select>
-                </div>
-            `;
-            $('.warehouse-fields').append(fieldHtml);
-        }
-    });
+        // إضافة الحقل مع input مخفي للفورم
+        let fieldHtml = `
+            <div class="mb-2 warehouse-field" data-id="${warehouseId}">
+                <label>محفظة ${warehouseName}:</label>
+                <input type="hidden" name="warehouses[${warehouseId}][warehouse_id]" value="${warehouseId}">
+                <select name="warehouses[${warehouseId}][wallet_id]" class="form-select mb-1">
+                    ${optionsHtml}
+                </select>
+            </div>
+        `;
+        $('.warehouse-fields').append(fieldHtml);
+    }
+});
 
     // منع أن يكون سعر البيع أقل من سعر التكلفة مع إظهار رسالة خطأ
     $(document).on('input', '.sale_price', function() {
@@ -733,6 +739,13 @@ $(document).ready(function(){
     // عند عمل تسجيل للفاتورة 
     $('#invoiceForm').on('submit', function(e) {
         e.preventDefault();
+        let form = $(this);
+        let formData = new FormData(this);
+
+        // إظهار التحميل وإيقاف الزر
+        $("#loading-excute").show();
+        $(".btnSubmit").prop("disabled", true);
+
         let isValid = true;
         let message = "";
 
@@ -837,7 +850,45 @@ $(document).ready(function(){
 
         // لو كل شيء تمام، اعرض التأكيد
         if (confirm("هل أنت متأكد من حفظ البيانات؟")) {
-            this.submit();
+            $.ajax({
+                url: form.attr('action'),
+                method: "POST",
+                data: formData,
+                contentType: false,
+                processData: false,
+                success: function(response) {
+                    $("#loading-excute").hide();
+                    $(".btnSubmit").prop("disabled", false);
+
+                    if(response.success){
+                        toastr.success(response.message);
+                        // لو عايز بعد الحفظ تروح لصفحة تانية
+                        if(response.redirect){
+                            window.location.href = response.redirect;
+                        }
+                        // أو تعمل reset للفورم
+                        else {
+                            form[0].reset();
+                            $('.table tbody').empty(); // تفريغ الأصناف
+                        }
+                    } else {
+                        console.log(response);
+                        toastr.error(response.message || "حدث خطأ أثناء حفظ الفاتورة");
+                    }
+                },
+                error: function(xhr) {
+                    $("#loading-excute").hide();
+                    $(".btnSubmit").prop("disabled", false);
+
+                    if(xhr.responseJSON && xhr.responseJSON.errors){
+                        $.each(xhr.responseJSON.errors, function(key, error){
+                            toastr.error(error[0]);
+                        });
+                    } else {
+                        toastr.error("فشل الاتصال بالسيرفر");
+                    }
+                }
+            });
         }
     });
 

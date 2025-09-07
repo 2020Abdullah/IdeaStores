@@ -136,8 +136,36 @@
                 @endforeach
             </tbody>
         </table>
+        
+        @php
+        $originalAmount = $invoice->total_amount_without_discount;
+        $discountAmount = 0;
+        $finalAmount = $originalAmount;
     
-        <p class="total">إجمالي الفاتورة: {{ number_format($invoice->total_amount) }} EGP</p>
+        if ($invoice->discount_type && $invoice->discount_value) {
+            if ($invoice->discount_type === 'percent') {
+                $discountAmount = ($originalAmount * $invoice->discount_value / 100);
+            } else {
+                $discountAmount = $invoice->discount_value;
+            }
+            $finalAmount = $originalAmount - $discountAmount;
+        }
+    @endphp
+    
+    <!-- إجمالي الفاتورة -->
+    
+    @if($discountAmount > 0)
+        <p class="total">
+            إجمالي الفاتورة بعد الخصم: {{ number_format($finalAmount) }} EGP
+        </p>
+        <p class="total">
+            قيمة الخصم: {{ number_format($discountAmount) }} EGP
+        </p>
+    @else 
+        <p class="total">
+            إجمالي الفاتورة: {{ number_format($finalAmount) }} EGP
+        </p>
+    @endif
     
         <!-- Note -->
         <div class="note">

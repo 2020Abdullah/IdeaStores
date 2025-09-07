@@ -16,6 +16,7 @@ return new class extends Migration
             $table->morphs('expenseable');
             $table->foreignId('expense_item_id')->constrained('exponse_items')->cascadeOnDelete()->cascadeOnUpdate();
             $table->foreignId('account_id')->nullable()->constrained('accounts')->onDelete('SET NULL')->cascadeOnUpdate();
+            $table->enum('type', ['value', 'percent'])->default('value'); 
             $table->decimal('amount', 15, 2);
             $table->text('note')->nullable();
             $table->date('date')->nullable()->comment('تاريخ الإضافة بتاريخ الفاتورة');

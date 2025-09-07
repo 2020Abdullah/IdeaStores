@@ -71,134 +71,131 @@ class InvoicePurchaseController extends Controller
         return view('suppliers.invoices.add', $data);
     }
 
-    public function store(supplierInvoiceRequest $request){
-        // التحقق من الفاتورة لو هيا رصيد افتتاحي ام لا
-        if($request->invoice_type === 'opening_balance'){
-            return $this->addOpenBalance($request);
-        }
-        elseif($request->invoice_type === 'cash')
-        {
-            return $this->cash($request);
-        }
-        else {
-            return $this->credit($request);
+    public function store(supplierInvoiceRequest $request)
+    {
+        try {
+            if ($request->invoice_type === 'opening_balance') {
+                $this->addOpenBalance($request);
+            } elseif ($request->invoice_type === 'cash') {
+                $this->cash($request);
+            } else {
+                $this->credit($request);
+            }
+    
+            return response()->json([
+                'success' => true,
+                'message' => 'تم حفظ الفاتورة بنجاح',
+                'redirect' => route('supplier.invoice.index') // لو عايز تحويل بعد النجاح
+            ]);
+    
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'حدث خطأ: ' . $e->getMessage()
+            ], 500);
         }
     }
+    
 
     protected function updateStock($request, $invoice)
     {
         $invoice_items = $request->input('items');
         $main_store = StoreHouse::latest()->first();
     
-        if ($invoice_items && is_array($invoice_items)) {
+        if (!$invoice_items || !is_array($invoice_items)) {
+            return;
+        }
     
-            // 1. حذف الأصناف القديمة
-            $invoice->items()->delete();
+        // ==================== حذف الأصناف القديمة ====================
+        $invoice->items()->delete();
     
-            // 2. إضافة الأصناف الجديدة وتحديث المخزون
-            foreach ($invoice_items as $item) {
+        // ==================== التعامل مع كل صنف ====================
+        foreach ($invoice_items as $item) {
     
-                // حفظ الأصناف في فاتورة المورد
-                $invoice->items()->create([
-                    'supplier_invoice_id' => $invoice->id,
-                    'category_id'         => $item['category_id'],
-                    'product_id'          => $item['product_id'],
-                    'unit_id'             => $item['unit_id'],
-                    'size'             => !empty($item['size']) ? $item['size'] : null,
-                    'quantity'            => $item['quantity'],
-                    'pricePerMeter'       => $item['pricePerMeter'],
-                    'length'              => $item['length'],
-                    'purchase_price'      => $item['purchase_price'],
-                    'total_price'         => $this->normalizeNumber($item['total_price']),
-                ]);
+            // حفظ الأصناف في فاتورة المورد
+            $invoice->items()->create([
+                'supplier_invoice_id' => $invoice->id,
+                'category_id'         => $item['category_id'],
+                'product_id'          => $item['product_id'],
+                'unit_id'             => $item['unit_id'],
+                'size'                => $item['size'] ?? null,
+                'quantity'            => $item['quantity'],
+                'pricePerMeter'       => $item['pricePerMeter'],
+                'length'              => $item['length'],
+                'purchase_price'      => $item['purchase_price'],
+                'total_price'         => $this->normalizeNumber($item['total_price']),
+            ]);
     
-                // البحث عن المخزون
-                $stock = Stock::where([
+            // البحث عن المخزون أو إنشاؤه إذا لم يكن موجود
+            $stock = Stock::firstOrCreate(
+                [
                     'category_id' => $item['category_id'],
                     'product_id'  => $item['product_id'],
-                ])->first();
+                ],
+                [
+                    'size'            => $item['size'] ?? null,
+                    'unit_id'         => $item['unit_id'],
+                    'store_house_id'  => $main_store->id,
+                    'date'            => $request->invoice_date,
+                    'user_id'         => $this->user_id,
+                ]
+            );
     
-                // لو المخزون غير موجود نعمله جديد
-                if (!$stock) {
-                    $stock = new Stock();
-                    $stock->category_id   = $item['category_id'];
-                    $stock->product_id    = $item['product_id'];
-                    $stock->size       = $item['size'] ?? null;
-                    $stock->unit_id       = $item['unit_id'];
-                    $stock->store_house_id= $main_store->id;
-                    $stock->date          = $request->invoice_date;
-                    $stock->user_id       = $this->user_id;
-                    $stock->save();
-                }
+            // حساب الكمية والتكلفة الأساسية
+            $unit = Unit::findOrFail($item['unit_id']);
+            $quantity_to_add = (strtolower($unit->symbol) === 'سم') 
+                ? $item['length'] * $item['quantity'] 
+                : $item['quantity'];
     
-                // حساب الكمية والتكلفة الأساسية
-                $unit = Unit::findOrFail($item['unit_id']);
+            $unit_cost = $this->normalizeNumber($item['total_price']) / $quantity_to_add;
     
-                if (strtolower($unit->symbol) === 'سم') {
-                    // الوحدة متر → من خلال الطول × العدد
-                    $quantity_to_add = $item['length'] * $item['quantity'];
-                    $unit_cost       = $this->normalizeNumber($item['total_price']) / $quantity_to_add;
-                } else {
-                    // الوحدة بالعدد
-                    $quantity_to_add = $item['quantity'];
-                    $unit_cost       = $this->normalizeNumber($item['total_price']) / $quantity_to_add;
-                }
+            // توزيع التكاليف الإضافية
+            if ($request->additional_cost > 0) {
+                $total_invoice_amount = $this->normalizeNumber($request->total_amount_invoice);
+                $general_cost         = $this->normalizeNumber($request->additional_cost);
+                $item_total_price     = $this->normalizeNumber($item['total_price']);
     
-                // تسجيل أو تحديث حركة المخزن
-                $stock_movement = Stock_movement::where('source_code', $invoice->invoice_code)
-                    ->where('stock_id', $stock->id)
-                    ->first();
+                $item_percentage      = $item_total_price / $total_invoice_amount;
+                $cost_share           = ($item_percentage * $general_cost) + $item_total_price;
     
-                if ($stock_movement) {
-                    $stock_movement->update([
-                        'type'     => 'in',
-                        'quantity' => $quantity_to_add,
-                        'note'     => 'شراء',
-                        'date'     => $invoice->invoice_date,
-                    ]);
-                } else {
-                    Stock_movement::create([
-                        'related_type' => Supplier::class,
-                        'related_id'   => $request->supplier_id,
-                        'stock_id'     => $stock->id,
-                        'type'         => 'in',
-                        'quantity'     => $quantity_to_add,
-                        'note'         => 'شراء',
-                        'source_code'  => $invoice->invoice_code,
-                        'date'         => $invoice->invoice_date,
-                        'user_id'      => $this->user_id,
-                    ]);
-                }
-    
-                // توزيع التكاليف الإضافية
-                if ($request->additional_cost > 0) {
-                    $total_invoice_amount = $this->normalizeNumber($request->total_amount_invoice);
-                    $general_cost         = $this->normalizeNumber($request->additional_cost);
-                    $item_total_price     = $this->normalizeNumber($item['total_price']);
-    
-                    $item_percentage      = $item_total_price / $total_invoice_amount;
-                    $cost_share           = ($item_percentage * $general_cost) + $item_total_price;
-    
-                    $unit_cost_with_share = $cost_share / $quantity_to_add;
-                } else {
-                    $unit_cost_with_share = $unit_cost;
-                }
-    
-                // حفظ تكلفة الصنف
-                InvoiceProductCost::updateOrCreate(
-                    ['supplier_invoice_id' => $invoice->id],
-                    [
-                        'stock_id'   => $stock->id,
-                        'base_cost'  => $this->normalizeNumber($unit_cost),
-                        'cost_share' => $this->normalizeNumber($unit_cost_with_share),
-                        'supplier_invoice_id' => $invoice->id,
-                        'source_code' => $invoice->invoice_code,
-                        'date' => $invoice->invoice_date,
-                    ]
-                );
+                $unit_cost_with_share = $cost_share / $quantity_to_add;
+            } else {
+                $unit_cost_with_share = $unit_cost;
             }
+    
+            // تسجيل أو تحديث حركة المخزون
+            Stock_movement::updateOrCreate(
+                [
+                    'source_code' => $invoice->invoice_code,
+                    'stock_id'    => $stock->id,
+                ],
+                [
+                    'related_type' => Supplier::class,
+                    'related_id'   => $request->supplier_id,
+                    'type'         => 'in',
+                    'quantity'     => $quantity_to_add,
+                    'note'         => 'شراء',
+                    'date'         => $invoice->invoice_date,
+                    'user_id'      => $this->user_id,
+                ]
+            );
+    
+            // ==================== حفظ أو تحديث تكلفة الصنف ====================
+            InvoiceProductCost::updateOrCreate(
+                [
+                    'supplier_invoice_id' => $invoice->id,
+                    'stock_id'            => $stock->id,
+                ],
+                [
+                    'base_cost'   => $this->normalizeNumber($unit_cost),
+                    'cost_share'  => $this->normalizeNumber($unit_cost_with_share),
+                    'source_code' => $invoice->invoice_code,
+                    'date'        => $invoice->invoice_date,
+                ]
+            );
         }
     }
+    
     
     
     protected function credit($request){
@@ -232,9 +229,6 @@ class InvoicePurchaseController extends Controller
             $this->updateStock($request, $invoice);
     
             DB::commit();
-    
-            return redirect()->route('supplier.account.show', $supplier->id)
-                ->with('success', 'تم إنشاء الفاتورة بنجاح.');
     
         } catch (\Exception $e) {
             DB::rollBack();
@@ -331,9 +325,7 @@ class InvoicePurchaseController extends Controller
     
         // ضبط المخزون
         $this->updateStock($request, $invoice);
-    
-        return redirect()->route('supplier.account.show', $request->supplier_id)
-                         ->with('success', 'تم إنشاء فاتورة مورد بنجاح');
+
     }
     
 
@@ -430,7 +422,6 @@ class InvoicePurchaseController extends Controller
                 ->with('success', 'تم عمل رصيد افتتاحي للمورد');
         } catch (\Exception $e) {
             DB::rollBack();
-            return redirect()->back()->with('error', 'حدث خطأ: ' . $e->getMessage());
         }
     }
     
@@ -452,97 +443,101 @@ class InvoicePurchaseController extends Controller
                 'notes' => $request->notes,
             ]);
 
-            // تحديث الفواتير أولاً بأول وإعادة حساب رصيد المورد    
             $this->updateInvoiceState($request);
 
             DB::commit();
-            return redirect()->route('supplier.index')->with('success', 'تم تعديل الرصيد الافتتاحي بنجاح مع ضبط الديون والرصيد.');
         } catch (\Exception $e) {
             DB::rollBack();
-            return redirect()->back()->with('error', 'حدث خطأ: ' . $e->getMessage());
         }
     }
 
     protected function updateInvoiceState($request)
     {
         $supplier = Supplier::findOrFail($request->supplier_id);
-
-        // مجموع المدفوعات المتاحة (نجعلها موجبة ومطابقة لصيغة الأرقام عندك)
+    
+        // مجموع المدفوعات المتاحة
         $available = $this->normalizeNumber(
             $supplier->paymentTransactions()->sum(DB::raw('ABS(amount)'))
         );
-
-        // جلب كل الفواتير الآجلة (استبعاد فواتير الكاش) بترتيب التاريخ الأقدم أولاً
-        $invoices = Supplier_invoice::where('supplier_id', $supplier->id)
+    
+        // معالجة الفواتير على دفعات لتجنب استهلاك الذاكرة
+        Supplier_invoice::where('supplier_id', $supplier->id)
             ->where('invoice_type', '!=', 'cash')
             ->orderBy('invoice_date', 'asc')
-            ->get();
-
-        // نعيد التوزيع من الصفر: نعيد ضبط كل فاتورة (paid_amount = 0) ونحذف الديون القديمة
-        foreach ($invoices as $invoice) {
-            $invoice->update([
-                'paid_amount' => 0,
-                'invoice_staute' => 0,
-            ]);
-            // حذف ديون سابقة لإعادة الإنشاء حسب الحالة الجديدة
-            $invoice->debts()->delete();
-        }
-
-        // الآن وزع المبلغ المتاح على الفواتير واحداً تلو الآخر
-        foreach ($invoices as $invoice) {
-            $invoiceAmount = $this->normalizeNumber($invoice->total_amount_invoice);
-
-            // إذا لا يوجد مبلغ متاح بعد الآن => فاتورة غير مدفوعة، نُنشئ دين بكامل القيمة
-            if ($available <= 0) {
-                // حالة غير مدفوعة (already set) — أنشئ دين كامل
-                $invoice->debts()->create([
-                    'description' => 'دين كامل على الفاتورة للمورد ' . $supplier->name,
-                    'amount'      => -$invoiceAmount,
-                    'paid'        => 0,
-                    'remaining'   => $invoiceAmount,
-                    'is_paid'     => 0,
-                    'date'        => $invoice->invoice_date,
-                    'user_id'        => $this->user_id,
-                ]);
-                continue;
-            }
-
-            // إذا المبلغ يكفي لتغطية الفاتورة كاملة
-            if ($available >= $invoiceAmount) {
-                $invoice->update([
-                    'paid_amount'    => $invoiceAmount,
-                    'invoice_staute' => 1, // مدفوعة بالكامل
-                ]);
-                // لا نُنشئ دين لأن الفاتورة الآن مسددة
-                $available -= $invoiceAmount;
-                continue;
-            }
-
-            // إذا المبلغ أقل من قيمة الفاتورة => دفع جزئي
-            if ($available > 0 && $available < $invoiceAmount) {
-                $paidNow = $available;
-                $invoice->update([
-                    'paid_amount'    => $paidNow,
-                    'invoice_staute' => 2, // مدفوعة جزئياً
-                ]);
-
-                // إنشاء دين بالمتبقي
-                $invoice->debts()->create([
-                    'description' => 'دين جزئي على الفاتورة للمورد ' . $supplier->name,
-                    'amount'      => -$invoiceAmount,
-                    'paid'        => $paidNow,
-                    'remaining'   => $invoiceAmount - $paidNow,
-                    'is_paid'     => 0,
-                    'date'        => $invoice->invoice_date,
-                    'user_id'        => $this->user_id,
-                ]);
-
-                // استهلك كل المتاح
-                $available = 0;
-                continue;
-            }
-        }
+            ->chunkById(500, function ($invoices) use (&$available, $supplier) {
+    
+                foreach ($invoices as $invoice) {
+    
+                    $invoiceAmount = $this->normalizeNumber($invoice->total_amount_invoice);
+    
+                    // جلب الدين الحالي إذا وجد
+                    $debt = $invoice->debts()->first();
+    
+                    // لا يوجد مبلغ متاح بعد الآن
+                    if ($available <= 0) {
+                        if (!$debt) {
+                            $invoice->debts()->create([
+                                'description' => 'دين كامل على الفاتورة للمورد ' . $supplier->name,
+                                'amount'      => -$invoiceAmount,
+                                'paid'        => 0,
+                                'remaining'   => $invoiceAmount,
+                                'is_paid'     => 0,
+                                'date'        => $invoice->invoice_date,
+                                'user_id'     => $this->user_id,
+                            ]);
+                        } else {
+                            $debt->update([
+                                'amount'    => -$invoiceAmount,
+                                'paid'      => 0,
+                                'remaining' => $invoiceAmount,
+                                'is_paid'   => 0,
+                            ]);
+                        }
+                        $invoice->update(['paid_amount' => 0, 'invoice_staute' => 0]);
+                        continue;
+                    }
+    
+                    // دفع كامل
+                    if ($available >= $invoiceAmount) {
+                        $invoice->update(['paid_amount' => $invoiceAmount, 'invoice_staute' => 1]);
+                        if ($debt) {
+                            $debt->delete();
+                        }
+                        $available -= $invoiceAmount;
+                        continue;
+                    }
+    
+                    // دفع جزئي
+                    if ($available > 0 && $available < $invoiceAmount) {
+                        $paidNow = $available;
+                        $invoice->update(['paid_amount' => $paidNow, 'invoice_staute' => 2]);
+    
+                        if ($debt) {
+                            $debt->update([
+                                'amount'    => -$invoiceAmount,
+                                'paid'      => $paidNow,
+                                'remaining' => $invoiceAmount - $paidNow,
+                                'is_paid'   => 0,
+                            ]);
+                        } else {
+                            $invoice->debts()->create([
+                                'description' => 'دين جزئي على الفاتورة للمورد ' . $supplier->name,
+                                'amount'      => -$invoiceAmount,
+                                'paid'        => $paidNow,
+                                'remaining'   => $invoiceAmount - $paidNow,
+                                'is_paid'     => 0,
+                                'date'        => $invoice->invoice_date,
+                                'user_id'     => $this->user_id,
+                            ]);
+                        }
+    
+                        $available = 0;
+                        continue;
+                    }
+                }
+            });
     }
+    
     
     protected function updateCredit($request)
     {
@@ -645,16 +640,29 @@ class InvoicePurchaseController extends Controller
 
     public function update(supplierInvoiceRequest $request)
     {
-        if($request->invoice_type === 'opening_balance'){
-            return $this->updateOpenBalance($request);
+        try {
+            if($request->invoice_type === 'opening_balance'){
+                $this->updateOpenBalance($request);
+            }
+            elseif($request->invoice_type === 'credit'){
+                $this->updateCredit($request);
+            }
+            else {
+                $this->updateCash($request);
+            }
+    
+            return response()->json([
+                'success' => true,
+                'message' => 'تم حفظ الفاتورة بنجاح',
+                'redirect' => route('supplier.invoice.index')
+            ]);
+    
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'حدث خطأ: ' . $e->getMessage()
+            ], 500);
         }
-        elseif($request->invoice_type === 'credit'){
-            return $this->updateCredit($request);
-        }
-        else {
-            return $this->updateCash($request);
-        }
-        return back()->with('error', 'حدث خطأ ما برجاء التواصل مع الدعم للمساعدة');
     }    
 
     public function show($code){

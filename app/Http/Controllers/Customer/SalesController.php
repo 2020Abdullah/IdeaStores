@@ -38,7 +38,7 @@ class SalesController extends Controller
     }
 
     public function index(){
-        $data['invoices_list'] = CustomerInvoices::orderBy('date', 'desc')
+        $data['invoices_list'] = CustomerInvoices::orderBy('date', 'DESC')
         ->paginate(100);
         return view('customer.sales.index', $data);
     }
@@ -69,26 +69,52 @@ class SalesController extends Controller
     }
 
     public function store(customerInvoiceRequest $request){
-        if($request->invoice_type === 'opening_balance'){
-            return $this->addOpenBalance($request);
+        try {
+            if($request->invoice_type === 'opening_balance'){
+                return $this->addOpenBalance($request);
+            }
+            elseif($request->invoice_type === 'credit'){
+                return $this->credit($request);
+            }
+            else {
+                return $this->cash($request);
+            }
+            return response()->json([
+                'success' => true,
+                'message' => 'تم حفظ الفاتورة بنجاح',
+                'redirect' => route('customer.invoice.index') // لو عايز تحويل بعد النجاح
+            ]);
         }
-        elseif($request->invoice_type === 'credit'){
-            return $this->credit($request);
-        }
-        else {
-            return $this->cash($request);
+        catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'حدث خطأ: ' . $e->getMessage()
+            ], 500);
         }
     }
 
     public function update(customerInvoiceRequest $request){
-        if($request->invoice_type === 'opening_balance'){
-            return $this->updateOpenBalance($request);
+        try {
+            if($request->invoice_type === 'opening_balance'){
+                $this->updateOpenBalance($request);
+            }
+            elseif($request->invoice_type === 'credit'){
+                $this->updateCredit($request);
+            }
+            else {
+                $this->updateCash($request);
+            }
+            return response()->json([
+                'success' => true,
+                'message' => 'تم تحديث الفاتورة بنجاح',
+                'redirect' => route('customer.invoice.index')
+            ]);
         }
-        elseif($request->invoice_type === 'credit'){
-            return $this->updateCredit($request);
-        }
-        else {
-            return $this->updateCash($request);
+        catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'حدث خطأ: ' . $e->getMessage()
+            ], 500);
         }
     }
 
@@ -99,6 +125,7 @@ class SalesController extends Controller
             $invoice = CustomerInvoices::findOrFail($request->id);
             $invoice->date = $request->date;
             $invoice->total_amount = $this->normalizeNumber($request->total_amount_invoice);
+            $invoice->total_amount_without_discount = $this->normalizeNumber($request->total_amount_invoice);
             $invoice->notes = $request->notes;
             $invoice->save();
     
@@ -106,12 +133,9 @@ class SalesController extends Controller
             $this->updateInvoiceState($request);
     
             DB::commit();
-            return redirect()->route('customer.account.show', $request->customer_id)
-                ->with('success', 'تم تحديث الفاتورة بنجاح.');
         }
         catch(Exception $e){
             DB::rollBack();
-            return $e->getMessage();
         }
     }
 
@@ -121,7 +145,8 @@ class SalesController extends Controller
             // 1. تحديث الفاتورة 
             $invoice = CustomerInvoices::findOrFail($request->id);
             $invoice->date = $request->date;
-            $invoice->total_amount = $this->normalizeNumber($request->total_amount_invoice);
+            $invoice->total_amount_without_discount = $this->normalizeNumber($request->total_amount_without_discount);
+            $invoice->total_amount = $this->normalizeNumber($request->total_amount);
             $invoice->notes = $request->notes;
             $invoice->cost_price = $request->additional_cost;
             $invoice->discount_type = $request->discount_type;
@@ -141,59 +166,86 @@ class SalesController extends Controller
             $this->ProfitDistribution($invoice);
     
             DB::commit();
-            return redirect()->route('customer.account.show', $request->customer_id)
-                ->with('success', 'تم تحديث الفاتورة بنجاح.');
         }
         catch(Exception $e){
             DB::rollBack();
-            return $e->getMessage();
         }
     }
 
     public function updateCash($request){
         DB::beginTransaction();
         try {
-            $total_amount_invoice = $this->normalizeNumber($request->total_amount_invoice);
+            $total_amount = $this->normalizeNumber($request->total_amount);
+            $total_amount_without_discount = $this->normalizeNumber($request->total_amount_without_discount);
             $total_profit_inv = $this->normalizeNumber($request->total_profit_inv);
-            // 1. تعديل الفاتورة 
-            $invoice = CustomerInvoices::where('id', $request->id)->first();
-
+    
+            // حساب المبلغ بعد الخصم
+            $finalAmount = $total_amount_without_discount;
+            if ($request->discount_type && $request->discount_value) {
+                if ($request->discount_type === 'percent') {
+                    $finalAmount -= ($total_amount_without_discount * $request->discount_value / 100);
+                } else {
+                    $finalAmount -= $request->discount_value;
+                }
+            }
+    
+            // 1. تعديل الفاتورة
+            $invoice = CustomerInvoices::findOrFail($request->id);
             $invoice->update([
                 'date' => $request->date,
-                'total_amount' => $total_amount_invoice,
-                'paid_amount' => $total_amount_invoice,
+                'total_amount_without_discount' => $total_amount_without_discount,
+                'total_amount' => $total_amount,
+                'paid_amount' => $finalAmount,
                 'total_profit' => $total_profit_inv,
                 'cost_price' => $request->additional_cost,
                 'notes' => $request->notes ?? '',
                 'discount_type' => $request->discount_type ?? '',
                 'discount_value' => $request->discount_value,
             ]);
-
-
-            // 2. ضبط المخزن وخصم البضاعة وتسجيل عناصر الفاتورة
+    
+            // 2. ضبط المخزن وخصم البضاعة
             $this->updateStock($request, $invoice);
-
-            // 3. تعديل حركة الخزنة
+    
+            // 3. تعديل أو إنشاء حركة الخزنة
             $transaction = Account_transactions::where('source_code', $invoice->code)->first();
-            $transaction->amount = $total_amount_invoice;
-            $transaction->description = $request->notes ?? 'تحصيل فاتورة مبيعات كاش';
-            $transaction->save();
-            
-            // 3. تحديث التكاليف إن وجدت
+    
+            if ($transaction) {
+                $transaction->amount = $finalAmount;
+                $transaction->profit_amount = $total_profit_inv;
+                $transaction->description = $request->notes ?? 'تحصيل فاتورة مبيعات كاش';
+                $transaction->save();
+            } else {
+                // إذا لم يكن موجودًا يمكن إنشاء عملية جديدة
+                // لاحظ: تأكد من تمرير warehouse_id و wallet_id المناسبين
+                Account_transactions::create([
+                    'account_id'       => $request->warehouse_account_id ?? null,
+                    'wallet_id'        => $request->wallet_id ?? null,
+                    'direction'        => 'in',
+                    'amount'           => $finalAmount,
+                    'profit_amount'    => $total_profit_inv,
+                    'transaction_type' => 'sale',
+                    'related_type'     => Customer::class,
+                    'related_id'       => $request->customer_id,
+                    'description'      => $request->notes ?? 'تحصيل فاتورة مبيعات كاش',
+                    'source_code'      => $invoice->code,
+                    'date'             => $invoice->date,
+                    'user_id'          => $this->user_id,
+                ]);
+            }
+    
+            // 4. تحديث التكاليف إن وجدت
             $this->updateCost($request, $invoice);
-
-            // 4. توزيع الربحية
+    
+            // 5. توزيع الربحية
             $this->ProfitDistribution($invoice);
-
+    
             DB::commit();
-            return redirect()->route('customer.account.show', $request->customer_id)
-                ->with('success', 'تم تحديث الفاتورة بنجاح.');
         }
         catch(Exception $e){
             DB::rollBack();
-            return $e->getMessage();
         }
     }
+    
 
     protected function normalizeNumber($number, $max = 9999999999999.99)
     {
@@ -255,6 +307,7 @@ class SalesController extends Controller
                 $invoice->costs()->create([
                     'expense_item_id' => $cost['exponse_id'],
                     'account_id'      => $default_warehouse->account->id,
+                    'type'          => $cost['type'],
                     'amount'          => -$this->normalizeNumber($cost['amount']),
                     'note'            => $cost['note'] ?? 'تكاليف إضافية علي فاتورة بيع',
                     'date'            => $invoice->date,
@@ -311,7 +364,10 @@ class SalesController extends Controller
             ])->exists();
 
             if ($exists) {
-                return back()->with('error', 'هذا المورد لديه رصيد افتتاحي من قبل');
+                return response()->json([
+                    'success' => false,
+                    'message' => 'هذا العميل لديه رصيد افتتاحي من قبل'
+                ], 500);
             }
 
             // إنشاء الفاتورة (رصيد افتتاحي)
@@ -322,6 +378,7 @@ class SalesController extends Controller
                 'type' => $request->invoice_type,
                 'staute' => 0, 
                 'total_amount' => $total_amount_invoice,
+                'total_amount_without_discount' => $total_amount_invoice,
                 'paid_amount' => 0,
                 'notes' => $request->notes,
                 'user_id' => $this->user_id,
@@ -331,17 +388,16 @@ class SalesController extends Controller
             $this->updateInvoiceState($request);
 
             DB::commit();
-            return redirect()->route('customer.index')->with('success', 'تم إنشاء فاتورة للعميل بنجاح');
         } catch (\Exception $e) {
             DB::rollBack();
-            return redirect()->back()->with('error', 'حدث خطأ: ' . $e->getMessage());
         }
     }
 
     protected function credit($request){
         DB::beginTransaction();
         try {
-            $total_amount_invoice = $this->normalizeNumber($request->total_amount_invoice);
+            $total_amount_without_discount = $this->normalizeNumber($request->total_amount_without_discount);
+            $total_amount_invoice = $this->normalizeNumber($request->total_amount);
             $total_profit_inv = $this->normalizeNumber($request->total_profit_inv);
             // 1. تسجيل الفاتورة 
             $invoice = CustomerInvoices::create([
@@ -349,6 +405,7 @@ class SalesController extends Controller
                 'code' => $this->generateNum(),
                 'date' => $request->date,
                 'type' => $request->invoice_type,
+                'total_amount_without_discount' => $total_amount_without_discount,
                 'total_amount' => $total_amount_invoice,
                 'total_profit' => $total_profit_inv,
                 'cost_price' => $request->additional_cost,
@@ -373,63 +430,73 @@ class SalesController extends Controller
             $this->ProfitDistribution($invoice);
 
             DB::commit();
-            return redirect()->route('customer.account.show', $request->customer_id)
-                ->with('success', 'تم إنشاء الفاتورة بنجاح.');
         }
         catch(Exception $e){
             DB::rollBack();
-            return $e->getMessage();
         }
     }
 
-    protected function cash($request){
+    protected function cash($request)
+    {
         DB::beginTransaction();
         try {
-            $total_amount_invoice = $this->normalizeNumber($request->total_amount_invoice);
+            $total_amount = $this->normalizeNumber($request->total_amount);
+            $total_amount_without_discount = $this->normalizeNumber($request->total_amount_without_discount);
             $total_profit_inv = $this->normalizeNumber($request->total_profit_inv);
-            // 1. إنشاء الفاتورة 
+    
+            // حساب المبلغ بعد الخصم
+            $finalAmount = $total_amount_without_discount;
+            if ($request->discount_type && $request->discount_value) {
+                if ($request->discount_type === 'percent') {
+                    $finalAmount -= ($total_amount_without_discount * $request->discount_value / 100);
+                } else {
+                    // خصم بقيمة ثابتة
+                    $finalAmount -= $request->discount_value;
+                }
+            }
+    
+            // 1. إنشاء الفاتورة
             $invoice = CustomerInvoices::create([
                 'customer_id' => $request->customer_id,
                 'code' => $this->generateNum(),
                 'date' => $request->date,
                 'type' => $request->invoice_type,
-                'total_amount' => $total_amount_invoice,
+                'total_amount_without_discount' => $total_amount_without_discount,
+                'total_amount' => $total_amount,
                 'total_profit' => $total_profit_inv,
                 'cost_price' => $request->additional_cost,
-                'paid_amount' => $total_amount_invoice,
+                'paid_amount' => $finalAmount,
                 'staute' => 1, 
                 'notes' => $request->notes,
                 'discount_type' => $request->discount_type,
                 'discount_value' => $request->discount_value,
                 'user_id' => $this->user_id,
             ]);
-
+    
             // 2. ضبط المخزن وخصم البضاعة وتسجيل عناصر الفاتورة
             $this->updateStock($request, $invoice);
-
+    
+            // 3. جمع بيانات الخزن والمحافظ الديناميكية
             $warehouses = [];
-            if ($request->wallet_la7amat) {
-                $warehouses[] = [
-                    'warehouse_type' => 'la7amat', // من جدول warehouses
-                    'wallet_id'      => $request->wallet_la7amat
-                ];
+            if ($request->warehouses && is_array($request->warehouses)) {
+                foreach ($request->warehouses as $wh) {
+                    if (!empty($wh['warehouse_id']) && !empty($wh['wallet_id'])) {
+                        $warehouses[] = [
+                            'warehouse_id' => $wh['warehouse_id'],
+                            'wallet_id'    => $wh['wallet_id']
+                        ];
+                    }
+                }
             }
-            if ($request->wallet_toridat) {
-                $warehouses[] = [
-                    'warehouse_type' => 'toridat',
-                    'wallet_id'      => $request->wallet_toridat
-                ];
-            }
-
+    
+            // 4. توزيع المبلغ والربح على الخزن المحددة
             $count = count($warehouses);
             if ($count > 0) {
-                $share = $count > 1 ? $total_amount_invoice / $count : $total_amount_invoice;
+                $share = $count > 1 ? $finalAmount / $count : $finalAmount;
                 $shareProfit = $count > 1 ? $total_profit_inv / $count : $total_profit_inv;
-
                 foreach ($warehouses as $wh) {
-                    $warehouseModel = Warehouse::where('type', $wh['warehouse_type'])->first();
-
-                    if ($warehouseModel) {
+                    $warehouseModel = Warehouse::find($wh['warehouse_id']);
+                    if ($warehouseModel && $warehouseModel->account) {
                         Account_transactions::create([
                             'account_id'       => $warehouseModel->account->id,
                             'wallet_id'        => $wh['wallet_id'],
@@ -442,27 +509,26 @@ class SalesController extends Controller
                             'description'      => $request->notes ?? 'تحصيل فاتورة مبيعات كاش',
                             'source_code'      => $invoice->code,
                             'date'             => $invoice->invoice_date,
-                            'user_id'             => $this->user_id,
+                            'user_id'          => $this->user_id,
                         ]);
                     }
                 }
             }
-
+    
             // 5. تحديث التكاليف إن وجدت
             $this->updateCost($request, $invoice);
-
+    
             // 6. توزيع الربحية
             $this->ProfitDistribution($invoice);
             
             DB::commit();
-            return redirect()->route('customer.account.show', $request->customer_id)
-                ->with('success', 'تم إنشاء الفاتورة بنجاح.');
-        }
-        catch(Exception $e){
+        } catch(Exception $e){
             DB::rollBack();
-            return $e->getMessage();
         }
     }
+    
+    
+    
 
     protected function updateStock($request, $invoice){
         $invoice->items()->delete();
@@ -483,7 +549,7 @@ class SalesController extends Controller
                     'quantity' => -$quantity,
                     'note' => 'بيع',
                     'source_code' => $invoice->code,
-                    'date' => $request->invoice_date,
+                    'date' => $request->date,
                     'user_id' => $this->user_id,
                 ]);
    
@@ -507,99 +573,118 @@ class SalesController extends Controller
     {
         $customer = Customer::findOrFail($request->customer_id);
     
-        // مجموع المدفوعات (موجب = مستحقات لنا)
+        // مجموع المدفوعات المتاحة
         $available = $this->normalizeNumber(
             $customer->paymentTransactions()->sum('amount')
         );
     
-        // جلب الفواتير الآجلة فقط (استبعاد الكاش)
-        $invoices = CustomerInvoices::where('customer_id', $request->customer_id)
+        // معالجة الفواتير على دفعات لتجنب استهلاك الذاكرة
+        CustomerInvoices::where('customer_id', $customer->id)
             ->where('type', '!=', 'cash')
             ->orderBy('date', 'asc')
-            ->get();
+            ->chunkById(500, function ($invoices) use (&$available, $request) {
     
-        // إعادة التوزيع من الصفر
-        foreach ($invoices as $invoice) {
-            $invoice->dues()->delete();
-        }
+                foreach ($invoices as $invoice) {
     
-        // توزيع المدفوعات على الفواتير
-        foreach ($invoices as $invoice) {
-            $invoiceAmount = $this->normalizeNumber($invoice->total_amount);
+                    // المبلغ بعد الخصم
+                    $invoiceAmount = $this->normalizeNumber($invoice->total_amount_without_discount);
+                    if ($invoice->discount_type && $invoice->discount_value) {
+                        if ($invoice->discount_type === 'percent') {
+                            $invoiceAmount -= ($invoiceAmount * $invoice->discount_value / 100);
+                        } else {
+                            $invoiceAmount -= $invoice->discount_value;
+                        }
+                    }
     
-            // لا يوجد رصيد مدفوع يغطي الفاتورة
-            if ($available <= 0) {
-                $invoice->dues()->create([
-                    'customer_id' => $request->customer_id,
-                    'customer_invoice_id' => $invoice->id,
-                    'description' => 'مستحقات لنا',
-                    'amount'      => $invoiceAmount,
-                    'paid_amount' => 0,
-                    'due_date'    => $invoice->date,
-                    'status'      => 0,
-                    'user_id'     => $this->user_id,
-                ]);
-                continue;
-            }
+                    // جلب المستحق الحالي إذا وجد
+                    $due = $invoice->dues()->first();
     
-            // الفاتورة مدفوعة بالكامل
-            if ($available >= $invoiceAmount) {
-                $invoice->update([
-                    'paid_amount' => $invoiceAmount,
-                    'staute'      => 1, // مدفوعة
-                ]);
-                $invoice->dues()->delete();
-                $available -= $invoiceAmount;
-                continue;
-            }
+                    // لا يوجد رصيد يغطي الفاتورة
+                    if ($available <= 0) {
+                        if (!$due) {
+                            $invoice->dues()->create([
+                                'customer_id' => $request->customer_id,
+                                'customer_invoice_id' => $invoice->id,
+                                'description' => 'مستحقات لنا',
+                                'amount'      => $invoiceAmount,
+                                'paid_amount' => 0,
+                                'due_date'    => $invoice->date,
+                                'status'      => 0,
+                                'user_id'     => $this->user_id,
+                            ]);
+                        } else {
+                            // تحديث إذا كان موجودًا
+                            $due->update([
+                                'amount'      => $invoiceAmount,
+                                'paid_amount' => 0,
+                                'status'      => 0,
+                            ]);
+                        }
+                        $invoice->update(['paid_amount' => 0, 'staute' => 0]);
+                        continue;
+                    }
     
-            // الفاتورة مدفوعة جزئياً
-            if ($available > 0 && $available < $invoiceAmount) {
-                $paidNow = $available;
+                    // الفاتورة مدفوعة بالكامل
+                    if ($available >= $invoiceAmount) {
+                        $invoice->update(['paid_amount' => $invoiceAmount, 'staute' => 1]);
+                        if ($due) {
+                            $due->delete();
+                        }
+                        $available -= $invoiceAmount;
+                        continue;
+                    }
     
-                $invoice->update([
-                    'paid_amount' => $paidNow,
-                    'staute'      => 2, // مدفوعة جزئياً
-                ]);
+                    // الفاتورة مدفوعة جزئيًا
+                    if ($available > 0 && $available < $invoiceAmount) {
+                        $paidNow = $available;
     
-                $invoice->dues()->updateOrCreate(
-                    ['customer_invoice_id' => $invoice->id],
-                    [
-                        'customer_id' => $request->customer_id,
-                        'description' => 'مستحقات لنا',
-                        'amount'      => $invoiceAmount,
-                        'paid_amount' => $paidNow,
-                        'due_date'    => $invoice->date,
-                        'status'      => 2,
-                        'user_id'     => $this->user_id,
-                    ]
-                );
+                        $invoice->update(['paid_amount' => $paidNow, 'staute' => 2]);
     
-                $available = 0;
-                continue;
-            }
-        }
+                        if ($due) {
+                            $due->update([
+                                'amount'      => $invoiceAmount,
+                                'paid_amount' => $paidNow,
+                                'status'      => 2,
+                            ]);
+                        } else {
+                            $invoice->dues()->create([
+                                'customer_id' => $request->customer_id,
+                                'customer_invoice_id' => $invoice->id,
+                                'description' => 'مستحقات لنا',
+                                'amount'      => $invoiceAmount,
+                                'paid_amount' => $paidNow,
+                                'due_date'    => $invoice->date,
+                                'status'      => 2,
+                                'user_id'     => $this->user_id,
+                            ]);
+                        }
     
-        // ✅ إدارة الدين الخارجي
+                        $available = 0;
+                        continue;
+                    }
+                }
+            });
+    
+        // إدارة الدين الخارجي
         if ($available > 0) {
-            // لو فيه دين خارجي قديم → نحدثه
             $customer->debts()->updateOrCreate(
                 ['debtable_id' => $customer->id, 'debtable_type' => Customer::class],
                 [
-                    'description'   => 'مستحقات زائدة للعميل',
-                    'amount'        => $available,
-                    'paid'          => 0,
-                    'remaining'     => $available,
-                    'is_paid'       => 0,
-                    'date'          => now(),
-                    'user_id'       => $this->user_id,
+                    'description' => 'مستحقات زائدة للعميل',
+                    'amount'      => $available,
+                    'paid'        => 0,
+                    'remaining'   => $available,
+                    'is_paid'     => 0,
+                    'date'        => now(),
+                    'user_id'     => $this->user_id,
                 ]
             );
         } else {
-            // لو مفيش مدفوعات زائدة → احذف أي دين خارجي قديم
             $customer->debts()->delete();
         }
     }
+    
+    
     
     
 
