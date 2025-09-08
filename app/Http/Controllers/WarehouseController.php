@@ -24,22 +24,52 @@ class WarehouseController extends Controller
 
     public function store(WareHouseRequest $request){
         try {
-            // create warehouse 
-            $warehouse = new Warehouse();
-            $warehouse->name = $request->name;
-            $warehouse->type = $request->type;
-            $warehouse->save();
-
-            // create account warehouse
-            $warehouse->account()->create([
-                'name' => 'حساب ' . $request->name,
-                'type' => 'warehouse',
-            ]);
+            DB::transaction(function () use ($request) {
+                // create warehouse 
+                $warehouse = new Warehouse();
+                $warehouse->name = $request->name;
+                $warehouse->is_default = $request->is_default;
+                $warehouse->save();
+    
+                if ($warehouse->is_default) {
+                    Wallet::where('id', '!=', $warehouse->id)->update(['is_default' => 0]);
+                }
+    
+                // create account warehouse
+                $warehouse->account()->create([
+                    'name' => 'حساب ' . $request->name,
+                    'type' => 'warehouse',
+                ]);
+            });
         }
         catch(Exception $e){
+            DB::rollBack();
             return $e->getMessage();
         }
         return back()->with('success', 'تم إضافة البيانات بنجاح');
+    }
+
+    public function update(WareHouseRequest $request){
+        $warehouse = Warehouse::findOrFail($request->warehouse_id);
+        if ($request->is_default == 0 && $warehouse->is_default == 1) {
+            $otherDefaultExists = Warehouse::where('id', '!=', $warehouse->id)
+                                        ->where('is_default', 1)
+                                        ->exists();
+            if (! $otherDefaultExists) {
+                return back()->withErrors(['is_default' => 'يجب أن تكون هناك محفظة افتراضية واحدة على الأقل.']);
+            }
+        }
+        DB::transaction(function () use ($request, $warehouse) {
+            $warehouse->name       = $request->name;
+            $warehouse->is_default = $request->is_default;
+            $warehouse->save();
+    
+            if ($request->is_default == 1) {
+                Warehouse::where('id', '!=', $warehouse->id)->update(['is_default' => 0]);
+            }
+        });
+
+        return back()->with('success', 'تم تعديل بيانات الخزنة بنجاح');
     }
 
     public function walltetsSync(Request $request){

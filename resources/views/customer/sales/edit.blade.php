@@ -750,11 +750,6 @@ $(function () {
         e.preventDefault();
         let form = $(this);
         let formData = new FormData(this);
-
-        // إظهار التحميل وإيقاف الزر
-        $("#loading-excute").show();
-        $(".btnSubmit").prop("disabled", true);
-
         let isValid = true;
         let message = "";
 
@@ -828,43 +823,51 @@ $(function () {
         // لو كل شيء تمام، اعرض التأكيد
         if (confirm("هل أنت متأكد من حفظ البيانات؟")) {
             $.ajax({
-                url: form.attr('action'),
-                method: "POST",
-                data: formData,
-                contentType: false,
-                processData: false,
-                success: function(response) {
-                    console.log(response);
-                    $("#loading-excute").hide();
-                    $(".btnSubmit").prop("disabled", false);
+                    url: form.attr('action'),
+                    method: "POST",
+                    data: formData,
+                    contentType: false,
+                    processData: false,
+                    beforeSend: function () {
+                        $("#loading-excute").fadeIn(500);
+                        $(".btnSubmit").prop("disabled", true);
+                    },
+                    success: function(response) {
+                        $("#loading-excute").hide();
+                        $(".btnSubmit").prop("disabled", false);
 
-                    if(response.success){
-                        toastr.success(response.message);
-                        // لو عايز بعد الحفظ تروح لصفحة تانية
-                        if(response.redirect){
-                            window.location.href = response.redirect;
+                        if(response.success){
+                            toastr.success(response.message);
+                            // لو عايز بعد الحفظ تروح لصفحة تانية
+                            if(response.redirect){
+                                window.location.href = response.redirect;
+                            }
+                            // أو تعمل reset للفورم
+                            else {
+                                form[0].reset();
+                                $('.table tbody').empty(); // تفريغ الأصناف
+                            }
+                        } else {
+                            toastr.error(response.message || "حدث خطأ أثناء حفظ الفاتورة");
                         }
-                        // أو تعمل reset للفورم
-                        else {
-                            form[0].reset();
-                            $('.table tbody').empty(); // تفريغ الأصناف
-                        }
-                    } else {
-                        toastr.error(response.message);
-                    }
-                },
-                error: function(xhr) {
-                    $("#loading-excute").hide();
-                    $(".btnSubmit").prop("disabled", false);
+                    },
+                    error: function(xhr) {
+                        $("#loading-excute").hide(500);
+                        $(".btnSubmit").prop("disabled", false);
 
-                    if(xhr.responseJSON && xhr.responseJSON.errors){
-                        $.each(xhr.responseJSON.errors, function(key, error){
-                            toastr.error(error[0]);
-                        });
-                    } else {
-                        toastr.error("فشل الاتصال بالسيرفر");
+                        if(xhr.responseJSON && xhr.responseJSON.errors){
+                            $.each(xhr.responseJSON.errors, function(key, error){
+                                toastr.error(error[0]);
+                            });
+                        } else {
+                            toastr.error("فشل الاتصال بالسيرفر");
+                        }
+                    },
+                    complete: function(){
+                        $('#loading-excute').fadeOut(500);
+                        $(".btnSubmit").prop("disabled", false);
+                        feather.replace();
                     }
-                }
             });
         }
     });

@@ -46,7 +46,7 @@ class WalletsController extends Controller
         DB::transaction(function () use ($request, $wallet) {
             $wallet->name       = $request->name;
             $wallet->details    = $request->details;
-            $wallet->is_default = $request->boolean('is_default'); // كنت ناسيها
+            $wallet->is_default = $request->boolean('is_default');
             $wallet->save();
     
             if ($request->is_default == 1) {

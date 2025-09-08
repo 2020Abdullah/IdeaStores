@@ -639,11 +639,6 @@ $(function () {
         e.preventDefault();
         let form = $(this);
         let formData = new FormData(this);
-
-        // إظهار التحميل وإيقاف الزر
-        $("#loading-excute").show();
-        $(".btnSubmit").prop("disabled", true);
-
         let isValid = true;
         let message = "";
 
@@ -723,6 +718,10 @@ $(function () {
                     data: formData,
                     contentType: false,
                     processData: false,
+                    beforeSend: function () {
+                        $("#loading-excute").fadeIn(500);
+                        $(".btnSubmit").prop("disabled", true);
+                    },
                     success: function(response) {
                         $("#loading-excute").hide();
                         $(".btnSubmit").prop("disabled", false);
@@ -743,8 +742,10 @@ $(function () {
                         }
                     },
                     error: function(xhr) {
-                        $("#loading-excute").hide();
+                        $("#loading-excute").hide(500);
                         $(".btnSubmit").prop("disabled", false);
+
+                        console.log(xhr);
 
                         if(xhr.responseJSON && xhr.responseJSON.errors){
                             $.each(xhr.responseJSON.errors, function(key, error){
@@ -753,6 +754,11 @@ $(function () {
                         } else {
                             toastr.error("فشل الاتصال بالسيرفر");
                         }
+                    },
+                    complete: function(){
+                        $('#loading-excute').fadeOut(500);
+                        $(".btnSubmit").prop("disabled", false);
+                        feather.replace();
                     }
             });
         }

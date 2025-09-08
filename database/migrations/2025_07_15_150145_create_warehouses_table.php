@@ -14,7 +14,6 @@ return new class extends Migration
         Schema::create('warehouses', function (Blueprint $table) {
             $table->id();
             $table->string('name');
-            $table->enum('type', ['main', 'toridat', 'la7amat']);
             $table->tinyInteger('is_default')->default(0);
             $table->tinyInteger('statue')->default(1);
             $table->softDeletes();

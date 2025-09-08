@@ -13,13 +13,12 @@ return new class extends Migration
     {
         Schema::create('apps', function (Blueprint $table) {
             $table->id();
-            $table->string('logo');
-            $table->string('company_name');
+            $table->string('logo')->nullable();
+            $table->string('company_name')->nullable();
             $table->text('company_info')->nullable();
             $table->string('Tax_number')->nullable()->comment('رقم التعريف الضريبي');
             $table->tinyInteger('is_active')->default(1);
-            $table->string('secret_key')->nullable();
-            $table->foreignId('user_id')->constrained('users')->cascadeOnDelete()->cascadeOnUpdate();
+            $table->string('secret_key');
             $table->timestamps();
         });
     }

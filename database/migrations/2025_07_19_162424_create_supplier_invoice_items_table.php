@@ -17,7 +17,7 @@ return new class extends Migration
             $table->foreignId('category_id')->nullable()->constrained('categories')->onDelete('SET NULL')->cascadeOnUpdate();
             $table->foreignId('product_id')->nullable()->constrained('products')->onDelete('SET NULL')->cascadeOnUpdate();
             $table->foreignId('unit_id')->nullable()->constrained('units')->nullOnDelete();
-            $table->foreignId('size_id')->nullable()->constrained('sizes')->nullOnDelete();
+            $table->integer('size')->nullable()->default(0)->comment('المقاس');
             $table->integer('quantity')->default(1)->comment('الكمية');
             $table->decimal('pricePerMeter', 15, 2)->default(0)->comment('سعر المتر');
             $table->decimal('length', 15, 2)->default(0)->comment('الطول');

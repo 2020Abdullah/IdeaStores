@@ -25,7 +25,7 @@
                 <h3>كل الخزن</h3>
                 <div class="card-action">
                     @if ($warehouse_list->count() < 2)
-                        <button type="button" class="btn btn-outline-success round waves-effect" data-bs-toggle="modal" data-bs-target="#addWarehouse">
+                        <button type="button" class="btn btn-success waves-effect" data-bs-toggle="modal" data-bs-target="#addWarehouse">
                             إنشاء خزنة
                         </button>
                     @endif
@@ -39,29 +39,36 @@
                     <table class="table table-bordered">
                         <tr>
                             <th>الخزنة</th>
-                            <th>نوع الخزنة</th>
                             <th>رصيد الربحية</th>
                             <th>الرصيد الحالي</th>
-                            <th>حالة الخزنة</th>
+                            <th>هل هي افتراضية</th>
                             <th>إجراء</th>
                         </tr>
                         @forelse ($warehouse_list as $w)
                             <tr>
                                 <td>{{ $w->name }}</td>
-                                <td>خزنة فرعية</td>
                                 <td>{{ number_format($w->account->transactions->sum('profit_amount')) }}</td>
                                 <td>{{ number_format($w->account->transactions->sum('amount')) }}</td>
                                 <td>
-                                    @if ($w->statue == 1)
-                                        <span class="badge badge-light-success">مفعلة</span>
+                                    @if ($w->is_default == 0)
+                                        <Span>لا</Span>
                                     @else
-                                        <span class="badge badge-light-danger">غير مفعلة</span>
+                                        <Span>نعم</Span>
                                     @endif
                                 </td>
                                 <td>
-                                    <a href="{{ route('warehouse.transactions', $w->id) }}" class="btn btn-info waves-effect">
+                                    <a href="{{ route('warehouse.transactions', $w->id) }}" class="btn btn-icon btn-info waves-effect">
                                         <i data-feather='eye'></i>
                                     </a>
+                                    <a href="#"
+                                    class="btn btn-icon btn-success waves-effect waves-float waves-light editBtn"
+                                    data-bs-toggle="modal" data-bs-target="#editWarehouse"
+                                    data-warehouse_id="{{ $w->id }}" 
+                                    data-name="{{ $w->name }}"
+                                    data-is_default="{{ $w->is_default }}"
+                                    >
+                                        <i data-feather='edit'></i>
+                                    </a>  
                                 </td>
                             </tr>   
                         @empty
@@ -78,4 +85,24 @@
     </section>
 @endsection
 
+@section('js')
+<script>
+    $(function(){
+        $(document).on('submit', '.formSubmit', function(e){
+            e.preventDefault();
+            $(this).find('.btnSubmit').prop('disabled', true).addClass('disabled');
+            e.currentTarget.submit();
+        });
 
+        $(document).on('click', '.editBtn', function(e){
+            let warehouse_id = $(this).data('warehouse_id');
+            let name = $(this).data('name');
+            let is_default = $(this).data('is_default');
+
+            $("#editWarehouse .warehouse_id").val(warehouse_id);
+            $("#editWarehouse .name").val(name);
+            $("#editWarehouse .is_default").val(is_default);
+        });
+    })
+</script>
+@endsection

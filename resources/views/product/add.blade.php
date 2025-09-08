@@ -44,7 +44,7 @@
                 </div>
                 <div class="mb-1">
                     <label class="form-label">اسم المنتج</label>
-                    <input type="text" class="form-control name @error('name') is-invalid @enderror" name="name" required>
+                    <input type="text" class="form-control name @error('name') is-invalid @enderror" name="name" value="{{ old('name') }}" required>
                     @error('name')
                         <div class="alert alert-danger">
                             <p>{{ @$message }}</p>

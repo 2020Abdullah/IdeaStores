@@ -49,7 +49,7 @@
             <div class="content-header row">
             </div>
             <div class="content-body">
-                <div class="auth-wrapper auth-basic px-2" style="background-image: url('{{ asset('assets/images/banner/banner-6.jpg') }}')">
+                <div class="auth-wrapper auth-basic px-2" style="background-image: url('{{ asset('assets/images/banner/banner1.jpg') }}')">
                     <div class="auth-inner my-2">
                         @yield('content')
                     </div>

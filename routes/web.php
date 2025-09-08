@@ -64,6 +64,7 @@ Route::group(['middleware' => ['auth', 'CheckAppActive']], function(){
     Route::get('warehouse/index', [WarehouseController::class, 'index'])->name('warehouse.index');
     Route::get('warehouse/add', [WarehouseController::class, 'add'])->name('warehouse.add');
     Route::post('warehouse/store', [WarehouseController::class, 'store'])->name('warehouse.store');
+    Route::post('warehouse/update', [WarehouseController::class, 'update'])->name('warehouse.update');
     Route::post('warehouse/sync', [WarehouseController::class, 'walltetsSync'])->name('wallets.sync');
     Route::get('warehouse/{id}/transactions/show', [WarehouseController::class, 'showTransactions'])->name('warehouse.transactions');
     Route::post('warehouse/transfer', [WarehouseController::class, 'transfer'])->name('warehouse.transfer');
@@ -212,8 +213,13 @@ Route::group(['middleware' => ['auth', 'CheckAppActive']], function(){
 
 Route::get('support', function () {
     return view('inactive');
-})->name('support')->middleware('redirect.if.active');
+})->name('support')->middleware('RedirectActive');
 
+Route::get('app/active', function () {
+    return view('active');
+})->name('active');
+
+Route::post('app/active', [SettingController::class, 'activeApp'])->name('activeApp');
 
 
 require __DIR__.'/auth.php';

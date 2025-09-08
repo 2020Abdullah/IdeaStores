@@ -211,7 +211,6 @@ class InvoicePurchaseController extends Controller
                 'invoice_code' => $this->generateNum(),
                 'invoice_date' => $request->invoice_date,
                 'invoice_type' => $request->invoice_type,
-                'total_amount' => $total_amount_invoice,
                 'total_amount_invoice' => $total_amount_invoice,
                 'cost_price' => $request->additional_cost,
                 'paid_amount' => 0,
@@ -281,12 +280,9 @@ class InvoicePurchaseController extends Controller
     
 
     protected function cash($request){
-        $wallet = Wallet::findOrFail($request->wallet_id);
         $supplier = Supplier::findOrFail($request->supplier_id);
         $warehouse = Warehouse::where('id', $request->warehouse_id)->first();
-        $total_amount = $this->normalizeNumber($request->total_amount);
         $total_amount_invoice = $this->normalizeNumber($request->total_amount_invoice);
-        $current_balance = $this->normalizeNumber($request->current_balance);
     
         // إنشاء الفاتورة مع إضافة user_id
         $invoice = Supplier_invoice::create([
@@ -295,7 +291,6 @@ class InvoicePurchaseController extends Controller
             'invoice_code' => $this->generateNum(),
             'invoice_date' => $request->invoice_date,
             'invoice_type' => $request->invoice_type,
-            'total_amount' => $total_amount,
             'total_amount_invoice' => $total_amount_invoice,
             'paid_amount' => $total_amount_invoice,
             'invoice_staute' => 1,
@@ -408,7 +403,6 @@ class InvoicePurchaseController extends Controller
                 'invoice_date' => $request->invoice_date,
                 'invoice_type' => $request->invoice_type,
                 'invoice_staute' => 0, // غير مدفوعة مبدئياً
-                'total_amount' => $total_amount_invoice,
                 'total_amount_invoice' => $total_amount_invoice,
                 'paid_amount' => 0,
                 'notes' => $request->notes,
@@ -438,7 +432,6 @@ class InvoicePurchaseController extends Controller
             // تحديث بيانات الفاتورة
             $invoiceToUpdate->update([
                 'invoice_date' => $request->invoice_date,
-                'total_amount' => $newAmount,
                 'total_amount_invoice' => $newAmount,
                 'notes' => $request->notes,
             ]);
@@ -546,10 +539,8 @@ class InvoicePurchaseController extends Controller
             $invoice = Supplier_invoice::findOrFail($request->id);
             $cost_total = $this->normalizeNumber($request->additional_cost);
             $newAmount = $this->normalizeNumber($request->total_amount_invoice);
-            $total_amount = $this->normalizeNumber($request->total_amount);
 
             $invoice->invoice_date = $request->invoice_date;
-            $invoice->total_amount = $total_amount;
             $invoice->total_amount_invoice = $newAmount;
             $invoice->cost_price = $cost_total;
             $invoice->notes = $request->notes;
@@ -580,14 +571,12 @@ class InvoicePurchaseController extends Controller
         try {
             $invoice = Supplier_invoice::findOrFail($request->id);
     
-            $total_amount = $this->normalizeNumber($request->total_amount);
             $newAmount    = $this->normalizeNumber($request->total_amount_invoice);
             $cost_total   = $this->normalizeNumber($request->additional_cost);
     
             // تحديث بيانات الفاتورة
             $invoice->update([
                 'invoice_date'         => $request->invoice_date,
-                'total_amount'         => $total_amount,
                 'total_amount_invoice' => $newAmount,
                 'paid_amount'          => $newAmount, // كاش → مدفوع بالكامل
                 'cost_price'           => $cost_total,
@@ -612,7 +601,7 @@ class InvoicePurchaseController extends Controller
     
             // تعديل حركة المعاملات (الخزنة) حسب المبلغ الجديد
             Account_transactions::where('source_code', $invoice->invoice_code)->update([
-                'amount' => -$total_amount
+                'amount' => -$newAmount
             ]);
 
             // ضبط المخزون بعد التعديل

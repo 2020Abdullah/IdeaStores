@@ -172,7 +172,7 @@
                         </div>
                         <div class="all_total">
                             <span>إجمالي الفاتورة :</span>
-                            <strong>{{ number_format($invoice->total_amount - $invoice->cost_prices) }}</strong> 
+                            <strong>{{ number_format($invoice->total_amount_invoice) }}</strong> 
                             <span>EGP</span>
                             <input type="hidden" name="total_amount_invoice_old" value="{{ number_format($invoice->total_amount_invoice, 2) }}">
                             <input type="hidden" class="total_amount_invoice" value="{{ number_format($invoice->total_amount_invoice, 2) }}" name="total_amount_invoice">
@@ -207,8 +207,7 @@
                     </div>
                     <div class="mb-2">
                         <label class="form-label">إجمالي الفاتورة شامل سعر التكلفة</label>
-                        <input type="hidden" class="form-control" name="total_amount_old" value="{{ number_format($invoice->total_amount, 2) }}">
-                        <input type="text" class="form-control total_amount"  name="total_amount" value="{{ number_format($invoice->total_amount, 2) }}" readonly>
+                        <input type="text" class="form-control total_amount"  value="{{ number_format($invoice->total_amount_invoice + $invoice->cost_price) }}" readonly>
                     </div>
                 @endif
                 <div class="mb-2">
@@ -665,6 +664,10 @@ $(function () {
                     data: formData,
                     contentType: false,
                     processData: false,
+                    beforeSend: function () {
+                        $("#loading-excute").fadeIn(500);
+                        $(".btnSubmit").prop("disabled", true);
+                    },
                     success: function(response) {
                         $("#loading-excute").hide();
                         $(".btnSubmit").prop("disabled", false);
@@ -685,7 +688,7 @@ $(function () {
                         }
                     },
                     error: function(xhr) {
-                        $("#loading-excute").hide();
+                        $("#loading-excute").hide(500);
                         $(".btnSubmit").prop("disabled", false);
 
                         if(xhr.responseJSON && xhr.responseJSON.errors){
@@ -695,6 +698,11 @@ $(function () {
                         } else {
                             toastr.error("فشل الاتصال بالسيرفر");
                         }
+                    },
+                    complete: function(){
+                        $('#loading-excute').fadeOut(500);
+                        $(".btnSubmit").prop("disabled", false);
+                        feather.replace();
                     }
             });
         }

@@ -395,7 +395,3 @@ body .ps__rail-y {
   margin-top: 1rem;
   margin-bottom: 1rem;
 }
-
-button:disabled {
-  cursor: not-allowed;
-}
