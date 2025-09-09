@@ -114,7 +114,7 @@
                 </div>
                 <div class="mb-1 opening_balance_container" style="display: none;">
                     <label class="form-label">قيمة الرصيد الإفتتاحي</label>
-                    <input type="number" class="form-control opening_balance_value" value="0" name="opening_balance_value">
+                    <input type="number" class="form-control opening_balance_value" name="opening_balance_value">
                 </div>
                 <div class="mb-1 alert_container" style="display: none;">
                     <div class="alert alert-danger">
@@ -637,40 +637,43 @@ $(function () {
 
     $('#invoiceForm').on('submit', function(e) {
         e.preventDefault();
+
         let form = $(this);
         let formData = new FormData(this);
+        let invoice_type = form.find('select[name="invoice_type"]').val();
         let isValid = true;
         let message = "";
 
-        let invoice_type = $(this).find('option:selected').val();
-
-        if(invoice_type != 'opening_balance'){
+        // ✅ تحقق من الحقول الأساسية (ماعدا الرصيد الافتتاحي)
+        if (invoice_type !== 'opening_balance') {
             let invoice_date = $(".invoice_date").val();
             let supplier_id = $(".supplier_id").val();
-            if(!invoice_date){
+
+            if (!invoice_date) {
                 toastr.info('يجب ملئ حقل التاريخ');
-                return; 
+                return;
             }
-            if(!supplier_id){
+            if (!supplier_id) {
                 toastr.info('يجب اختيار مورد');
-                return; 
+                return;
             }
         }
 
-        if (invoice_type == 'opening_balance') {
+        // ✅ حالة الرصيد الافتتاحي
+        if (invoice_type === 'opening_balance') {
             let opening_balance_value = $(".opening_balance_value").val();
             if (!opening_balance_value || opening_balance_value == 0) {
                 toastr.info('يجب ملئ حقل الرصيد الإفتتاحي');
-                return; // وقف مباشرة
+                return;
             }
         } else {
-            // تحقق أولًا هل فيه أصناف أصلاً
+            // ✅ تحقق من وجود أصناف
             if ($('.product-item').length === 0) {
                 toastr.info("يجب إضافة صنف واحد على الأقل إلى الفاتورة قبل الحفظ.");
                 return;
             }
 
-            // تحقق من كل صف
+            // ✅ تحقق من كل صنف
             $('.product-item').each(function(index, row) {
                 let category = $(row).find('.categorySelect').val();
                 let product = $(row).find('.productSelect').val();
@@ -680,8 +683,8 @@ $(function () {
 
                 if (!category || !product || !unit || quantity <= 0 || purchasePrice <= 0) {
                     isValid = false;
-                    message = "تأكد من إدخال جميع البيانات المطلوبة لكل صنف (تصنيف، منتج، وحدة، مقاس، كمية، وسعر الشراء).";
-                    return false; // يوقف الـ each
+                    message = "تأكد من إدخال جميع البيانات المطلوبة لكل صنف (تصنيف، منتج، وحدة، كمية، وسعر الشراء).";
+                    return false; // وقف اللوب
                 }
             });
 
@@ -690,7 +693,7 @@ $(function () {
                 return;
             }
 
-            // تحقق من وجود تكاليف
+            // ✅ تحقق من التكاليف (لو فيه)
             if ($('.cost-item').length > 0) {
                 let hasEmptyCost = false;
 
@@ -698,7 +701,7 @@ $(function () {
                     let val = parseFloat($(this).find('.costValue').val()) || 0;
                     if (val <= 0) {
                         hasEmptyCost = true;
-                        return false; // يوقف اللوب
+                        return false;
                     }
                 });
 
@@ -707,62 +710,57 @@ $(function () {
                     return;
                 }
             }
-
         }
 
-        // لو كل شيء تمام، اعرض التأكيد
+        // ✅ كل شيء تمام → تأكيد الحفظ
         if (confirm("هل أنت متأكد من حفظ البيانات؟")) {
             $.ajax({
-                    url: form.attr('action'),
-                    method: "POST",
-                    data: formData,
-                    contentType: false,
-                    processData: false,
-                    beforeSend: function () {
-                        $("#loading-excute").fadeIn(500);
-                        $(".btnSubmit").prop("disabled", true);
-                    },
-                    success: function(response) {
-                        $("#loading-excute").hide();
-                        $(".btnSubmit").prop("disabled", false);
+                url: form.attr('action'),
+                method: "POST",
+                data: formData,
+                contentType: false,
+                processData: false,
+                beforeSend: function () {
+                    $("#loading-excute").fadeIn(500);
+                    $(".btnSubmit").prop("disabled", true);
+                },
+                success: function(response) {
+                    $("#loading-excute").hide();
+                    $(".btnSubmit").prop("disabled", false);
 
-                        if(response.success){
-                            toastr.success(response.message);
-                            // لو عايز بعد الحفظ تروح لصفحة تانية
-                            if(response.redirect){
-                                window.location.href = response.redirect;
-                            }
-                            // أو تعمل reset للفورم
-                            else {
-                                form[0].reset();
-                                $('.table tbody').empty(); // تفريغ الأصناف
-                            }
+                    if (response.success) {
+                        toastr.success(response.message);
+                        if (response.redirect) {
+                            window.location.href = response.redirect;
                         } else {
-                            toastr.error(response.message || "حدث خطأ أثناء حفظ الفاتورة");
+                            form[0].reset();
+                            $('.table tbody').empty(); // تفريغ الأصناف
                         }
-                    },
-                    error: function(xhr) {
-                        $("#loading-excute").hide(500);
-                        $(".btnSubmit").prop("disabled", false);
-
-                        console.log(xhr);
-
-                        if(xhr.responseJSON && xhr.responseJSON.errors){
-                            $.each(xhr.responseJSON.errors, function(key, error){
-                                toastr.error(error[0]);
-                            });
-                        } else {
-                            toastr.error("فشل الاتصال بالسيرفر");
-                        }
-                    },
-                    complete: function(){
-                        $('#loading-excute').fadeOut(500);
-                        $(".btnSubmit").prop("disabled", false);
-                        feather.replace();
+                    } else {
+                        toastr.error(response.message || "حدث خطأ أثناء حفظ الفاتورة");
                     }
+                },
+                error: function(xhr) {
+                    $("#loading-excute").hide(500);
+                    $(".btnSubmit").prop("disabled", false);
+
+                    if (xhr.responseJSON && xhr.responseJSON.errors) {
+                        $.each(xhr.responseJSON.errors, function(key, error){
+                            toastr.error(error[0]);
+                        });
+                    } else {
+                        toastr.error("فشل الاتصال بالسيرفر");
+                    }
+                },
+                complete: function() {
+                    $('#loading-excute').fadeOut(500);
+                    $(".btnSubmit").prop("disabled", false);
+                    feather.replace();
+                }
             });
         }
     });
+
 
 
     // راقب الحقول إذا المستخدم غيّر أي حاجة
