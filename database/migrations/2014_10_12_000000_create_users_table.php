@@ -19,7 +19,7 @@ return new class extends Migration
             $table->string('password');
             $table->string('google_id')->nullable();
             $table->string('avatar')->nullable();
-            $table->tinyInteger('is_admin')->default(0);
+            $table->tinyInteger('type')->default(0);
             $table->rememberToken();
             $table->timestamps();
         });
