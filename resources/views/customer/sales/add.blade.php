@@ -736,28 +736,31 @@ $(document).ready(function(){
         }
     });
 
-    // عند عمل تسجيل للفاتورة 
+    //  عند عمل تسجيل للفاتورة
     $('#invoiceForm').on('submit', function(e) {
         e.preventDefault();
+
         let form = $(this);
         let formData = new FormData(this);
+        let invoice_type = form.find('select[name="invoice_type"]').val();
         let isValid = true;
         let message = "";
 
-        let invoice_type = $(this).find('option:selected').val();
-
-        if(invoice_type != 'opening_balance'){
+        // ✅ الحقول الأساسية (ماعدا رصيد افتتاحي)
+        if (invoice_type !== 'opening_balance') {
             let invoice_date = $(".date").val();
             let customer_id = $(".customer_id").val();
-            if(!invoice_date){
+
+            if (!invoice_date) {
                 toastr.info('يجب ملئ حقل التاريخ');
-                return; 
+                return;
             }
-            if(!customer_id){
+            if (!customer_id) {
                 toastr.info('يجب اختيار عميل');
-                return; 
+                return;
             }
-            // تحقق من التكاليف الإضافية
+
+            // ✅ التكاليف الإضافية
             if ($('.cost-item').length > 0) {
                 let hasError = false;
 
@@ -770,7 +773,6 @@ $(document).ready(function(){
                         hasError = true;
                         return false;
                     }
-
                     if (costVal <= 0) {
                         toastr.info("يجب إدخال قيمة صحيحة لكل بند تكلفة.");
                         hasError = true;
@@ -778,10 +780,10 @@ $(document).ready(function(){
                     }
                 });
 
-                if (hasError) return; // يوقف الحفظ
+                if (hasError) return;
             }
 
-            // تحقق من الخصم
+            // ✅ الخصم
             if ($('#apply_discount').val() === 'yes') {
                 let discountVal = parseFloat($('.discount_value').val()) || 0;
                 if (discountVal <= 0) {
@@ -791,24 +793,28 @@ $(document).ready(function(){
             }
         }
 
+        // ✅ رصيد افتتاحي
         if (invoice_type === 'opening_balance') {
             let opening_balance_value = $(".opening_balance_value").val();
             if (!opening_balance_value || opening_balance_value == 0) {
                 toastr.info('يجب ملئ حقل الرصيد الإفتتاحي');
-                return; 
+                return;
             }
         }
+
+        // ✅ فاتورة كاش
         else if (invoice_type === 'cash') {
             if ($('.select-warehouse.active').length === 0) {
                 toastr.info('يجب اختيار خزنة واحدة على الأقل عند الفاتورة الكاش');
-                return; 
+                return;
             }
+
             let walletMissing = false;
             $('.warehouse-field').each(function() {
                 let walletValue = $(this).find('select').val();
                 if (!walletValue) {
                     walletMissing = true;
-                    return false; // يخرج من الـ each
+                    return false;
                 }
             });
 
@@ -817,14 +823,14 @@ $(document).ready(function(){
                 return;
             }
         }
+
+        // ✅ باقي الفواتير (أصناف + تحقق منها)
         else {
-            // تحقق أولًا هل فيه أصناف أصلاً
             if ($('.product-item').length === 0) {
                 toastr.info("يجب إضافة صنف واحد على الأقل إلى الفاتورة قبل الحفظ.");
                 return;
             }
 
-            // تحقق من كل صف
             $('.product-item').each(function(index, row) {
                 let productSelect = $(row).find('.productSelect').val();
                 let quantity = $(row).find('.quantity').val();
@@ -833,7 +839,7 @@ $(document).ready(function(){
                 if (!productSelect || quantity <= 0 || sale_price <= 0) {
                     isValid = false;
                     message = "تأكد من إدخال جميع البيانات المطلوبة لكل صنف (المنتج, سعر البيع, الكمية المطلوبة).";
-                    return false; 
+                    return false;
                 }
             });
 
@@ -843,7 +849,7 @@ $(document).ready(function(){
             }
         }
 
-        // لو كل شيء تمام، اعرض التأكيد
+        // ✅ لو كل شيء تمام → تنفيذ الحفظ
         if (confirm("هل أنت متأكد من حفظ البيانات؟")) {
             $.ajax({
                 url: form.attr('action'),
@@ -859,14 +865,12 @@ $(document).ready(function(){
                     $("#loading-excute").hide();
                     $(".btnSubmit").prop("disabled", false);
 
-                    if(response.success){
+                    if (response.success) {
                         toastr.success(response.message);
-                        // لو عايز بعد الحفظ تروح لصفحة تانية
-                        if(response.redirect){
+
+                        if (response.redirect) {
                             window.location.href = response.redirect;
-                        }
-                        // أو تعمل reset للفورم
-                        else {
+                        } else {
                             form[0].reset();
                             $('.table tbody').empty(); // تفريغ الأصناف
                         }
@@ -875,11 +879,11 @@ $(document).ready(function(){
                     }
                 },
                 error: function(xhr) {
-                    console.log(xhr)
+                    console.log(xhr);
                     $("#loading-excute").hide(500);
                     $(".btnSubmit").prop("disabled", false);
 
-                    if(xhr.responseJSON && xhr.responseJSON.errors){
+                    if (xhr.responseJSON && xhr.responseJSON.errors) {
                         $.each(xhr.responseJSON.errors, function(key, error){
                             toastr.error(error[0]);
                         });
@@ -895,6 +899,7 @@ $(document).ready(function(){
             });
         }
     });
+
 
     // راقب الحقول إذا المستخدم غيّر أي حاجة
     $('form input, form select, form textarea').on('change input', function () {
