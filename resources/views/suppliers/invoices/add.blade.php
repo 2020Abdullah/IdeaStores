@@ -657,7 +657,7 @@ $(function () {
             }
         }
 
-        if (invoice_type === 'opening_balance') {
+        if (invoice_type == 'opening_balance') {
             let opening_balance_value = $(".opening_balance_value").val();
             if (!opening_balance_value || opening_balance_value == 0) {
                 toastr.info('يجب ملئ حقل الرصيد الإفتتاحي');
