@@ -33,7 +33,7 @@ class BackupController extends Controller
     
         } catch (\Exception $e) {
             return back()->with('error', 'خطأ: ' . $e->getMessage());
-        }
+        } 
     }
 
     public function restoreBackupFlexible(Request $request)
