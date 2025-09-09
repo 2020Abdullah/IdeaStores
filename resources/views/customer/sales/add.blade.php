@@ -47,7 +47,7 @@
                         <input type="hidden" class="form-control customer_id" name="customer_id" value="{{ $customer->id }}" required>
                         <input type="text" class="form-control customer_id" value="{{ $customer->name }}" readonly>
                     @else
-                        <select name="customer_id" class="form-select CustomerSelect">
+                        <select name="customer_id" class="form-select CustomerSelect customer_id">
                             <option value="">أختر العميل ...</option>
                             @foreach ($customer_list as $customer)
                                 <option value="{{ $customer->id }}">{{ $customer->name }}</option>
@@ -875,6 +875,7 @@ $(document).ready(function(){
                     }
                 },
                 error: function(xhr) {
+                    console.log(xhr)
                     $("#loading-excute").hide(500);
                     $(".btnSubmit").prop("disabled", false);
 

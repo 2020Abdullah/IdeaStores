@@ -149,8 +149,8 @@
         // flatpickr لتحديد المدى
         flatpickr("#dateRange", {
             mode: "range",
-            dateFormat: "Y-m-d", // YYYY-MM-DD مناسب للداتابيز
-            onClose: function(selectedDates, dateStr, instance) {
+            dateFormat: "Y-m-d", // مناسب للداتابيز
+            onClose: function(selectedDates, dateStr) {
                 if (!dateStr) return;
 
                 let dates = dateStr.split(" to ");
@@ -163,12 +163,11 @@
             }
         });
 
-        // عرض افتراضي عند فتح الصفحة بدون فلتر
-        loadChart(); 
+        // أول تحميل بدون فلترة
+        loadChart();
     }
 
     function loadChart(start = null, end = null) {
-        // إعداد الرابط مع التأكد من وجود start و end
         let url = '/dashboard/sales-chart';
         if (start && end) {
             url += `?start=${start}&end=${end}`;
@@ -179,10 +178,14 @@
         .then(data => {
             if (!ctx) return;
 
+            if (!Array.isArray(data)) {
+                console.error("Invalid data format:", data);
+                return;
+            }
+
             let labels = data.map(d => d.day);
+            let sales = data.map(d => d.total_sales);
             let costs = data.map(d => d.total_costs);
-            let netProfit = data.map(d => d.net_profit);
-            let profitRatio = data.map(d => d.profit_ratio);
 
             if (chart) chart.destroy();
 
@@ -191,9 +194,8 @@
                 data: {
                     labels: labels,
                     datasets: [
-                        { label: 'إجمالي التكاليف', data: costs, backgroundColor: '#4e73df', yAxisID: 'y' },
-                        { label: 'صافي الربح', data: netProfit, backgroundColor: '#1cc88a', yAxisID: 'y' },
-                        { label: 'نسبة الربحية %', data: profitRatio, type: 'line', borderColor: '#f6c23e', backgroundColor: '#f6c23e', yAxisID: 'y1', tension: 0.4, pointBackgroundColor: '#f6c23e', fill: false }
+                        { label: 'المبيعات', data: sales, backgroundColor: '#4e73df' },
+                        { label: 'المشتريات + التكاليف', data: costs, backgroundColor: '#e74a3b' }
                     ]
                 },
                 options: {
@@ -201,20 +203,16 @@
                     maintainAspectRatio: false,
                     plugins: {
                         legend: { position: 'top' },
-                        title: { display: true, text: start && end ? `إحصائيات من ${start} إلى ${end}` : 'إحصائيات آخر البيانات' },
-                        tooltip: { 
-                            callbacks: { 
-                                label: function(context) { 
-                                    return context.dataset.label === 'نسبة الربحية %' 
-                                        ? context.parsed.y + '%' 
-                                        : context.dataset.label + ': ' + context.parsed.y; 
-                                } 
-                            } 
+                        title: { 
+                            display: true, 
+                            text: start && end 
+                                ? `إحصائيات من ${start} إلى ${end}` 
+                                : 'إحصائيات المبيعات والمشتريات اليومية' 
                         }
                     },
                     scales: {
-                        y: { beginAtZero: true, position: 'left', title: { display: true, text: 'القيمة' } },
-                        y1: { beginAtZero: true, position: 'right', title: { display: true, text: 'النسبة %' }, grid: { drawOnChartArea: false } }
+                        y: { beginAtZero: true, title: { display: true, text: 'القيمة' } },
+                        x: { title: { display: true, text: 'اليوم' } }
                     }
                 }
             });
@@ -253,7 +251,7 @@
                         cutout: "65%",
                         plugins: {
                             legend: { position: "bottom" },
-                            title: { display: true, text: `مقارنة صافي الربح بإجمالي التكاليف` },
+                            title: { display: true, text: `مقارنة المبيعات بإجمالي التكاليف` },
                             tooltip: {
                                 callbacks: {
                                     label: function(context) {

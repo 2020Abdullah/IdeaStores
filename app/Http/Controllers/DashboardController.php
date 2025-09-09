@@ -73,21 +73,21 @@ class DashboardController extends Controller
             }
     
             $start = $request->input('start');
-            $end = $request->input('end');
+            $end   = $request->input('end');
     
-            // استعلام فواتير العملاء
-            $profitQuery = DB::table('customer_invoices')
-                ->selectRaw('DATE(date) as day, SUM(total_profit) as total_profit')
+            // إجمالي المبيعات اليومية (بعد الخصومات)
+            $salesQuery = DB::table('customer_invoices')
+                ->selectRaw('DATE(date) as day, SUM(total_amount) as total_sales')
                 ->groupBy('day')
                 ->orderBy('day', 'ASC');
     
             if ($start && $end) {
-                $profitQuery->whereBetween('date', [$start, $end]);
+                $salesQuery->whereBetween('date', [$start, $end]);
             }
     
-            $profitData = $profitQuery->get()->keyBy('day');
+            $salesData = $salesQuery->get()->keyBy('day');
     
-            // استعلام فواتير الموردين
+            // إجمالي المشتريات + التكاليف اليومية
             $costsQuery = DB::table('supplier_invoices')
                 ->selectRaw('DATE(invoice_date) as day, SUM(total_amount_invoice + cost_price) as total_costs')
                 ->groupBy('day')
@@ -99,28 +99,28 @@ class DashboardController extends Controller
     
             $costsData = $costsQuery->get()->keyBy('day');
     
-            // دمج جميع الأيام من الاثنين
-            $allDays = collect(array_unique(array_merge($profitData->keys()->toArray(), $costsData->keys()->toArray())))->sort();
+            // دمج الأيام
+            $allDays = collect(array_unique(array_merge(
+                $salesData->keys()->toArray(),
+                $costsData->keys()->toArray()
+            )))->sort();
     
-            $chartData = $allDays->map(function($day) use ($profitData, $costsData) {
-                $totalCosts = isset($costsData[$day]) ? $costsData[$day]->total_costs : 0;
-                $netProfit = isset($profitData[$day]) ? $profitData[$day]->total_profit : 0;
-                $profitRatio = $totalCosts > 0 ? ($netProfit / $totalCosts) * 100 : 0;
-    
+            $chartData = $allDays->map(function($day) use ($salesData, $costsData) {
                 return [
-                    'day' => $day,
-                    'total_costs' => (float) $totalCosts,
-                    'net_profit' => (float) $netProfit,
-                    'profit_ratio' => round($profitRatio, 2),
+                    'day'         => $day,
+                    'total_sales' => (float) ($salesData[$day]->total_sales ?? 0),
+                    'total_costs' => (float) ($costsData[$day]->total_costs ?? 0),
                 ];
             });
     
-            return response()->json($chartData);
+            return response()->json($chartData->values()->all());
     
         } catch (\Exception $e) {
             return response()->json(['error' => $e->getMessage()], 500);
         }
     }
+    
+    
     
     public function profitLossChart()
     {
@@ -144,12 +144,12 @@ class DashboardController extends Controller
     
         // صافي الربح من المبيعات
         $netProfit = (Schema::hasTable('customer_invoices') && Schema::hasColumn('customer_invoices', 'total_profit'))
-            ? (float) DB::table('customer_invoices')->sum('total_profit')
+            ? (float) DB::table('customer_invoices')->sum('total_amount')
             : 0;
     
         // بيانات الرسم البياني
         $pieData = [
-            'labels' => ['إجمالي التكاليف', 'صافي الربح'],
+            'labels' => ['إجمالي التكاليف', 'المبيعات'],
             'datasets' => [[
                 'data' => [round($totalCosts, 2), round($netProfit, 2)],
                 'backgroundColor' => ['#f87171', '#34d399'] // أحمر للتكاليف / أخضر للربح

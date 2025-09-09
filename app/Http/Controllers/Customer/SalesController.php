@@ -15,6 +15,7 @@ use App\Models\Stock;
 use App\Models\Stock_movement;
 use App\Models\Wallet;
 use App\Models\Warehouse;
+use DragonCode\PrettyArray\Services\Formatters\Json;
 use Exception;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -69,16 +70,18 @@ class SalesController extends Controller
     }
 
     public function store(customerInvoiceRequest $request){
+        DB::beginTransaction();
         try {
             if($request->invoice_type === 'opening_balance'){
-                return $this->addOpenBalance($request);
+                $this->addOpenBalance($request);
             }
             elseif($request->invoice_type === 'credit'){
-                return $this->credit($request);
+                $this->credit($request);
             }
             else {
-                return $this->cash($request);
+                $this->cash($request);
             }
+            DB::commit();
             return response()->json([
                 'success' => true,
                 'message' => 'تم حفظ الفاتورة بنجاح',
@@ -86,6 +89,7 @@ class SalesController extends Controller
             ]);
         }
         catch (\Exception $e) {
+            DB::rollBack();
             return response()->json([
                 'success' => false,
                 'message' => 'حدث خطأ: ' . $e->getMessage()
@@ -94,6 +98,7 @@ class SalesController extends Controller
     }
 
     public function update(customerInvoiceRequest $request){
+        DB::beginTransaction();
         try {
             if($request->invoice_type === 'opening_balance'){
                 $this->updateOpenBalance($request);
@@ -104,6 +109,7 @@ class SalesController extends Controller
             else {
                 $this->updateCash($request);
             }
+            DB::commit();
             return response()->json([
                 'success' => true,
                 'message' => 'تم تحديث الفاتورة بنجاح',
@@ -111,6 +117,7 @@ class SalesController extends Controller
             ]);
         }
         catch (\Exception $e) {
+            DB::rollBack();
             return response()->json([
                 'success' => false,
                 'message' => 'حدث خطأ: ' . $e->getMessage()
@@ -119,131 +126,107 @@ class SalesController extends Controller
     }
 
     public function updateOpenBalance($request){
-        DB::beginTransaction();
-        try {
-            // 1. تحديث الفاتورة 
-            $invoice = CustomerInvoices::findOrFail($request->id);
-            $invoice->date = $request->date;
-            $invoice->total_amount = $this->normalizeNumber($request->total_amount_invoice);
-            $invoice->total_amount_without_discount = $this->normalizeNumber($request->total_amount_invoice);
-            $invoice->notes = $request->notes;
-            $invoice->save();
-    
-            // 2. تحديث حالة الفواتير والمبالغ المستحقة
-            $this->updateInvoiceState($request);
-    
-            DB::commit();
-        }
-        catch(Exception $e){
-            DB::rollBack();
-        }
+        // 1. تحديث الفاتورة 
+        $invoice = CustomerInvoices::findOrFail($request->id);
+        $invoice->date = $request->date;
+        $invoice->total_amount = $this->normalizeNumber($request->total_amount_invoice);
+        $invoice->total_amount_without_discount = $this->normalizeNumber($request->total_amount_invoice);
+        $invoice->notes = $request->notes;
+        $invoice->save();
+
+        // 2. تحديث حالة الفواتير والمبالغ المستحقة
+        $this->updateInvoiceState($request);
     }
 
     public function updateCredit($request){
-        DB::beginTransaction();
-        try {
-            // 1. تحديث الفاتورة 
-            $invoice = CustomerInvoices::findOrFail($request->id);
-            $invoice->date = $request->date;
-            $invoice->total_amount_without_discount = $this->normalizeNumber($request->total_amount_without_discount);
-            $invoice->total_amount = $this->normalizeNumber($request->total_amount);
-            $invoice->notes = $request->notes;
-            $invoice->cost_price = $request->additional_cost;
-            $invoice->discount_type = $request->discount_type;
-            $invoice->discount_value = $request->discount_value;
-            $invoice->save();
+        // 1. تحديث الفاتورة 
+        $invoice = CustomerInvoices::findOrFail($request->id);
+        $invoice->date = $request->date;
+        $invoice->total_amount_without_discount = $this->normalizeNumber($request->total_amount_without_discount);
+        $invoice->total_amount = $this->normalizeNumber($request->total_amount);
+        $invoice->notes = $request->notes;
+        $invoice->cost_price = $request->additional_cost;
+        $invoice->discount_type = $request->discount_type;
+        $invoice->discount_value = $request->discount_value;
+        $invoice->save();
 
-            // 2. تحديث الإستوك
-            $this->updateStock($request, $invoice);
-    
-            // 3. تحديث حالة الفواتير والمبالغ المستحقة
-            $this->updateInvoiceState($request);
+        // 2. تحديث الإستوك
+        $this->updateStock($request, $invoice);
 
-            // 4. تحديث التكاليف إن وجدت
-            $this->updateCost($request, $invoice);
+        // 3. تحديث حالة الفواتير والمبالغ المستحقة
+        $this->updateInvoiceState($request);
 
-            // 5. توزيع الربحية
-            $this->ProfitDistribution($invoice);
-    
-            DB::commit();
-        }
-        catch(Exception $e){
-            DB::rollBack();
-        }
+        // 4. تحديث التكاليف إن وجدت
+        $this->updateCost($request, $invoice);
+
+        // 5. توزيع الربحية
+        $this->ProfitDistribution($invoice);
     }
 
     public function updateCash($request){
-        DB::beginTransaction();
-        try {
-            $total_amount = $this->normalizeNumber($request->total_amount);
-            $total_amount_without_discount = $this->normalizeNumber($request->total_amount_without_discount);
-            $total_profit_inv = $this->normalizeNumber($request->total_profit_inv);
-    
-            // حساب المبلغ بعد الخصم
-            $finalAmount = $total_amount_without_discount;
-            if ($request->discount_type && $request->discount_value) {
-                if ($request->discount_type === 'percent') {
-                    $finalAmount -= ($total_amount_without_discount * $request->discount_value / 100);
-                } else {
-                    $finalAmount -= $request->discount_value;
-                }
-            }
-    
-            // 1. تعديل الفاتورة
-            $invoice = CustomerInvoices::findOrFail($request->id);
-            $invoice->update([
-                'date' => $request->date,
-                'total_amount_without_discount' => $total_amount_without_discount,
-                'total_amount' => $total_amount,
-                'paid_amount' => $finalAmount,
-                'total_profit' => $total_profit_inv,
-                'cost_price' => $request->additional_cost,
-                'notes' => $request->notes ?? '',
-                'discount_type' => $request->discount_type ?? '',
-                'discount_value' => $request->discount_value,
-            ]);
-    
-            // 2. ضبط المخزن وخصم البضاعة
-            $this->updateStock($request, $invoice);
-    
-            // 3. تعديل أو إنشاء حركة الخزنة
-            $transaction = Account_transactions::where('source_code', $invoice->code)->first();
-    
-            if ($transaction) {
-                $transaction->amount = $finalAmount;
-                $transaction->profit_amount = $total_profit_inv;
-                $transaction->description = $request->notes ?? 'تحصيل فاتورة مبيعات كاش';
-                $transaction->save();
+        $total_amount = $this->normalizeNumber($request->total_amount);
+        $total_amount_without_discount = $this->normalizeNumber($request->total_amount_without_discount);
+        $total_profit_inv = $this->normalizeNumber($request->total_profit_inv);
+
+        // حساب المبلغ بعد الخصم
+        $finalAmount = $total_amount_without_discount;
+        if ($request->discount_type && $request->discount_value) {
+            if ($request->discount_type === 'percent') {
+                $finalAmount -= ($total_amount_without_discount * $request->discount_value / 100);
             } else {
-                // إذا لم يكن موجودًا يمكن إنشاء عملية جديدة
-                // لاحظ: تأكد من تمرير warehouse_id و wallet_id المناسبين
-                Account_transactions::create([
-                    'account_id'       => $request->warehouse_account_id ?? null,
-                    'wallet_id'        => $request->wallet_id ?? null,
-                    'direction'        => 'in',
-                    'amount'           => $finalAmount,
-                    'profit_amount'    => $total_profit_inv,
-                    'transaction_type' => 'sale',
-                    'related_type'     => Customer::class,
-                    'related_id'       => $request->customer_id,
-                    'description'      => $request->notes ?? 'تحصيل فاتورة مبيعات كاش',
-                    'source_code'      => $invoice->code,
-                    'date'             => $invoice->date,
-                    'user_id'          => $this->user_id,
-                ]);
+                $finalAmount -= $request->discount_value;
             }
-    
-            // 4. تحديث التكاليف إن وجدت
-            $this->updateCost($request, $invoice);
-    
-            // 5. توزيع الربحية
-            $this->ProfitDistribution($invoice);
-    
-            DB::commit();
         }
-        catch(Exception $e){
-            DB::rollBack();
+
+        // 1. تعديل الفاتورة
+        $invoice = CustomerInvoices::findOrFail($request->id);
+        $invoice->update([
+            'date' => $request->date,
+            'total_amount_without_discount' => $total_amount_without_discount,
+            'total_amount' => $total_amount,
+            'paid_amount' => $finalAmount,
+            'total_profit' => $total_profit_inv,
+            'cost_price' => $request->additional_cost,
+            'notes' => $request->notes ?? '',
+            'discount_type' => $request->discount_type ?? '',
+            'discount_value' => $request->discount_value,
+        ]);
+
+        // 2. ضبط المخزن وخصم البضاعة
+        $this->updateStock($request, $invoice);
+
+        // 3. تعديل أو إنشاء حركة الخزنة
+        $transaction = Account_transactions::where('source_code', $invoice->code)->first();
+
+        if ($transaction) {
+            $transaction->amount = $finalAmount;
+            $transaction->profit_amount = $total_profit_inv;
+            $transaction->description = $request->notes ?? 'تحصيل فاتورة مبيعات كاش';
+            $transaction->save();
+        } else {
+            // إذا لم يكن موجودًا يمكن إنشاء عملية جديدة
+            // لاحظ: تأكد من تمرير warehouse_id و wallet_id المناسبين
+            Account_transactions::create([
+                'account_id'       => $request->warehouse_account_id ?? null,
+                'wallet_id'        => $request->wallet_id ?? null,
+                'direction'        => 'in',
+                'amount'           => $finalAmount,
+                'profit_amount'    => $total_profit_inv,
+                'transaction_type' => 'sale',
+                'related_type'     => Customer::class,
+                'related_id'       => $request->customer_id,
+                'description'      => $request->notes ?? 'تحصيل فاتورة مبيعات كاش',
+                'source_code'      => $invoice->code,
+                'date'             => $invoice->date,
+                'user_id'          => $this->user_id,
+            ]);
         }
+
+        // 4. تحديث التكاليف إن وجدت
+        $this->updateCost($request, $invoice);
+
+        // 5. توزيع الربحية
+        $this->ProfitDistribution($invoice);
     }
     
 
@@ -353,178 +336,158 @@ class SalesController extends Controller
 
     protected function addOpenBalance($request)
     {
-        DB::beginTransaction();
-        try {
-            $total_amount_invoice = $this->normalizeNumber($request->opening_balance_value);
+        $total_amount_invoice = $this->normalizeNumber($request->opening_balance_value);
 
-            // تأكد أنه لا يوجد رصيد افتتاحي سابق
-            $exists = CustomerInvoices::where([
-                'customer_id' => $request->customer_id,
-                'type' => 'opening_balance'
-            ])->exists();
+        // تأكد أنه لا يوجد رصيد افتتاحي سابق
+        $exists = CustomerInvoices::where([
+            'customer_id' => $request->customer_id,
+            'type' => 'opening_balance'
+        ])->exists();
 
-            if ($exists) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'هذا العميل لديه رصيد افتتاحي من قبل'
-                ], 500);
-            }
-
-            // إنشاء الفاتورة (رصيد افتتاحي)
-            $invoice = CustomerInvoices::create([
-                'customer_id' => $request->customer_id,
-                'code' => $this->generateNum(),
-                'date' => $request->date,
-                'type' => $request->invoice_type,
-                'staute' => 0, 
-                'total_amount' => $total_amount_invoice,
-                'total_amount_without_discount' => $total_amount_invoice,
-                'paid_amount' => 0,
-                'notes' => $request->notes,
-                'user_id' => $this->user_id,
-            ]);
-              
-            // تحديث الفواتير أولاً بأول وإعادة حساب رصيد المورد    
-            $this->updateInvoiceState($request);
-
-            DB::commit();
-        } catch (\Exception $e) {
-            DB::rollBack();
+        if ($exists) {
+            return response()->json([
+                'success' => false,
+                'message' => 'هذا العميل لديه رصيد افتتاحي من قبل'
+            ], 500);
         }
+
+        // إنشاء الفاتورة (رصيد افتتاحي)
+        $invoice = CustomerInvoices::create([
+            'customer_id' => $request->customer_id,
+            'code' => $this->generateNum(),
+            'date' => $request->date,
+            'type' => $request->invoice_type,
+            'staute' => 0, 
+            'total_amount' => $total_amount_invoice,
+            'total_amount_without_discount' => $total_amount_invoice,
+            'paid_amount' => 0,
+            'notes' => $request->notes,
+            'user_id' => $this->user_id,
+        ]);
+            
+        // تحديث الفواتير أولاً بأول وإعادة حساب رصيد المورد    
+        $this->updateInvoiceState($request);
+
     }
 
     protected function credit($request){
-        DB::beginTransaction();
-        try {
-            $total_amount_without_discount = $this->normalizeNumber($request->total_amount_without_discount);
-            $total_amount_invoice = $this->normalizeNumber($request->total_amount);
-            $total_profit_inv = $this->normalizeNumber($request->total_profit_inv);
-            // 1. تسجيل الفاتورة 
-            $invoice = CustomerInvoices::create([
-                'customer_id' => $request->customer_id,
-                'code' => $this->generateNum(),
-                'date' => $request->date,
-                'type' => $request->invoice_type,
-                'total_amount_without_discount' => $total_amount_without_discount,
-                'total_amount' => $total_amount_invoice,
-                'total_profit' => $total_profit_inv,
-                'cost_price' => $request->additional_cost,
-                'paid_amount' => 0,
-                'staute' => 0, 
-                'notes' => $request->notes,
-                'discount_type' => $request->discount_type,
-                'discount_value' => $request->discount_value,
-                'user_id' => $this->user_id,
-            ]);
+        $total_amount_without_discount = $this->normalizeNumber($request->total_amount_without_discount);
+        $total_amount_invoice = $this->normalizeNumber($request->total_amount);
+        $total_profit_inv = $this->normalizeNumber($request->total_profit_inv);
+        // 1. تسجيل الفاتورة 
+        $invoice = CustomerInvoices::create([
+            'customer_id' => $request->customer_id,
+            'code' => $this->generateNum(),
+            'date' => $request->date,
+            'type' => $request->invoice_type,
+            'total_amount_without_discount' => $total_amount_without_discount,
+            'total_amount' => $total_amount_invoice,
+            'total_profit' => $total_profit_inv,
+            'cost_price' => $request->additional_cost,
+            'paid_amount' => 0,
+            'staute' => 0, 
+            'notes' => $request->notes,
+            'discount_type' => $request->discount_type,
+            'discount_value' => $request->discount_value,
+            'user_id' => $this->user_id,
+        ]);
 
-            // 2. إعادة حساب الأرصدة وضبطها 
-            $this->updateInvoiceState($request);
+        // 2. إعادة حساب الأرصدة وضبطها 
+        $this->updateInvoiceState($request);
 
-            // 3. خصم الكمية المباعة من المخزن
-            $this->updateStock($request, $invoice);
+        // 3. خصم الكمية المباعة من المخزن
+        $this->updateStock($request, $invoice);
 
-            // 4. تحديث التكاليف إن وجدت
-            $this->updateCost($request, $invoice);
+        // 4. تحديث التكاليف إن وجدت
+        $this->updateCost($request, $invoice);
 
-            // 5. توزيع الربحية
-            $this->ProfitDistribution($invoice);
+        // 5. توزيع الربحية
+        $this->ProfitDistribution($invoice);
 
-            DB::commit();
-        }
-        catch(Exception $e){
-            DB::rollBack();
-        }
     }
 
     protected function cash($request)
     {
-        DB::beginTransaction();
-        try {
-            $total_amount = $this->normalizeNumber($request->total_amount);
-            $total_amount_without_discount = $this->normalizeNumber($request->total_amount_without_discount);
-            $total_profit_inv = $this->normalizeNumber($request->total_profit_inv);
-    
-            // حساب المبلغ بعد الخصم
-            $finalAmount = $total_amount_without_discount;
-            if ($request->discount_type && $request->discount_value) {
-                if ($request->discount_type === 'percent') {
-                    $finalAmount -= ($total_amount_without_discount * $request->discount_value / 100);
-                } else {
-                    // خصم بقيمة ثابتة
-                    $finalAmount -= $request->discount_value;
-                }
+        $total_amount = $this->normalizeNumber($request->total_amount);
+        $total_amount_without_discount = $this->normalizeNumber($request->total_amount_without_discount);
+        $total_profit_inv = $this->normalizeNumber($request->total_profit_inv);
+
+        // حساب المبلغ بعد الخصم
+        $finalAmount = $total_amount_without_discount;
+        if ($request->discount_type && $request->discount_value) {
+            if ($request->discount_type === 'percent') {
+                $finalAmount -= ($total_amount_without_discount * $request->discount_value / 100);
+            } else {
+                // خصم بقيمة ثابتة
+                $finalAmount -= $request->discount_value;
             }
-    
-            // 1. إنشاء الفاتورة
-            $invoice = CustomerInvoices::create([
-                'customer_id' => $request->customer_id,
-                'code' => $this->generateNum(),
-                'date' => $request->date,
-                'type' => $request->invoice_type,
-                'total_amount_without_discount' => $total_amount_without_discount,
-                'total_amount' => $total_amount,
-                'total_profit' => $total_profit_inv,
-                'cost_price' => $request->additional_cost,
-                'paid_amount' => $finalAmount,
-                'staute' => 1, 
-                'notes' => $request->notes,
-                'discount_type' => $request->discount_type,
-                'discount_value' => $request->discount_value,
-                'user_id' => $this->user_id,
-            ]);
-    
-            // 2. ضبط المخزن وخصم البضاعة وتسجيل عناصر الفاتورة
-            $this->updateStock($request, $invoice);
-    
-            // 3. جمع بيانات الخزن والمحافظ الديناميكية
-            $warehouses = [];
-            if ($request->warehouses && is_array($request->warehouses)) {
-                foreach ($request->warehouses as $wh) {
-                    if (!empty($wh['warehouse_id']) && !empty($wh['wallet_id'])) {
-                        $warehouses[] = [
-                            'warehouse_id' => $wh['warehouse_id'],
-                            'wallet_id'    => $wh['wallet_id']
-                        ];
-                    }
-                }
-            }
-    
-            // 4. توزيع المبلغ والربح على الخزن المحددة
-            $count = count($warehouses);
-            if ($count > 0) {
-                $share = $count > 1 ? $finalAmount / $count : $finalAmount;
-                $shareProfit = $count > 1 ? $total_profit_inv / $count : $total_profit_inv;
-                foreach ($warehouses as $wh) {
-                    $warehouseModel = Warehouse::find($wh['warehouse_id']);
-                    if ($warehouseModel && $warehouseModel->account) {
-                        Account_transactions::create([
-                            'account_id'       => $warehouseModel->account->id,
-                            'wallet_id'        => $wh['wallet_id'],
-                            'direction'        => 'in',
-                            'amount'           => $share,
-                            'profit_amount'    => $shareProfit,
-                            'transaction_type' => 'sale',
-                            'related_type'     => Customer::class,
-                            'related_id'       => $request->customer_id,
-                            'description'      => $request->notes ?? 'تحصيل فاتورة مبيعات كاش',
-                            'source_code'      => $invoice->code,
-                            'date'             => $invoice->invoice_date,
-                            'user_id'          => $this->user_id,
-                        ]);
-                    }
-                }
-            }
-    
-            // 5. تحديث التكاليف إن وجدت
-            $this->updateCost($request, $invoice);
-    
-            // 6. توزيع الربحية
-            $this->ProfitDistribution($invoice);
-            
-            DB::commit();
-        } catch(Exception $e){
-            DB::rollBack();
         }
+
+        // 1. إنشاء الفاتورة
+        $invoice = CustomerInvoices::create([
+            'customer_id' => $request->customer_id,
+            'code' => $this->generateNum(),
+            'date' => $request->date,
+            'type' => $request->invoice_type,
+            'total_amount_without_discount' => $total_amount_without_discount,
+            'total_amount' => $total_amount,
+            'total_profit' => $total_profit_inv,
+            'cost_price' => $request->additional_cost,
+            'paid_amount' => $finalAmount,
+            'staute' => 1, 
+            'notes' => $request->notes,
+            'discount_type' => $request->discount_type,
+            'discount_value' => $request->discount_value,
+            'user_id' => $this->user_id,
+        ]);
+
+        // 2. ضبط المخزن وخصم البضاعة وتسجيل عناصر الفاتورة
+        $this->updateStock($request, $invoice);
+
+        // 3. جمع بيانات الخزن والمحافظ الديناميكية
+        $warehouses = [];
+        if ($request->warehouses && is_array($request->warehouses)) {
+            foreach ($request->warehouses as $wh) {
+                if (!empty($wh['warehouse_id']) && !empty($wh['wallet_id'])) {
+                    $warehouses[] = [
+                        'warehouse_id' => $wh['warehouse_id'],
+                        'wallet_id'    => $wh['wallet_id']
+                    ];
+                }
+            }
+        }
+
+        // 4. توزيع المبلغ والربح على الخزن المحددة
+        $count = count($warehouses);
+        if ($count > 0) {
+            $share = $count > 1 ? $finalAmount / $count : $finalAmount;
+            $shareProfit = $count > 1 ? $total_profit_inv / $count : $total_profit_inv;
+            foreach ($warehouses as $wh) {
+                $warehouseModel = Warehouse::find($wh['warehouse_id']);
+                if ($warehouseModel && $warehouseModel->account) {
+                    Account_transactions::create([
+                        'account_id'       => $warehouseModel->account->id,
+                        'wallet_id'        => $wh['wallet_id'],
+                        'direction'        => 'in',
+                        'amount'           => $share,
+                        'profit_amount'    => $shareProfit,
+                        'transaction_type' => 'sale',
+                        'related_type'     => Customer::class,
+                        'related_id'       => $request->customer_id,
+                        'description'      => $request->notes ?? 'تحصيل فاتورة مبيعات كاش',
+                        'source_code'      => $invoice->code,
+                        'date'             => $invoice->invoice_date,
+                        'user_id'          => $this->user_id,
+                    ]);
+                }
+            }
+        }
+
+        // 5. تحديث التكاليف إن وجدت
+        $this->updateCost($request, $invoice);
+
+        // 6. توزيع الربحية
+        $this->ProfitDistribution($invoice); 
     }
     
     
