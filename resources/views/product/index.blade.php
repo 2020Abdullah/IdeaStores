@@ -68,9 +68,9 @@
                             <a href="{{ route('product.edit', $p->id) }}" class="btn btn-icon btn-success waves-effect waves-float waves-light editBtn">
                                 <i data-feather='edit'></i>
                             </a>
-                            <a href="#" data-bs-toggle="modal" data-bs-target="#delProduct" data-id="{{ $p->id }}" class="btn btn-icon btn-danger waves-effect waves-float waves-light delBtn" data-bs-toggle="modal" data-bs-target="#deleteModal">
+                            {{-- <a href="#" data-bs-toggle="modal" data-bs-target="#delProduct" data-id="{{ $p->id }}" class="btn btn-icon btn-danger waves-effect waves-float waves-light delBtn" data-bs-toggle="modal" data-bs-target="#deleteModal">
                                 <i data-feather='trash-2'></i>
-                            </a>
+                            </a> --}}
                         </td>
                     </tr>
                 @empty

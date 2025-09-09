@@ -92,13 +92,13 @@
                                 </a>
                             @endif
             
-            
+{{--             
                             <a href="#" data-bs-toggle="modal" data-bs-target="#delcate"
                                data-id="{{ $c->id }}"
                                class="btn btn-icon btn-danger waves-effect waves-float waves-light delBtn"
                                title="حذف">
                                 <i data-feather='trash-2'></i>
-                            </a>
+                            </a> --}}
                         </td>
                     </tr>
                 @empty
